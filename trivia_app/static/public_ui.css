@@ -12,5 +12,23 @@ body.stadium-playing .site-footer { display:none; }
 .ad-slot > small { display:block; margin-bottom:8px; text-align:center; color:var(--muted); font-size:10px; }
 .ad-creative { width:100%; height:90px; overflow:hidden; }
 .ad-slot[data-preview] .ad-creative { background:var(--surface-raised); outline:1px dashed var(--border); outline-offset:-1px; }
-body.stadium-playing:not(.stadium-ending) .ad-slot { display:none!important; }
+body.stadium-playing:not(.stadium-ending) .ad-slot:not(.ad-gameplay) { display:none!important; }
 @media(max-width:600px) { .ad-slot { max-width:320px; }.ad-creative { height:100px; } }
+
+/* Desktop-only additions. Hidden by default, including large touch screens.
+ * Keep the gameplay banner OUTSIDE #question-panel's fixed mobile grid. */
+.ad-rail,.ad-gameplay { display:none; }
+#question-panel[hidden] ~ .ad-gameplay,body.stadium-ending .ad-gameplay { display:none; }
+@media(min-width:1101px) and (min-height:760px) and (hover:hover) and (pointer:fine) {
+  .ad-gameplay:not([hidden]) { display:block; width:320px; max-width:100%; margin:32px auto 0; padding-top:16px; }
+  .ad-gameplay .ad-creative { height:50px; }
+}
+/* 820px is the existing content width. Both 160x600 rails stay 24px away
+ * from that content, below the header, and disappear while the pitch is live. */
+@media(min-width:1280px) and (min-height:780px) and (hover:hover) and (pointer:fine) {
+  .ad-rail:not([hidden]) { display:block; position:fixed; z-index:1; top:120px; width:160px; margin:0; padding:0; border:0; }
+  .ad-rail .ad-creative { height:600px; }
+  .ad-rail-left { left:calc((100% - 820px)/2 - 184px); }
+  .ad-rail-right { right:calc((100% - 820px)/2 - 184px); }
+  body.stadium-ending .ad-rail { opacity:var(--stadium-result,0); }
+}

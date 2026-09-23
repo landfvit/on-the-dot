@@ -67,23 +67,32 @@ questions include those seasons, not complete statistical coverage for every one
 
 ## Advertising Slots
 
-Three inactive placements are available:
+Six inactive placements are available:
 
 | Slot | Position | Desktop | Mobile |
 | --- | --- | --- | --- |
 | game-selection | Below game selection | Up to 728 x 90 | Up to 320 x 100 |
 | shootout-results | Below results/actions and registration offer | Up to 728 x 90 | Up to 320 x 100 |
 | leaderboard-bottom | Below ranking and pagination | Up to 728 x 90 | Up to 320 x 100 |
+| sidebar-left | Left of selection, results or leaderboard | 160 x 600 | Hidden |
+| sidebar-right | Right of selection, results or leaderboard | 160 x 600 | Hidden |
+| gameplay-bottom | Below question/answer controls during a game | 320 x 50 | Hidden |
 
 Preview with `/penalties?ad_preview=1` or `/leaderboard?ad_preview=1`. Empty normal
 placements occupy no space. Preview does not load any ad network, analytics,
-tracking pixels or cookies. Ads are forcibly hidden during timed gameplay and
-entry/role transitions. Account, login and recovery pages contain no ad placements.
+tracking pixels or cookies. During a game only `gameplay-bottom` can appear: it
+is outside the question grid, has a 32px gap below controls and follows the same
+panel reveal as the questions. Its desktop breakpoint is 1101 x 760; side rails
+require at least 1280 x 780. Both also require a fine pointer and hover support.
+Smaller windows and touch devices retain the original layout without these slots.
+Side rails never overlay the live pitch; they fade back with the results.
+Account, login, history and recovery pages contain no ad placements.
 
 When adding a provider, keep each creative inside `.ad-creative`, reserve these
 dimensions before requesting an ad, and integrate the appropriate consent flow
-before loading external code. Do not put ads next to answer buttons or intercept
-New shootout; no interstitials or timed popups have been implemented.
+before loading external code. Keep the gameplay banner's separation from answer
+buttons and do not intercept New shootout; no interstitials or timed popups have
+been implemented. Never expand a creative beyond its reserved bounds.
 
 ## Checks
 
@@ -99,4 +108,5 @@ With Playwright and Sharp on `NODE_PATH` and a local preview on port 8013:
 ```sh
 node tests/test_settings_browser.cjs
 node tests/test_mobile_layout.cjs
+node tests/test_ad_layout.cjs
 ```

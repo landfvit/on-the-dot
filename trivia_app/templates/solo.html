@@ -39,6 +39,7 @@
     <div class="feedback-slot"><p id="feedback" role="status" aria-live="polite"></p><button id="feedback-expand" type="button" aria-label="Read full explanation" title="Read full explanation" hidden><img src="/trivia-assets/icons/arrow-right.svg" alt=""></button></div>
     <div class="actions"><button id="next" class="primary" hidden>Next shot</button><button id="leave">End shootout</button><button id="retry" hidden>Reconnect</button></div>
     </div>
+    {% with ad_slot='gameplay-bottom', ad_class='ad-gameplay' %}{% include 'ad_slot.html' %}{% endwith %}
     <section id="summary" hidden aria-labelledby="result-heading">
       <div class="result-heading-row"><h2 id="result-heading" tabindex="-1"></h2><button id="share-result" class="icon-button" type="button" aria-label="Share with friends" title="Share with friends" disabled><img src="/trivia-assets/icons/share-2.svg" alt=""><span>Share with friends</span></button></div>
       <p id="result-completion" class="muted"></p>

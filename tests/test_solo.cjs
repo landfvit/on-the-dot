@@ -110,8 +110,8 @@ test('timeout is a miss and wrong answer is a save',async()=>{
     assert.deepEqual(s.shots,[outcome]);assert.equal(s.get('penalty-score').textContent,'0 / 10');
   }
 });
-test('anonymous players can start one trial without a registration redirect',async()=>{
-  const s=setup();await boot(s,false);assert.equal(s.get('start').textContent,'Try one free shootout');
+test('anonymous players can start a guest game without a registration redirect',async()=>{
+  const s=setup();await boot(s,false);assert.equal(s.get('start').textContent,'Play as guest');
   const starting=s.get('quiz-start').emit('submit');await flush();assert.equal(s.requests[3].url,'/api/solo/runs');
   reply(s.requests[3],run({is_trial:true}));await starting;
   assert.equal(s.location.href,'http://localhost/penalties');assert.equal(s.get('quiz-run').hidden,false);
@@ -168,12 +168,13 @@ test('network recovery restores answer controls without changing the deadline',a
   assert.equal(s.get('choices').children[0].disabled,false);assert.equal(s.get('retry').hidden,true);
 });
 
-test('completed trial clearly labels unsaved XP and directs to registration',async()=>{
+test('completed guest game offers registration without blocking another game',async()=>{
   const s=setup();await boot(s,false,run({phase:'FINISHED',position:10,is_trial:true,total_xp:100,base_xp:100,perfect:true}));
-  assert.equal(s.get('another').textContent,'Create account');
+  assert.equal(s.get('another').textContent,'New shootout');assert.equal(s.get('guest-benefits').hidden,false);
   assert.match(s.get('result-metrics').children[1].children[1].textContent,/not saved/);
   assert.equal(s.get('streak-result').textContent,'Trial XP is not saved.');
-  await s.get('another').emit('click');assert.equal(s.location.href,'/account?mode=register');
+  const restarting=s.get('another').emit('click');await flush();reply(s.requests.at(-1),catalog);await restarting;
+  assert.equal(s.location.href,'http://localhost/penalties');assert.equal(s.get('selection').hidden,false);
 });
 
 test('End shootout replaces the question with results and authoritative level progress',async()=>{

@@ -37,7 +37,7 @@ class SoloDatabaseTests(unittest.TestCase):
                 mock=patch(target,return_value=original);mock.start();self.addCleanup(mock.stop)
             conn.execute(sql.SQL('CREATE SCHEMA {}').format(sql.Identifier(self.schema)))
             conn.execute(sql.SQL('SET search_path TO {},public').format(sql.Identifier(self.schema)))
-            for name in ['037_player_progress','038_solo_answer_guards','039_email_trials_xp','040_weekly_question_history','042_solo_answer_duration','043_solo_shootout','044_solo_community']:
+            for name in ['037_player_progress','038_solo_answer_guards','039_email_trials_xp','040_weekly_question_history','042_solo_answer_duration','043_solo_shootout','044_solo_community','045_account_settings']:
                 if name=='039_email_trials_xp':
                     conn.execute('INSERT INTO game_accounts(account_id,username,password_hash) VALUES(%s,%s,%s)',
                                  (uuid4(),'legacy_player',password_hash('legacy-password-1234')))
@@ -531,15 +531,15 @@ class SoloDatabaseTests(unittest.TestCase):
         legacy.post('/api/players/logout')
         self.assertEqual(legacy.post('/api/players/login',json={'identifier':'legacy@example.com','password':'legacy-password-1234'}).status_code,200)
 
-    def test_guest_can_complete_exactly_one_quiz_without_persisted_rewards(self):
+    def test_guest_can_complete_and_start_another_without_persisted_rewards(self):
         self.client=TestClient(app)
         self.assertEqual(self.client.get('/api/solo/active').json(),{'run':None,'trial_available':True})
         ident,result=self.complete('hard')
         self.assertEqual(result['total_xp'],900);self.assertTrue(result['is_trial']);self.assertFalse(result['xp_saved'])
         self.assertFalse(result['streak_eligible']);self.assertEqual(self.client.get('/api/players/me').status_code,401)
         self.assertIsNotNone(self.client.cookies.get(TRIAL_COOKIE))
-        self.assertEqual(self.client.get('/api/solo/active').json()['run']['run_id'],ident)
-        self.assertEqual(self.client.post('/api/solo/runs',json={'difficulty':'hard','request_id':str(uuid4())}).status_code,403)
+        self.assertIsNone(self.client.get('/api/solo/active').json()['run'])
+        self.assertEqual(self.client.post('/api/solo/runs',json={'difficulty':'hard','request_id':str(uuid4())}).status_code,201)
         with self.connection() as conn:
             self.assertEqual(conn.execute('SELECT count(*) n FROM game_xp_ledger').fetchone()['n'],0)
             self.assertEqual(conn.execute('SELECT count(*) n FROM game_daily_activity').fetchone()['n'],0)
@@ -559,7 +559,7 @@ class SoloDatabaseTests(unittest.TestCase):
         outsider=TestClient(app)
         self.assertEqual(outsider.get(f'/api/solo/runs/{ident}').status_code,401)
         self.client.post(f'/api/solo/runs/{ident}/leave')
-        self.assertEqual(self.client.post('/api/solo/runs',json={'difficulty':'easy','request_id':str(uuid4())}).status_code,403)
+        self.assertEqual(self.client.post('/api/solo/runs',json={'difficulty':'easy','request_id':str(uuid4())}).status_code,201)
 
     def test_trial_start_retries_in_two_tabs_share_one_quiz(self):
         self.client=TestClient(app);ident=self.start()['run_id'];token=self.client.cookies.get(TRIAL_COOKIE)

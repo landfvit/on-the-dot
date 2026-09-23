@@ -15,7 +15,7 @@ const options=['Brighton & Hove Albion','Wolverhampton Wanderers','Manchester Un
 const explanation='Brighton & Hove Albion. Recorded result: Brighton & Hove Albion 6\u20130 Wolverhampton Wanderers, 2022/23 Premier League. Home club is written first.';
 const rules={answer_ms:15000,xp_per_correct:10,xp_by_difficulty:{easy:10,medium:20,hard:30},win_multipliers:{easy:2,medium:3,hard:4},bonus_mode:'win',format:'shootout'};
 const catalog={categories:[{code:'ALL',label:'All clubs',counts:{easy:100,medium:100,hard:100}}],topics:[{code:'ALL',label:'Mixed topics',counts_by_team:{ALL:{easy:100,medium:100,hard:100}}}],rules};
-let run,failPoll=false;
+let run,failPoll=false,guest=false;
 function start(){run={run_id:'layout-test',server_now:Date.now(),phase:'ANSWERING',position:1,deadline:Date.now()+120000,
   category:{label:'All clubs',topic_label:'Match recognition'},difficulty:'easy',rules,role:'shooter',review:[],
   question:{text:longest,options},total_xp:0,base_xp:0,bonus_xp:0,multiplier:1,correct:0,is_trial:false,
@@ -47,7 +47,7 @@ function fits(g){assert.deepEqual(g.overflow,[],JSON.stringify(g));assert(!g.bod
     await page.route('**/api/**',async route=>{
       const path=new URL(route.request().url()).pathname;
       let data,status=200;
-      if(path==='/api/players/me')data={username:'Mobile tester',level:1,total_xp:0};
+      if(path==='/api/players/me'){data=guest?{detail:'Sign in'}:{username:'Mobile tester',level:1,total_xp:0};status=guest?401:200;}
       else if(path==='/api/solo/catalog')data=catalog;
       else if(path==='/api/solo/active')data={run,trial_available:false};
       else if(path.endsWith('/answers')){
@@ -108,6 +108,17 @@ function fits(g){assert.deepEqual(g.overflow,[],JSON.stringify(g));assert(!g.bod
     await page.waitForFunction(()=>window.testShotDone);
     assert((await page.evaluate(()=>PointsStadium.inspect())).caught,'Keeper did not visibly catch the ball');
     console.log('PASS nonblank stadium, animated shot and keeper catch');
+    guest=true;start();run.is_trial=true;await page.emulateMedia({reducedMotion:'reduce'});
+    await page.goto(origin+'/penalties?ad_preview=1');await page.waitForSelector('#question-panel:not([hidden])');
+    assert.equal(await page.locator('[data-ad-slot]:visible').count(),0);
+    await page.locator('#leave').click();await page.waitForSelector('#summary:not([hidden])');
+    await page.waitForFunction(()=>document.body.classList.contains('stadium-ending'));
+    assert(await page.locator('#guest-benefits').isVisible());assert.equal(await page.locator('[data-ad-slot]:visible').count(),1);
+    await page.screenshot({path:`${artifacts}/guest-results.png`,fullPage:true});
+    await page.locator('#another').click();assert(await page.locator('#selection').isVisible());
+    assert.equal(await page.locator('#start').textContent(),'Play as guest');assert.equal(await page.locator('#guest-benefits').isVisible(),false);
+    assert.equal(await page.locator('[data-ad-slot]:visible').count(),1);
+    console.log('PASS guest registration offer, replay and ads hidden during gameplay');
     assert.deepEqual(errors,[]);console.log('PASS connection recovery, results, restart and desktop');
     await context.close();
   }finally{await browser.close();}

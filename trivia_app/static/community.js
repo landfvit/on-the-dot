@@ -13,7 +13,7 @@
     $('ranking-rows').replaceChildren(...data.entries.map(p=>{
       const row=node('tr');if(data.me?.username===p.username)row.className='own-rank';
       const name=node('td');name.append(playerLink(p));
-      if(p.club?.name?.trim())name.append(node('small',p.club.name));
+      const badge=globalThis.PointsUI?.badge(p.club);if(badge)name.append(badge);
       row.append(node('td',number(p.rank)),name,node('td',number(p.level)),node('td',number(p.wins||0)),node('td',number(p.losses||0)),node('td',rate(p.win_rate)));return row;
     }));
     $('ranking-self').hidden=false;$('ranking-self').replaceChildren();

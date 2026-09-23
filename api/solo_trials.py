@@ -12,13 +12,13 @@ COOKIE='points_trial'
 def trial_player(conn,request,*,create=False,response=None,lock=False):
     token=request.cookies.get(COOKIE)
     if token:
-        if len(token)>100:raise HTTPException(401,'Invalid trial session. Sign in to continue.')
+        if len(token)>100:token=''
         row=conn.execute('''SELECT a.* FROM game_accounts a JOIN game_sessions s USING(account_id)
             WHERE s.token_hash=%s AND s.expires_at>clock_timestamp() AND a.is_guest''',
             (hashlib.sha256(token.encode()).hexdigest(),)).fetchone()
-        if not row:raise HTTPException(401,'Trial session expired. Sign in to continue.')
-        if lock:conn.execute('SELECT 1 FROM game_accounts WHERE account_id=%s FOR UPDATE',(row['account_id'],))
-        return row
+        if row:
+            if lock:conn.execute('SELECT 1 FROM game_accounts WHERE account_id=%s FOR UPDATE',(row['account_id'],))
+            return row
     if not create:return None
     ident=uuid4();token=secrets.token_urlsafe(32)
     row=conn.execute('''INSERT INTO game_accounts(account_id,username,password_hash,is_guest)

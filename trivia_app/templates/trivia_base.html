@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="/trivia-assets/points_theme.css?v=6">
     {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/community.css?v=6">{% endif %}
     {% block final_styles %}{% endblock %}
+    {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/public_ui.css?v=1"><script src="/trivia-assets/public_ui.js?v=1" defer></script>{% endif %}
 </head>
 <body>
     <header class="points-header">
@@ -39,6 +40,7 @@
     </dialog>
     {% endif %}
     {% block content %}{% endblock %}
+    {% if not private_navigation %}<footer class="site-footer">{{ public_metadata.season_label }}</footer>{% endif %}
     {% block scripts %}{% endblock %}
     {% if not private_navigation %}<script src="/trivia-assets/shell.js?v=2" defer></script>{% endif %}
 </body>

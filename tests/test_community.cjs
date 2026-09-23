@@ -9,6 +9,7 @@ function setup(view='leaderboard') {
   vm.runInNewContext(source,{document:{getElementById:get,createElement:element,
     querySelector:s=>s==='.community-page'?{dataset:{view}}:s.includes('metric')?metric:selected,querySelectorAll:s=>s.includes('metric')?[get('level'),get('wins'),get('win_rate')]:tabs},
     AbortController,Date,encodeURIComponent,
+    PointsUI:{badge:club=>club?.team_id&&club?.name?.trim()?Object.assign(element('img'),{alt:club.name}):null},
     fetch:(url,options)=>new Promise(resolve=>requests.push({url,options,resolve}))});
   return {get,requests,selected,metric};
 }
@@ -31,10 +32,10 @@ test('rapid period changes abort stale requests and cannot replace the new rank'
   assert.equal(s.get('ranking-rows').children.length,1);assert.match(s.get('ranking-period').textContent,/All time/);
 });
 test('player cell contains only username and an optional nonempty team',async()=>{
-  for(const club of [undefined,null,{name:''},{name:'   '},{name:'Manchester United'}]){
+  for(const club of [undefined,null,{name:''},{name:'   '},{name:'Manchester United',team_id:33}]){
     const s=setup();reply(s.requests[0],{...board,entries:[{...player,club,wins:12,losses:8}]});await flush();
     const contents=s.get('ranking-rows').children[0].children[1].children;
-    assert.deepEqual(contents.map(n=>n.textContent),club?.name?.trim()?[player.username,club.name]:[player.username]);
+    assert.deepEqual(contents.map(n=>n.tag==='img'?n.alt:n.textContent),club?.name?.trim()?[player.username,club.name]:[player.username]);
   }
 });
 test('failed request provides a usable retry and empty ranks never invent players',async()=>{
@@ -57,8 +58,8 @@ test('history rows link to owner-authorized run details and paginate',async()=>{
 test('ranking tabs request the selected metric and display wins losses and rate',async()=>{
   const s=setup();s.metric.value='win_rate';s.get('win_rate').handlers.change();
   assert.match(s.requests.at(-1).url,/metric=win_rate/);
-  reply(s.requests.at(-1),{...board,metric:'win_rate',entries:[{...player,wins:12,losses:8,win_rate:60,club:{name:'Manchester United'}}]});await flush();
+  reply(s.requests.at(-1),{...board,metric:'win_rate',entries:[{...player,wins:12,losses:8,win_rate:60,club:{name:'Manchester United',team_id:33}}]});await flush();
   const row=s.get('ranking-rows').children[0];assert.equal(row.children[3].textContent,'12');assert.equal(row.children[4].textContent,'8');assert.equal(row.children[5].textContent,'60.0%');
-  assert.equal(row.children[1].children[1].textContent,'Manchester United');
+  assert.equal(row.children[1].children[1].alt,'Manchester United');
   s.metric.value='level';s.get('level').handlers.change();assert.match(s.requests.at(-1).url,/period=all&metric=level/);
 });

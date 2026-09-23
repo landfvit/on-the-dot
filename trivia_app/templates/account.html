@@ -1,6 +1,7 @@
 {% extends 'trivia_base.html' %}
 {% block title %}Player profile · ON THE DOT.{% endblock %}
 {% block styles %}<link rel="stylesheet" href="/trivia-assets/solo.css?v=1">{% endblock %}
+{% block final_styles %}<link rel="stylesheet" href="/trivia-assets/account_settings.css?v=1">{% endblock %}
 {% block content %}
 <main class="solo-page" data-page="account" {% if profile_username %}data-username="{{ profile_username }}"{% endif %}>
   <header class="solo-heading"><div><h1>Player profile</h1></div><a href="/penalties">Play penalties</a></header>
@@ -17,7 +18,11 @@
       <label>Password<input id="password" type="password" autocomplete="current-password" required minlength="8" maxlength="128" aria-describedby="password-format"></label>
       <small id="password-format" class="muted">At least 8 characters.</small>
       <button class="primary" id="authenticate">Sign in</button>
+      <button id="forgot-password" type="button" hidden>Forgot password?</button>
     </form>
+    <form id="reset-request" class="account-form" hidden><h2>Reset password</h2><label>Email<input id="reset-email" type="email" autocomplete="email" required maxlength="254"></label><button class="primary">Send reset link</button><button id="reset-back" type="button">Back to sign in</button></form>
+    <form id="reset-confirm" class="account-form" hidden><h2>Choose a new password</h2><label>New password<input id="reset-new-password" type="password" autocomplete="new-password" required minlength="8" maxlength="128"></label><button class="primary">Reset password</button></form>
+    <p id="reset-status" role="status" class="muted"></p>
   </section>
   <section id="profile" hidden>
     <div class="profile-title"><div><h2 id="profile-name"></h2><p id="profile-bio"></p><p id="profile-team" class="muted"></p></div></div>
@@ -29,7 +34,7 @@
       <a id="public-profile" href="/account">Public profile</a>
       <section class="account-form" aria-labelledby="team-heading">
         <h2 id="team-heading">Your team</h2><button id="add-team" type="button" aria-expanded="false" aria-controls="team-edit">Add team</button>
-        <form id="team-edit" hidden><label for="profile-team-select">Premier League team</label><select id="profile-team-select"></select>
+        <form id="team-edit" hidden><label for="profile-team-select" class="sr-only">Premier League team</label><select id="profile-team-select" hidden></select><fieldset id="team-options" class="team-options"><legend class="sr-only">Premier League team</legend></fieldset>
           <div class="actions"><button class="primary" id="save-team">Join team</button><button id="cancel-team" type="button">Cancel</button></div>
         </form>
       </section>
@@ -40,11 +45,37 @@
         <button type="submit">Save email</button>
       </form>
       <form id="profile-edit" class="account-form">
+        <h2>Public profile</h2>
+        <label>Username<input id="profile-username" autocomplete="nickname" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_]+"></label>
         <label>Bio<textarea id="bio" rows="3" maxlength="160"></textarea></label>
         <div class="actions"><button class="primary">Save profile</button><button id="signout" type="button">Sign out</button></div>
       </form>
+      <form id="password-edit" class="account-form">
+        <h2>Password</h2>
+        <label>Current password<input id="current-password" type="password" autocomplete="current-password" required maxlength="128"></label>
+        <label>New password<input id="new-password" type="password" autocomplete="new-password" required minlength="8" maxlength="128"></label>
+        <label>Confirm new password<input id="confirm-password" type="password" autocomplete="new-password" required minlength="8" maxlength="128"></label>
+        <button class="primary">Change password</button><p id="password-status" role="status"></p>
+      </form>
+      <form id="preferences-edit" class="account-form">
+        <h2>Game preferences</h2>
+        <label class="setting-toggle"><span>Animations</span><input id="setting-animations" type="checkbox" checked></label>
+        <label class="setting-toggle"><span>Reduce motion</span><input id="setting-reduced-motion" type="checkbox"></label>
+        <button class="primary">Save preferences</button><p id="preferences-status" role="status"></p>
+      </form>
+      <section class="account-form account-danger" aria-labelledby="delete-heading">
+        <h2 id="delete-heading">Delete account</h2>
+        <p class="muted">Your email, password and public profile will be removed. Anonymous game records are retained. This cannot be undone.</p>
+        <button id="delete-open" type="button">Delete account</button>
+      </section>
     </div>
   </section>
 </main>
+<dialog id="delete-dialog" aria-labelledby="delete-title"><form id="delete-account" class="account-form">
+  <h2 id="delete-title">Delete your account?</h2><p>Your profile will disappear from leaderboards. Your account and progress cannot be restored.</p>
+  <label>Current password<input id="delete-password" type="password" autocomplete="current-password" required maxlength="128"></label>
+  <label>Type DELETE to confirm<input id="delete-confirmation" required pattern="DELETE" autocomplete="off"></label>
+  <p id="delete-status" role="alert"></p><div class="actions"><button class="danger-button">Delete permanently</button><button id="delete-cancel" type="button">Cancel</button></div>
+</form></dialog>
 {% endblock %}
-{% block scripts %}<script src="/trivia-assets/solo.js?v=12" defer></script>{% endblock %}
+{% block scripts %}<script src="/trivia-assets/account_settings.js?v=1" defer></script><script src="/trivia-assets/solo.js?v=14" defer></script>{% endblock %}

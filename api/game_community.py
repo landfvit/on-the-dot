@@ -45,7 +45,7 @@ def leaderboard(request: Request, period: Literal['today', 'week', 'all'] = 'tod
                 COALESCE(m.wins,0) wins,COALESCE(m.losses,0) losses,COALESCE(m.played,0) played,m.win_rate,
                 CASE WHEN c.team_id IS NOT NULL THEN jsonb_build_object('team_id',c.team_id,'name',c.name) END club
             FROM game_accounts a LEFT JOIN points p USING(account_id) LEFT JOIN matches m USING(account_id)
-            LEFT JOIN game_clubs c ON c.team_id=a.club_id WHERE NOT a.is_guest
+            LEFT JOIN game_clubs c ON c.team_id=a.club_id WHERE NOT a.is_guest AND a.deleted_at IS NULL
         ), levels AS (
             SELECT *,
                    (SELECT level FROM game_levels WHERE minimum_xp<=total_xp

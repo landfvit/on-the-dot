@@ -25,9 +25,10 @@
         <label><input type="radio" name="difficulty" value="hard"><span>Hard <small id="hard-rate">30 XP / answer</small><small id="hard-perfect">10/10: 900 XP</small><small id="hard-available"></small></span></label>
       </fieldset>
       <p id="quiz-rules" class="muted">5 penalties each · 15 seconds per answer</p>
-      <p id="trial-note" class="muted" hidden>Free trial · Progress is not saved</p>
+      <p id="trial-note" class="muted" hidden>Guest mode · Progress is not saved</p>
       <p id="availability" class="muted" role="status"></p><p id="weekly-reset" class="muted" hidden></p><button class="primary" id="start" disabled>Start quiz</button>
     </form>
+    {% with ad_slot='game-selection' %}{% include 'ad_slot.html' %}{% endwith %}
   </section>
   <section id="quiz-run" hidden aria-labelledby="question-title">
     <div id="question-panel">
@@ -45,6 +46,12 @@
       <div id="result-level" hidden><strong id="result-level-label"></strong><progress id="result-level-progress" aria-label="Level progress"></progress><p id="result-level-remaining"></p></div>
       <p id="streak-result"></p>
       <div class="actions result-actions"><button id="another" class="primary" hidden>New shootout</button><a id="summary-account" class="primary-link" href="/account">View profile</a><a class="primary-link" href="/leaderboard">Leaderboard</a></div>
+      <section id="guest-benefits" class="guest-benefits" aria-labelledby="guest-heading" hidden>
+        <h3 id="guest-heading">Make every shootout count</h3>
+        <p>Create a free account to save XP, earn levels, build your daily streak and join the leaderboard with your club. Guest games stay separate from your account.</p>
+        <a class="primary-link" href="/account?mode=register">Create free account</a>
+      </section>
+      {% with ad_slot='shootout-results' %}{% include 'ad_slot.html' %}{% endwith %}
       <p id="share-status" role="status"></p>
       <div id="share-options" hidden>
         <img id="share-preview" alt="Your shootout result card" width="1200" height="630">
@@ -64,4 +71,4 @@
   <p id="feedback-full"></p>
 </dialog>
 {% endblock %}
-{% block scripts %}<script src="/trivia-assets/penalty_shots.js?v=1" defer></script><script src="/trivia-assets/stadium_intro.js?v=9" defer></script><script src="/trivia-assets/penalty_scene.js?v=6" defer></script><script src="/trivia-assets/result_share.js?v=1" defer></script><script src="/trivia-assets/solo.js?v=13" defer></script><script src="/trivia-assets/solo_mobile.js?v=1" defer></script>{% endblock %}
+{% block scripts %}<script src="/trivia-assets/penalty_shots.js?v=1" defer></script><script src="/trivia-assets/stadium_intro.js?v=10" defer></script><script src="/trivia-assets/penalty_scene.js?v=6" defer></script><script src="/trivia-assets/result_share.js?v=1" defer></script><script src="/trivia-assets/solo.js?v=14" defer></script><script src="/trivia-assets/solo_mobile.js?v=1" defer></script>{% endblock %}

@@ -27,6 +27,7 @@
   <p id="community-status" role="status">Loading...</p>
   <div class="community-actions"><button id="community-retry" hidden>Try again</button><a id="community-signin" href="/account" hidden>Sign in</a><a id="community-play" class="primary-link" href="/penalties" hidden>Play penalties <img src="/trivia-assets/icons/arrow-right.svg" alt=""></a></div>
   <nav id="community-pagination" class="pagination" aria-label="Results pages" hidden><button id="previous-page">Previous</button><span id="page-number"></span><button id="next-page">Next</button></nav>
+  {% if active_page == 'leaderboard' %}{% with ad_slot='leaderboard-bottom' %}{% include 'ad_slot.html' %}{% endwith %}{% endif %}
 </main>
 {% endblock %}
-{% block scripts %}<script src="/trivia-assets/community.js?v=4" defer></script>{% endblock %}
+{% block scripts %}<script src="/trivia-assets/community.js?v=5" defer></script>{% endblock %}

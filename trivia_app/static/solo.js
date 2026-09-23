@@ -16,7 +16,8 @@
   function showProfile(p,own){
     $('notice').textContent='';$('authentication').hidden=true;$('profile').hidden=false;$('own-profile').hidden=!own;
     $('profile-name').textContent=p.username;$('profile-bio').textContent=p.bio;
-    $('profile-team').textContent=p.club?.name||'No team selected';
+    const badge=globalThis.PointsUI?.badge(p.club);
+    $('profile-team').replaceChildren(...(badge?[badge]:[]));
     const record=p.stats||{wins:0,losses:0,played:0,win_rate:null};
     metrics('profile-record',[[record.wins,'Wins'],[record.losses,'Losses'],[record.win_rate===null?'—':`${Number(record.win_rate).toFixed(1)}%`,'Win rate'],[record.played,'Shootouts']]);
     $('add-team').textContent=p.club?'Change team':'Add team';$('profile-team-select').dataset.selected=p.club?.team_id||'';
@@ -25,7 +26,7 @@
     $('level-progress').max=p.next_level_xp===null?1:p.next_level_xp-p.level_xp;
     $('level-progress').value=p.next_level_xp===null?1:p.total_xp-p.level_xp;
     $('daily-status').textContent='';$('daily-status').hidden=true;
-    if(own){$('bio').value=p.bio;$('account-email').value=p.email||'';$('public-profile').href='/u/'+encodeURIComponent(p.username);}
+    if(own){$('bio').value=p.bio;$('profile-username').value=p.username;$('account-email').value=p.email||'';$('public-profile').href='/u/'+encodeURIComponent(p.username);globalThis.PointsAccountSettings?.setProfile(p);}
   }
   async function accountPage(){
     const publicName=page.dataset.username;
@@ -39,7 +40,7 @@
     }
     document.querySelectorAll('input[name="auth-mode"]').forEach(input=>input.addEventListener('change',authMode));
     if(location.search==='?mode=register')document.querySelector('input[name="auth-mode"][value="register"]').checked=true;
-    authMode();
+    authMode();globalThis.PointsAccountSettings?.resetView();
     $('auth-form').addEventListener('submit',async e=>{
       e.preventDefault();error('');$('authenticate').disabled=true;
       try{const mode=document.querySelector('input[name="auth-mode"]:checked').value;
@@ -49,10 +50,10 @@
     });
     $('profile-edit').addEventListener('submit',async e=>{
       e.preventDefault();const button=e.target.querySelector('button');button.disabled=true;error('');
-      try{showProfile(await api('/api/players/me',{bio:$('bio').value},'PATCH'),true);$('notice').textContent='Profile saved.';}
+      try{showProfile(await api('/api/players/me',{bio:$('bio').value,username:$('profile-username').value},'PATCH'),true);$('notice').textContent='Profile saved.';}
       catch(e){error(e.message);}finally{button.disabled=false;}
     });
-    $('signout').addEventListener('click',async()=>{try{await api('/api/players/logout',{});location.href='/account';}catch(e){error(e.message);}});
+    $('signout').addEventListener('click',async()=>{try{await api('/api/players/logout',{});globalThis.PointsPreferences?.clear();location.href='/account';}catch(e){error(e.message);}});
     const closeTeam=()=>{$('team-edit').hidden=true;$('add-team').setAttribute('aria-expanded','false');};
     $('cancel-team').addEventListener('click',closeTeam);
     $('add-team').addEventListener('click',async()=>{
@@ -61,7 +62,8 @@
         const data=await api('/api/players/teams');
         $('profile-team-select').replaceChildren(...[{team_id:'',name:'No team'},...data.teams].map(t=>{const o=node('option',t.name);o.value=String(t.team_id);return o;}));
         $('profile-team-select').value=$('profile-team-select').dataset.selected;
-        $('team-edit').hidden=false;$('add-team').setAttribute('aria-expanded','true');$('profile-team-select').focus();
+        globalThis.PointsUI?.teamPicker(data.teams,$('profile-team-select'),$('team-options'));
+        $('team-edit').hidden=false;$('add-team').setAttribute('aria-expanded','true');$('team-options').querySelector('input:checked')?.focus();
       }catch(e){error(e.message);}finally{$('add-team').disabled=false;}
     });
     $('team-edit').addEventListener('submit',async e=>{
@@ -194,7 +196,7 @@
       for(const level of ['easy','medium','hard'])$(level+'-available').textContent=catalogReady?`${counts[level]||0} available`:'';
       $('availability').textContent=!catalogReady?'Checking availability...':count>=10?`${count} unused approved questions`:`${count}/10 unused approved questions · Not available this week`;
       $('availability').hidden=catalogReady&&count>=10;
-      $('start').disabled=!catalogReady||count<10||busy;$('start').textContent=user?'Start shootout':trialAvailable?'Try one free shootout':'Create account to play';
+      $('start').disabled=!catalogReady||count<10||busy;$('start').textContent=user?'Start shootout':'Play as guest';
       $('trial-note').hidden=Boolean(user);
       $('quiz-rules').textContent=`${rules?.format==='shootout'?'5 penalties each · Sudden death if tied':`${rules?.questions||10} questions`} · ${(rules?.answer_ms||15000)/1000} seconds each · ${rules?.xp_by_difficulty[difficulty()]||10} XP per correct answer`;
     }
@@ -219,7 +221,6 @@
     function render(next){
       if(run&&run.run_id===next.run_id&&next.server_now<run.server_now)return;
       run=next;offset=next.server_now-Date.now();storage(['FINISHED','ABANDONED'].includes(run.phase)?null:run.run_id);
-      if(run.is_trial)trialAvailable=false;
       const key=`${run.run_id}:${run.position}:${run.phase}:${run.review.length}`;
       if(key===rendered)return;rendered=key;
       pitch();
@@ -245,7 +246,7 @@
       $('feedback').textContent=answer?(answer.option_id===null?'Time is up. ':answer.is_correct?`Correct. +${run.rules.xp_per_correct} ${run.is_trial?'trial XP':'XP'}. `:'Incorrect. ')+answer.explanation:'';
       $('next').hidden=!['READY','REVIEW'].includes(run.phase);$('next').textContent=run.phase==='READY'?'Take first shot':run.shootout?.next_role==='keeper'?'Face next penalty':'Next shot';
       $('leave').hidden=done;$('another').hidden=!done;$('summary').hidden=!done;
-      $('another').textContent=run.is_trial?'Create account':'New shootout';
+      $('another').textContent='New shootout';$('guest-benefits').hidden=!done||!run.is_trial;
       if(done){
         prepareShare();
         $('share-status').textContent='';
@@ -313,10 +314,10 @@
       try{await navigator.clipboard.writeText(shareCard.data.text+'\n'+shareCard.data.url);if(own===shareVersion)$('share-status').textContent='Result and link copied.';}
       catch{if(own===shareVersion){$('share-link').focus();$('share-link').select();$('share-status').textContent='Copy unavailable. The link is selected.';}}
     });
-    $('another').addEventListener('click',async()=>{if(run?.is_trial){location.href='/account?mode=register';return;}presentation++;presented='';stadium?.leave();stadiumRun=null;stadiumWaiting=false;storage(null);clearShare();run=null;pending=null;startRequest=null;rendered='';if(location.search)history.replaceState(null,'',location.pathname);page.classList.toggle('shootout-active',false);page.classList.toggle('shootout-finished',false);pitch();$('quiz-run').hidden=true;$('selection').hidden=false;error('');try{await loadCatalog();}catch(e){error(e.message);}});
+    $('another').addEventListener('click',async()=>{presentation++;presented='';stadium?.leave();stadiumRun=null;stadiumWaiting=false;storage(null);clearShare();run=null;pending=null;startRequest=null;rendered='';if(location.search)history.replaceState(null,'',location.pathname);page.classList.toggle('shootout-active',false);page.classList.toggle('shootout-finished',false);pitch();$('quiz-run').hidden=true;$('selection').hidden=false;error('');try{await loadCatalog();}catch(e){error(e.message);}});
     $('category').addEventListener('change',selection);$('topic').addEventListener('change',selection);document.querySelectorAll('input[name="difficulty"]').forEach(r=>r.addEventListener('change',selection));
     $('quiz-start').addEventListener('submit',async e=>{
-      e.preventDefault();if(!user&&!trialAvailable){location.href='/account?mode=register';return;}if(busy||!catalogReady)return;busy=true;selection();error('');
+      e.preventDefault();if(busy||!catalogReady)return;busy=true;selection();error('');
       const category=$('category').value,topic=$('topic').value,level=difficulty();
       if(!startRequest||startRequest.category!==category||startRequest.topic!==topic||startRequest.difficulty!==level)startRequest={category,topic,difficulty:level,request_id:crypto.randomUUID()};
       try{const next=await api('/api/solo/runs',startRequest);busy=false;render(next);startRequest=null;}catch(e){error(e.message);if(e.status===409){try{await loadCatalog();}catch(refreshError){error(refreshError.message);}}}finally{busy=false;selection();}
@@ -330,7 +331,7 @@
     },100);
     setInterval(()=>{if(run&&run.phase==='ANSWERING'&&!busy)refresh();},1000);
     setInterval(()=>{if(!run&&!busy&&!catalogLoading&&Date.now()+offset>=catalogReset)loadCatalog().catch(e=>error(e.message));},30000);
-    pitch();user=await currentUser();
+    pitch();user=await currentUser();if(user?.preferences)globalThis.PointsPreferences?.set(user.preferences);
     await loadCatalog();
     // History links can only resolve through the existing owner-authorized API.
     const requestedRun=new URLSearchParams(location.search||'').get('run');

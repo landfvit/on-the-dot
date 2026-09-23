@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 import secrets
+import json
 import time
 from threading import Lock
 
@@ -29,6 +30,8 @@ app.state.session_secret = os.getenv('TRIVIA_SESSION_SECRET') or secrets.token_u
 app.add_middleware(SessionMiddleware, secret_key=app.state.session_secret, session_cookie='points_editor',
                    max_age=8*3600, same_site='strict', https_only=os.getenv('TRIVIA_HTTPS_ONLY') == '1')
 templates = Jinja2Templates(directory=[str(ROOT / 'trivia_app' / 'templates'), str(ROOT / 'web' / 'templates')])
+public_metadata=json.loads((ROOT/'trivia_app'/'static'/'public_metadata.json').read_text())
+templates.env.globals['public_metadata']=public_metadata
 
 
 class TriviaAssets(StaticFiles):
@@ -48,6 +51,9 @@ app.mount('/trivia-assets', TriviaAssets(directory=ROOT / 'trivia_app' / 'static
     public_files=('app.css','penalties.css','penalty_scene.js','solo.css','solo.js',
                   'stadium.css','stadium_intro.js','stadium_scene.js','stadium_config.js','stadium_v6_world.js','stadium_motion.js','penalty_shots.js','points_theme.css',
                   'community.css','community.js','shell.js','shootout.css','result_share.js','solo_mobile.css','solo_mobile.js',
+                  'account_settings.css','account_settings.js','public_ui.css','public_ui.js',
+                  'icons/eye.svg','icons/eye-off.svg',
+                  *(f'clubs/{club["team_id"]}.png' for club in public_metadata['clubs']),
                   'icons/menu.svg','icons/x.svg','icons/user-round.svg','icons/trophy.svg','icons/history.svg',
                   'icons/arrow-right.svg','icons/share-2.svg','icons/football.svg','icons/copy.svg','icons/download.svg','icons/LICENSE',
                   'vendor/three/three.module.min.js','vendor/three/three.core.min.js','vendor/three/LICENSE')), name='trivia-assets')

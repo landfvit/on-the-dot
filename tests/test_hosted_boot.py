@@ -21,8 +21,13 @@ from fastapi.testclient import TestClient
 from trivia_app.main import app
 client = TestClient(app)
 for path in ['/', '/penalties', '/account', '/leaderboard', '/trivia-assets/solo.js',
-             '/trivia-assets/solo_mobile.css', '/trivia-assets/solo_mobile.js']:
+             '/trivia-assets/solo_mobile.css', '/trivia-assets/solo_mobile.js',
+             '/trivia-assets/public_ui.css', '/trivia-assets/public_ui.js',
+             '/trivia-assets/account_settings.css', '/trivia-assets/account_settings.js',
+             '/trivia-assets/icons/eye.svg', '/trivia-assets/icons/eye-off.svg',
+             '/trivia-assets/clubs/33.png']:
     assert client.get(path).status_code == 200, path
+assert client.get('/trivia-assets/public_metadata.json').status_code in (401, 404)
 '''
         result = subprocess.run([sys.executable, '-c', script],
                                 cwd=Path(__file__).resolve().parents[1],

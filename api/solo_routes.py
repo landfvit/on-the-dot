@@ -62,7 +62,7 @@ def catalog(request:Request):
             LEFT JOIN game_question_history h ON h.question_id=p.question_id AND h.account_id=%s AND h.week_start=%s
             WHERE p.release_id=ANY(%s) AND d.approved AND p.question->>'topic'=ANY(%s)
             GROUP BY p.section_code,p.section_name,d.difficulty,p.question->>'topic' ORDER BY p.section_name''',
-            (user['account_id'] if user else None,week,active_releases(conn),topics.sources('ALL'))).fetchall()
+            (user['account_id'] if user and not user['is_guest'] else None,week,active_releases(conn),topics.sources('ALL'))).fetchall()
     categories={'ALL':{'code':'ALL','label':'All clubs','counts':dict.fromkeys(('easy','medium','hard'),0)}}
     topic_counts={code:{'code':code,'label':topics.label(code),'counts_by_team':{}} for code in topics.TOPICS}
     for row in rows:
@@ -167,14 +167,6 @@ def start(body:Start,request:Request,response:Response):
                 or row['state']['category'].get('topic_code','ALL')!=body.topic):
                 raise HTTPException(409,'Request ID already used for another quiz')
             game.tick(row['state'],now);persist(conn,row);return public(row,now)
-        if user['is_guest']:
-            trial=conn.execute('SELECT * FROM game_solo_runs WHERE account_id=%s FOR UPDATE',(ident,)).fetchone()
-            if trial:
-                if trial['state']['phase'] in ('FINISHED','ABANDONED'):
-                    raise HTTPException(403,'Your free quiz has been used. Create an account to keep playing.')
-                if trial['state']['category'].get('topic_code','ALL')!=body.topic:
-                    raise HTTPException(409,'Resume your existing free quiz before changing category.')
-                game.tick(trial['state'],now);persist(conn,trial);return public(trial,now)
         active=conn.execute("SELECT * FROM game_solo_runs WHERE account_id=%s AND state->>'phase' NOT IN ('FINISHED','ABANDONED') FOR UPDATE",(ident,)).fetchone()
         if active:
             game.tick(active['state'],now);persist(conn,active)
@@ -182,7 +174,7 @@ def start(body:Start,request:Request,response:Response):
                 if active['state']['category'].get('topic_code','ALL')!=body.topic:
                     raise HTTPException(409,'Finish or end your active quiz before changing category.')
                 return public(active,now)
-        deck,category=load_deck(conn,ident,body,now)
+        deck,category=load_deck(conn,None if user['is_guest'] else ident,body,now)
         state=game.create(deck,body.difficulty,category,now)
         row=conn.execute('INSERT INTO game_solo_runs(run_id,account_id,start_request_id,state,is_trial) VALUES(%s,%s,%s,%s,%s) RETURNING *',
                          (uuid4(),ident,body.request_id,Jsonb(state),user['is_guest'])).fetchone()
@@ -195,10 +187,10 @@ def active(request:Request):
         if not request.cookies.get(ACCOUNT_COOKIE):
             user=trial_player(conn,request,lock=True)
             if not user:return {'run':None,'trial_available':True}
-            row=conn.execute('SELECT * FROM game_solo_runs WHERE account_id=%s FOR UPDATE',(user['account_id'],)).fetchone()
+            row=conn.execute("SELECT * FROM game_solo_runs WHERE account_id=%s AND state->>'phase' NOT IN ('FINISHED','ABANDONED') FOR UPDATE",(user['account_id'],)).fetchone()
             if not row:return {'run':None,'trial_available':True}
             now=now_ms(conn);game.tick(row['state'],now);persist(conn,row)
-            return {'run':public(row,now),'trial_available':False}
+            return {'run':public(row,now) if row['state']['phase'] not in ('FINISHED','ABANDONED') else None,'trial_available':True}
         user=account(conn,request,lock=True)
         row=conn.execute("SELECT * FROM game_solo_runs WHERE account_id=%s AND state->>'phase' NOT IN ('FINISHED','ABANDONED') FOR UPDATE",(user['account_id'],)).fetchone()
         if not row:return {'run':None}
@@ -222,7 +214,7 @@ def action(run_id,request,command='view',body=None):
                     selection=Start(category=s['category']['code'],topic=s['category'].get('topic_code','ALL'),
                                     difficulty=s['difficulty'],request_id=uuid4())
                     try:
-                        extra,_=load_deck(conn,user['account_id'],selection,now,size=2,
+                        extra,_=load_deck(conn,None if user['is_guest'] else user['account_id'],selection,now,size=2,
                                          exclude={q['question_id'] for q in s['deck']})
                         s['deck'].extend(extra)
                     except HTTPException as exc:

@@ -16,6 +16,7 @@ from api.penalty_routes import rate_limit
 from api.solo_engine import streak
 from api.trivia_models import StrictModel
 from api.trivia_quizzes import same_origin
+from api import account_email
 
 router=APIRouter(prefix='/api/players',tags=['player accounts'])
 COOKIE='points_account'
@@ -75,6 +76,43 @@ class EmailUpdate(StrictModel):
 class ProfileEdit(StrictModel):
     bio:str=Field(default='',max_length=160)
     accent:Literal['green','pink','blue','gold']='green'
+    username:str|None=Field(default=None,min_length=3,max_length=24,pattern=r'^[A-Za-z0-9_]+$')
+
+
+class PasswordChange(StrictModel):
+    current_password:str=Field(min_length=1,max_length=128)
+    new_password:str=Field(min_length=8,max_length=128)
+
+
+class AccountDeletion(StrictModel):
+    password:str=Field(min_length=1,max_length=128)
+    confirmation:Literal['DELETE']
+
+
+class Preferences(StrictModel):
+    animations:bool=True
+    reduced_motion:bool=False
+
+
+class ResetRequest(StrictModel):
+    email:EmailStr=Field(max_length=254)
+
+
+class ResetPassword(StrictModel):
+    token:str=Field(min_length=43,max_length=43,pattern=r'^[A-Za-z0-9_-]+$')
+    new_password:str=Field(min_length=8,max_length=128)
+
+
+def check_username(username):
+    username=username.lower()
+    if username in {'admin','administrator','support','points','editor','system'} or username.startswith(('deleted_','trial_')):
+        raise HTTPException(409,'This username is unavailable')
+    return username
+
+
+def private_profile(conn,row):
+    return {**profile(conn,row),'email':row['email'],
+            'preferences':{'animations':row['animations'],'reduced_motion':row['reduced_motion']}}
 
 
 class ClubEdit(StrictModel):
@@ -85,10 +123,16 @@ def account(conn,request,lock=False):
     token=request.cookies.get(COOKIE,'')
     if not token or len(token)>100:raise HTTPException(401,'Sign in to play')
     row=conn.execute('''SELECT a.* FROM game_accounts a JOIN game_sessions s USING(account_id)
-        WHERE s.token_hash=%s AND s.expires_at>clock_timestamp() AND NOT a.is_guest''',
+        WHERE s.token_hash=%s AND s.expires_at>clock_timestamp() AND NOT a.is_guest AND a.deleted_at IS NULL''',
         (hashlib.sha256(token.encode()).hexdigest(),)).fetchone()
     if not row:raise HTTPException(401,'Your session has expired. Sign in again.')
-    if lock:conn.execute('SELECT 1 FROM game_accounts WHERE account_id=%s FOR UPDATE',(row['account_id'],))
+    if lock:
+        row=conn.execute('SELECT * FROM game_accounts WHERE account_id=%s AND deleted_at IS NULL FOR UPDATE',(row['account_id'],)).fetchone()
+        if not row:raise HTTPException(401,'Your session has expired. Sign in again.')
+        # Password changes revoke sessions while holding the same account lock.
+        if not conn.execute('SELECT 1 FROM game_sessions WHERE token_hash=%s AND expires_at>clock_timestamp()',
+                            (hashlib.sha256(token.encode()).hexdigest(),)).fetchone():
+            raise HTTPException(401,'Your session has expired. Sign in again.')
     return row
 
 
@@ -123,15 +167,14 @@ def profile(conn,row):
 @router.post('/register',dependencies=[Depends(same_origin)],status_code=201)
 def register(body:Registration,request:Request,response:Response):
     rate_limit(request,'account-register',5)
-    if body.username in {'admin','administrator','support','points','editor','system'}:
-        raise HTTPException(409,'This username is unavailable')
+    check_username(body.username)
     hashed=password_hash(body.password)
     try:
         with get_connection() as conn:
             row=conn.execute('INSERT INTO game_accounts(account_id,username,password_hash,email) VALUES(%s,%s,%s,%s) RETURNING *',
                              (uuid4(),body.username,hashed,body.email)).fetchone()
             new_session(conn,row['account_id'],request,response)
-            return {**profile(conn,row),'email':row['email']}
+            return private_profile(conn,row)
     except UniqueViolation:raise HTTPException(409,'This username or email is unavailable')
 
 
@@ -139,12 +182,12 @@ def register(body:Registration,request:Request,response:Response):
 def login(body:Login,request:Request,response:Response):
     rate_limit(request,'account-login',8)
     with get_connection() as conn:
-        row=conn.execute('''SELECT * FROM game_accounts WHERE NOT is_guest AND
-            (email=%s OR (email IS NULL AND username=%s))''',(body.identifier,body.identifier)).fetchone()
+        row=conn.execute('''SELECT * FROM game_accounts WHERE NOT is_guest AND deleted_at IS NULL AND
+            (email=%s OR (email IS NULL AND username=%s)) FOR UPDATE''',(body.identifier,body.identifier)).fetchone()
         valid=verify_password(body.password,row['password_hash'] if row else DUMMY_HASH)
         if not row or not valid:raise HTTPException(401,'Invalid email or password')
         new_session(conn,row['account_id'],request,response)
-        return {**profile(conn,row),'email':row['email']}
+        return private_profile(conn,row)
 
 
 @router.post('/logout',dependencies=[Depends(same_origin)])
@@ -157,7 +200,7 @@ def logout(request:Request,response:Response):
 @router.get('/me')
 def me(request:Request):
     with get_connection() as conn:
-        row=account(conn,request);return {**profile(conn,row),'email':row['email']}
+        row=account(conn,request);return private_profile(conn,row)
 
 
 @router.get('/teams')
@@ -174,17 +217,20 @@ def join_club(body:ClubEdit,request:Request):
         if body.team_id is not None and not conn.execute('SELECT 1 FROM game_clubs WHERE team_id=%s',(body.team_id,)).fetchone():
             raise HTTPException(422,'Select a Premier League team from the list')
         row=conn.execute('UPDATE game_accounts SET club_id=%s WHERE account_id=%s RETURNING *',(body.team_id,row['account_id'])).fetchone()
-        return {**profile(conn,row),'email':row['email']}
+        return private_profile(conn,row)
 
 
 @router.patch('/me',dependencies=[Depends(same_origin)])
 def edit_profile(body:ProfileEdit,request:Request):
     rate_limit(request,'account-edit',20)
-    with get_connection() as conn:
-        row=account(conn,request)
-        row=conn.execute('UPDATE game_accounts SET bio=%s,accent=%s WHERE account_id=%s RETURNING *',
-                         (body.bio.strip(),body.accent,row['account_id'])).fetchone()
-        return {**profile(conn,row),'email':row['email']}
+    try:
+        with get_connection() as conn:
+            row=account(conn,request,lock=True)
+            username=check_username(body.username) if body.username is not None else row['username']
+            row=conn.execute('UPDATE game_accounts SET bio=%s,accent=%s,username=%s WHERE account_id=%s RETURNING *',
+                             (body.bio.strip(),body.accent,username,row['account_id'])).fetchone()
+            return private_profile(conn,row)
+    except UniqueViolation:raise HTTPException(409,'This username is unavailable')
 
 
 @router.put('/email',dependencies=[Depends(same_origin)])
@@ -198,8 +244,9 @@ def update_email(body:EmailUpdate,request:Request,response:Response):
             if not verify_password(body.password,row['password_hash']):raise HTTPException(401,'Incorrect password')
             row=conn.execute('UPDATE game_accounts SET email=%s WHERE account_id=%s RETURNING *',(body.email,row['account_id'])).fetchone()
             conn.execute('DELETE FROM game_sessions WHERE account_id=%s',(row['account_id'],))
+            conn.execute('DELETE FROM game_password_resets WHERE account_id=%s',(row['account_id'],))
             new_session(conn,row['account_id'],request,response)
-            return {**profile(conn,row),'email':row['email']}
+            return private_profile(conn,row)
     except UniqueViolation:raise HTTPException(409,'This email is unavailable')
 
 
@@ -207,6 +254,92 @@ def update_email(body:EmailUpdate,request:Request,response:Response):
 def public_profile(username:str):
     if len(username)>24:raise HTTPException(404,'Player not found')
     with get_connection() as conn:
-        row=conn.execute('SELECT * FROM game_accounts WHERE username=%s AND NOT is_guest',(username.lower(),)).fetchone()
+        row=conn.execute('SELECT * FROM game_accounts WHERE username=%s AND NOT is_guest AND deleted_at IS NULL',(username.lower(),)).fetchone()
         if not row:raise HTTPException(404,'Player not found')
         return profile(conn,row)
+
+
+@router.get('/settings')
+def settings():
+    return {'password_reset_available':account_email.reset_enabled()}
+
+
+@router.put('/password',dependencies=[Depends(same_origin)])
+def change_password(body:PasswordChange,request:Request,response:Response):
+    rate_limit(request,'account-password',5)
+    with get_connection() as conn:
+        row=account(conn,request,lock=True)
+        if not verify_password(body.current_password,row['password_hash']):raise HTTPException(401,'Incorrect current password')
+        conn.execute('UPDATE game_accounts SET password_hash=%s WHERE account_id=%s',(password_hash(body.new_password),row['account_id']))
+        conn.execute('DELETE FROM game_sessions WHERE account_id=%s',(row['account_id'],))
+        conn.execute('DELETE FROM game_password_resets WHERE account_id=%s',(row['account_id'],))
+        new_session(conn,row['account_id'],request,response)
+    return {'changed':True}
+
+
+@router.put('/preferences',dependencies=[Depends(same_origin)])
+def preferences(body:Preferences,request:Request):
+    rate_limit(request,'account-preferences',30)
+    with get_connection() as conn:
+        row=account(conn,request,lock=True)
+        conn.execute('UPDATE game_accounts SET animations=%s,reduced_motion=%s WHERE account_id=%s',
+                     (body.animations,body.reduced_motion,row['account_id']))
+    return body.model_dump()
+
+
+@router.delete('/me',dependencies=[Depends(same_origin)])
+def delete_account(body:AccountDeletion,request:Request,response:Response):
+    rate_limit(request,'account-delete',5)
+    with get_connection() as conn:
+        row=account(conn,request,lock=True)
+        if not verify_password(body.password,row['password_hash']):raise HTTPException(401,'Incorrect password')
+        conn.execute('DELETE FROM game_sessions WHERE account_id=%s',(row['account_id'],))
+        conn.execute('DELETE FROM game_password_resets WHERE account_id=%s',(row['account_id'],))
+        conn.execute("""UPDATE game_accounts SET username=%s,email=NULL,password_hash='!',bio='',club_id=NULL,
+            accent='green',animations=true,reduced_motion=false,deleted_at=clock_timestamp() WHERE account_id=%s""",
+            ('deleted_'+secrets.token_hex(8),row['account_id']))
+    response.delete_cookie(COOKIE,path='/')
+    return {'deleted':True}
+
+
+@router.post('/password-reset/request',dependencies=[Depends(same_origin)],status_code=202)
+def request_reset(body:ResetRequest,request:Request):
+    rate_limit(request,'password-reset-request',5)
+    if not account_email.reset_enabled():raise HTTPException(503,'Password recovery is not available yet')
+    message={'message':'If an account uses this email, a reset link will arrive shortly.'}
+    token=secrets.token_urlsafe(32);digest=hashlib.sha256(token.encode()).hexdigest()
+    with get_connection() as conn:
+        row=conn.execute('SELECT * FROM game_accounts WHERE email=%s AND NOT is_guest AND deleted_at IS NULL FOR UPDATE',
+                         (str(body.email).lower(),)).fetchone()
+        if not row:return message
+        if conn.execute("SELECT 1 FROM game_password_resets WHERE account_id=%s AND created_at>clock_timestamp()-INTERVAL '1 minute'",(row['account_id'],)).fetchone():return message
+        conn.execute('DELETE FROM game_password_resets WHERE account_id=%s',(row['account_id'],))
+        conn.execute('INSERT INTO game_password_resets(token_hash,account_id) VALUES(%s,%s)',(digest,row['account_id']))
+    try:account_email.send_reset(row['email'],token)
+    except (RuntimeError,account_email.requests.RequestException):
+        with get_connection() as conn:conn.execute('DELETE FROM game_password_resets WHERE token_hash=%s',(digest,))
+        # Same response for unknown addresses and delivery failures; no tokens
+        # or recipient addresses in logs. Monitor aggregate failures only.
+        import logging
+        logging.getLogger(__name__).warning('Password reset delivery failed')
+    return message
+
+
+@router.post('/password-reset/confirm',dependencies=[Depends(same_origin)])
+def confirm_reset(body:ResetPassword,request:Request,response:Response):
+    rate_limit(request,'password-reset-confirm',10)
+    digest=hashlib.sha256(body.token.encode()).hexdigest()
+    with get_connection() as conn:
+        reset=conn.execute('SELECT account_id FROM game_password_resets WHERE token_hash=%s',(digest,)).fetchone()
+        if not reset:raise HTTPException(400,'Reset link is invalid or expired')
+        # Account first, then reset token: consistent lock ordering with change,
+        # email edits and deletion, and only one concurrent reset can succeed.
+        row=conn.execute('SELECT * FROM game_accounts WHERE account_id=%s AND deleted_at IS NULL AND NOT is_guest FOR UPDATE',
+                         (reset['account_id'],)).fetchone()
+        valid=conn.execute('SELECT 1 FROM game_password_resets WHERE token_hash=%s AND expires_at>clock_timestamp() FOR UPDATE',(digest,)).fetchone()
+        if not row or not valid:raise HTTPException(400,'Reset link is invalid or expired')
+        conn.execute('UPDATE game_accounts SET password_hash=%s WHERE account_id=%s',(password_hash(body.new_password),row['account_id']))
+        conn.execute('DELETE FROM game_password_resets WHERE account_id=%s',(row['account_id'],))
+        conn.execute('DELETE FROM game_sessions WHERE account_id=%s',(row['account_id'],))
+    response.delete_cookie(COOKIE,path='/')
+    return {'changed':True}

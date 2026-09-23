@@ -2,6 +2,16 @@
 .solo-heading .game-rules-link { display:inline-flex; align-items:center; gap:8px; min-height:44px; font-size:13px; white-space:nowrap; }
 .game-rules-link img { width:18px; height:18px; filter:invert(1); }
 .team-rules-link { font-size:13px; color:var(--muted); }
+/* Keep the supplied square artwork intact. The game already hides its heading
+ * while playing, so this logo never takes space from the question controls. */
+.brand-heading { display:grid; grid-template-columns:144px minmax(0,1fr); gap:12px 24px; }
+.brand-heading .home-logo { display:block; grid-column:1; grid-row:1 / span 2; width:144px; height:144px; object-fit:contain; }
+.brand-heading h1 { grid-column:2; grid-row:1; align-self:end; margin:0; }
+.brand-heading > a { grid-column:2; grid-row:2; align-self:start; justify-self:start; }
+@media(max-width:600px) {
+  .brand-heading { grid-template-columns:96px minmax(0,1fr); gap:8px 16px; }
+  .brand-heading .home-logo { width:96px; height:96px; }
+}
 .ranking-table td:nth-child(2) .club-badge { margin-left:10px; }
 .site-footer { max-width:820px; margin:32px auto 0; padding:24px 20px max(24px,env(safe-area-inset-bottom,0px)); text-align:center; color:var(--muted); font-size:12px; border-top:1px solid var(--border); }
 body.stadium-playing .site-footer { display:none; }

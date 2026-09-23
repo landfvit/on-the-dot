@@ -56,6 +56,7 @@ app.mount('/trivia-assets', TriviaAssets(directory=ROOT / 'trivia_app' / 'static
                   'account_settings.css','account_settings.js','public_ui.css','public_ui.js',
                   'audio.css','audio.js','icons/volume-2.svg','icons/volume-x.svg',
                   'game_guide.css','game_guide.js','guide/shooter.png','guide/keeper.png','icons/circle-help.svg',
+                  'brand/logo.png','brand/mark.png',
                   'icons/eye.svg','icons/eye-off.svg',
                   *(f'clubs/{club["team_id"]}.png' for club in public_metadata['clubs']),
                   'icons/menu.svg','icons/x.svg','icons/user-round.svg','icons/trophy.svg','icons/history.svg',
@@ -150,6 +151,11 @@ def home(request: Request):
     if token and not authenticated:
         response.delete_cookie(ACCOUNT_COOKIE, path='/')
     return response
+
+
+@app.get('/favicon.ico', include_in_schema=False)
+def favicon():
+    return RedirectResponse('/trivia-assets/brand/mark.png?v=1', status_code=307)
 
 
 @app.get('/quizzes', response_class=HTMLResponse, dependencies=[Depends(require_editor)])

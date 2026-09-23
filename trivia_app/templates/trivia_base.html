@@ -4,12 +4,14 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>{% block title %}ON THE DOT. Trivia{% endblock %}</title>
+    <link rel="icon" type="image/png" sizes="2000x2000" href="/trivia-assets/brand/mark.png?v=1">
+    <link rel="apple-touch-icon" href="/trivia-assets/brand/mark.png?v=1">
     <link rel="stylesheet" href="/trivia-assets/app.css?v=1">
     {% block styles %}{% endblock %}
     <link rel="stylesheet" href="/trivia-assets/points_theme.css?v=6">
     {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/community.css?v=7">{% endif %}
     {% block final_styles %}{% endblock %}
-    {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/public_ui.css?v=3"><script src="/trivia-assets/public_ui.js?v=1" defer></script>{% endif %}
+    {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/public_ui.css?v=4"><script src="/trivia-assets/public_ui.js?v=1" defer></script>{% endif %}
     {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/audio.css?v=1"><script src="/trivia-assets/audio.js?v=2" defer></script>{% endif %}
 </head>
 <body>

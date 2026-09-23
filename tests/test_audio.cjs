@@ -28,6 +28,12 @@ test('audio is locked until a real gesture; blocked cues are not queued',async()
  s.emit('pointerdown',{isTrusted:true});await flush();assert.equal(s.contexts.length,1);assert.equal(s.sources.length,0);
  assert.equal(s.audio.play('kick'),true);assert.equal(s.sources.length,2);
 });
+test('touch release and trusted clicks can unlock audio independently',async()=>{
+ for(const event of ['pointerup','click']){
+  const s=setup();s.emit(event,{isTrusted:true,target:{closest:()=>null}});await flush();
+  assert.equal(s.audio.play('kick'),true);
+ }
+});
 test('every requested cue has a bounded local recipe and ended voices disconnect',async()=>{
  for(const name of ['click','kick','catch','net','win','loss']){
   const s=setup();s.emit('keydown',{isTrusted:true});await flush();

@@ -88,16 +88,19 @@
     // re-unlock Safari/Chrome after the browser interrupts the audio session.
     const gesture=event=>{if(event.isTrusted)void unlock();};
     document.addEventListener('pointerdown',gesture,{capture:true,passive:true});
+    document.addEventListener('pointerup',gesture,{capture:true,passive:true});
     document.addEventListener('keydown',gesture,{capture:true});
     document.addEventListener('click',event=>{
         if(!event.isTrusted)return;
+        // Touch browsers may grant activation on release/click, not touch-down.
+        gesture(event);
         const control=event.target.closest?.('button,a[href],input[type="radio"],input[type="checkbox"],summary');
         if(!control||control.disabled||control.closest('[inert],[data-sound-toggle]')||control.getAttribute('aria-disabled')==='true')return;
         play('click');
     },true);
-    for(const button of document.querySelectorAll('[data-sound-toggle]'))button.addEventListener('click',async()=>{
+    for(const button of document.querySelectorAll('[data-sound-toggle]'))button.addEventListener('click',async event=>{
         const enabled=!(settings.enabled&&settings.volume>0);setEnabled(enabled);
-        if(enabled&&await unlock())play('click');
+        if(enabled&&event.isTrusted&&await unlock())play('click');
     });
     for(const slider of document.querySelectorAll('[data-sound-volume]')){
         slider.addEventListener('input',()=>setVolume(Number(slider.value)/100));

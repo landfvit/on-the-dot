@@ -25,6 +25,8 @@ for path in ['/', '/penalties', '/account', '/leaderboard', '/trivia-assets/solo
              '/trivia-assets/public_ui.css', '/trivia-assets/public_ui.js',
              '/trivia-assets/account_settings.css', '/trivia-assets/account_settings.js',
              '/trivia-assets/icons/eye.svg', '/trivia-assets/icons/eye-off.svg',
+             '/trivia-assets/audio.js', '/trivia-assets/audio.css',
+             '/trivia-assets/icons/volume-2.svg', '/trivia-assets/icons/volume-x.svg',
              '/trivia-assets/clubs/33.png']:
     assert client.get(path).status_code == 200, path
 assert client.get('/trivia-assets/public_metadata.json').status_code in (401, 404)

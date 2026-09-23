@@ -6,7 +6,7 @@ const script=fs.readFileSync(require('node:path').join(__dirname,'../trivia_app/
 const resultShare=require('../trivia_app/static/result_share.js');
 
 function setup(pageType='solo',withScene=false,stadium=undefined){
-  const nodes=new Map(),requests=[],timers=[],stored=new Map(),shots=[],copied=[],radio={value:pageType==='account'?'login':'easy'};
+  const nodes=new Map(),requests=[],timers=[],stored=new Map(),shots=[],copied=[],sounds=[],radio={value:pageType==='account'?'login':'easy'};
   function element(tag='div'){
     let value='';const classes=new Set();
     return {tag,children:[],handlers:{},dataset:{},disabled:false,hidden:false,textContent:'',
@@ -27,12 +27,13 @@ function setup(pageType='solo',withScene=false,stadium=undefined){
   vm.runInNewContext(script,{document,location,console,Date,encodeURIComponent,URLSearchParams,navigator:{clipboard:{writeText:async text=>copied.push(text)}},
     PenaltyScene:withScene?{shot:outcome=>shots.push(outcome),reset(){}}:undefined,
     PointsStadium:stadium,
+    PointsAudio:{play:name=>sounds.push(name)},
     PointsResultShare:{...resultShare,prepare:async(run,user,origin)=>({data:resultShare.snapshot(run,user,origin),file:{name:'on-the-dot-result.png'},imageUrl:'blob:result',dispose(){}})},
     history:{replaceState(_state,_title,path){location.href=location.origin+path;location.search='';}},
     crypto:{randomUUID:()=>`request-${requests.length}`},setInterval(fn,ms){timers.push({fn,ms});},
     localStorage:{getItem:k=>stored.get(k),setItem:(k,v)=>stored.set(k,v),removeItem:k=>stored.delete(k)},
     fetch(url,options){return new Promise(resolve=>requests.push({url,options,resolve}));}});
-  return {get,requests,radio,stored,timers,location,shots,copied};
+  return {get,requests,radio,stored,timers,location,shots,copied,sounds};
 }
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 const deferred=()=>{let resolve;const promise=new Promise(r=>resolve=r);return {promise,resolve};};
@@ -330,18 +331,30 @@ test('deciding shot completes before stadium outro and results do not replay on 
   const done=run({phase:'FINISHED',position:6,role:'keeper',shootout:shootout({winner:'player',player:3}),question:q,review,correct:6,total_xp:60});
   reply(s.requests[3],done);await sending;await flush();
   assert.deepEqual(calls,['shot']);assert.equal(s.get('summary').hidden,true);
+  assert.deepEqual(s.sounds,[]);
   shot.resolve();await flush();assert.deepEqual(calls,['shot','outro']);assert.equal(s.get('summary').hidden,false);
   outro.resolve();await flush();
+  assert.deepEqual(s.sounds,['win']);
   assert.equal(s.get('result-metrics').children[0].children[0].textContent,'6 / 6');
   await s.get('share-result').emit('click');await s.get('share-copy').emit('click');assert.match(s.copied[0],/3 : 0 · 6\/6 correct/);
   s.get('retry').emit('click');await flush();reply(s.requests.at(-1),done);await flush();
   assert.deepEqual(calls,['shot','outro']);
+  assert.deepEqual(s.sounds,['win']);
 });
 test('opening a completed shootout from history shows results without replaying cinematics',async()=>{
   const calls=[],stadium={enter(){calls.push('enter');},shot(){calls.push('shot');},finish(){calls.push('finish');},leave(){calls.push('leave');}};
   const s=setup('solo',true,stadium);
   await boot(s,true,run({phase:'FINISHED',position:6,shootout:shootout({winner:'player'})}));
   assert.deepEqual(calls,['leave']);assert.equal(s.get('summary').hidden,false);
+  assert.deepEqual(s.sounds,[]);
+});
+test('ending a live shootout plays one loss cue, never a win',async()=>{
+  const stadium={enter:()=>Promise.resolve(),skip(){},leave(){},finish:()=>Promise.resolve()};
+  const s=setup('solo',true,stadium);
+  await boot(s,true,run({phase:'ANSWERING',position:1,shootout:shootout(),question:{text:'Question?',options:[]}}));
+  const sending=s.get('leave').emit('click');await flush();
+  reply(s.requests.at(-1),run({phase:'ABANDONED',position:1,shootout:shootout({winner:'opponent'})}));
+  await sending;await flush();assert.deepEqual(s.sounds,['loss']);
 });
 
 test('server rejection refreshes eligibility when another tab used the questions',async()=>{

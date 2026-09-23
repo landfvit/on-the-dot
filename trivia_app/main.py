@@ -52,6 +52,7 @@ app.mount('/trivia-assets', TriviaAssets(directory=ROOT / 'trivia_app' / 'static
                   'stadium.css','stadium_intro.js','stadium_scene.js','stadium_config.js','stadium_v6_world.js','stadium_motion.js','penalty_shots.js','points_theme.css',
                   'community.css','community.js','shell.js','shootout.css','result_share.js','solo_mobile.css','solo_mobile.js',
                   'account_settings.css','account_settings.js','public_ui.css','public_ui.js',
+                  'audio.css','audio.js','icons/volume-2.svg','icons/volume-x.svg',
                   'icons/eye.svg','icons/eye-off.svg',
                   *(f'clubs/{club["team_id"]}.png' for club in public_metadata['clubs']),
                   'icons/menu.svg','icons/x.svg','icons/user-round.svg','icons/trophy.svg','icons/history.svg',

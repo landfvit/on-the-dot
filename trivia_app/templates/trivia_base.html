@@ -10,6 +10,7 @@
     {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/community.css?v=6">{% endif %}
     {% block final_styles %}{% endblock %}
     {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/public_ui.css?v=2"><script src="/trivia-assets/public_ui.js?v=1" defer></script>{% endif %}
+    {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/audio.css?v=1"><script src="/trivia-assets/audio.js?v=1" defer></script>{% endif %}
 </head>
 <body>
     <header class="points-header">
@@ -37,6 +38,10 @@
         <a href="/history">Your history <img src="/trivia-assets/icons/history.svg" alt=""></a>
         <a href="/account">Your profile <img src="/trivia-assets/icons/user-round.svg" alt=""></a>
       </nav>
+      <section class="sound-settings" aria-label="Sound settings">
+        <div class="sound-setting-row"><span>Sound effects</span><button class="icon-button" type="button" data-sound-toggle aria-label="Mute sound" title="Mute sound" aria-pressed="true"><img src="/trivia-assets/icons/volume-2.svg" alt=""></button></div>
+        <div class="sound-volume"><label for="sound-volume">Volume</label><input id="sound-volume" data-sound-volume type="range" min="0" max="100" step="5" value="50"><output for="sound-volume" data-sound-level>50%</output></div>
+      </section>
     </dialog>
     {% endif %}
     {% block content %}{% endblock %}

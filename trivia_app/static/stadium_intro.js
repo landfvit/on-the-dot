@@ -16,7 +16,7 @@
     // Lokalne hostovana Three.js: zadne CDN requesty ani sledovani uzivatele.
     // Pri chybe se ukaze upozorneni. Zadny 2D renderer se uz nenacita.
     function load() {
-        if (!modules) modules = Promise.all([import('./stadium_scene.js?v=11'), import('./stadium_config.js?v=10')]);
+        if (!modules) modules = Promise.all([import('./stadium_scene.js?v=12'), import('./stadium_config.js?v=10')]);
         return modules;
     }
     async function prepare() { try { await load(); } catch { /* Chybu zobrazime az pri vstupu do hry. */ } }
@@ -71,16 +71,18 @@
             if(own===version)fallback();return false;
         } finally { clearTimeout(timer); }
     }
-    function showShot(animated) {
+    function showShot(animated,withSound=false) {
         if(!active||!engine)return;
         const {outcome,plan}=lastShot;
-        skip();const completion=engine.shot(outcome,animated,plan);
+        // Restoring a visual pose is silent. Only a newly presented shot gets
+        // cues from its actual animation frames, never from wall-clock timers.
+        skip();const completion=engine.shot(outcome,animated,plan,withSound?cue=>globalThis.PointsAudio?.play(cue):undefined);
         $('stadium-outcome').hidden=false;
         $('stadium-outcome').textContent={goal:'GOAL',save:'SAVE',miss:'MISS',replay:'REPLAY'}[outcome]||'';
         return completion;
     }
     function shot(outcome,plan=globalThis.PenaltyShots.plan(outcome)) {
-        lastShot={outcome,plan};return showShot(motion());
+        lastShot={outcome,plan};return showShot(motion(),true);
     }
     async function finish(){
         if(!active||!engine){leave();return;}

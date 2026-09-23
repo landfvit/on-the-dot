@@ -244,7 +244,7 @@ export function createStadium(host, framing, onFailure, onReveal = () => {}) {
         if(phase==='shot'){stop();phase='ready';}
         resetBall();render();
     }
-    function shot(outcome,animated=true,plan=globalThis.PenaltyShots.plan(outcome)) {
+    function shot(outcome,animated=true,plan=globalThis.PenaltyShots.plan(outcome),onCue=()=>{}) {
         if(!['goal','save','miss','replay'].includes(outcome)||disposed)return;
         skip();stop();resetBall();lastOutcome=outcome;lastPlan=plan;
         if(outcome==='replay'){render();return Promise.resolve();}
@@ -278,6 +278,8 @@ export function createStadium(host, framing, onFailure, onReveal = () => {}) {
             return {position:v(goalX-.4-.12*travel,Math.max(floor,ballistic(.92,jumpVelocity,airborne,gravity)),lateral*lateralTravel),angle};
         }
         const contactRoot=keeperPose(flightSeconds).position;
+        let kicked=false,contacted=false;
+        const cue=name=>{try{onCue(name);}catch{/* Audio failure must never stop the shot. */}};
         function shotPose(t) {
             const elapsed=t*totalMs,approach=runUp?clamp(elapsed/runUp):1;
             const seconds=Math.max(0,(elapsed-runUp)/1000),u=clamp(seconds/flightSeconds),after=Math.max(0,seconds-flightSeconds);
@@ -316,8 +318,12 @@ export function createStadium(host, framing, onFailure, onReveal = () => {}) {
             // Stable third-person camera: the actual keeper, gloves and ball
             // stay visible through contact and landing. No duplicate POV ball.
             render();
+            // Cross each contact threshold once after rendering that pose,
+            // including low-FPS frames. Keeper run-up delays the kick.
+            if(animated&&!kicked&&elapsed>=runUp){kicked=true;cue('kick');}
+            if(animated&&!contacted&&u===1){contacted=true;if(outcome==='save')cue('catch');else if(outcome==='goal')cue('net');}
         }
-        if(!animated){shotPose(1);phase='ready';return Promise.resolve();}
+        if(!animated){shotPose(1);cue(outcome==='save'?'catch':outcome==='goal'?'net':'kick');phase='ready';return Promise.resolve();}
         return new Promise(resolve=>{
             completion=resolve;
             function frame(now){const t=clamp((now-start)/totalMs);shotPose(t);if(t<1)raf=requestAnimationFrame(frame);else{phase='ready';stop();}}

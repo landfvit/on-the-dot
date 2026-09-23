@@ -129,7 +129,11 @@
         if(done){
           $('question-panel').hidden=true;$('summary').hidden=false;
           await stadium.finish?.();
-          if(current())$('result-heading').focus({preventScroll:true});
+          if(current()){
+            $('result-heading').focus({preventScroll:true});
+            const winner=run.shootout.winner;
+            if(winner)globalThis.PointsAudio?.play(winner==='player'?'win':'loss');
+          }
         }else if(run.phase==='REVIEW'){
           // Camera travel happens before Next sends the request that opens the clock.
           stadium.reset();await stadium.enter(run.shootout.next_role,{intro:false});

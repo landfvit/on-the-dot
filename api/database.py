@@ -9,6 +9,11 @@ load_dotenv()
 
 
 def get_connection():
+    # Hosting providers supply one connection URL. Do not mix it with local
+    # DB_* values, which could otherwise override the URL's credentials/host.
+    database_url = os.getenv("DATABASE_URL", "").strip()
+    if database_url:
+        return psycopg.connect(database_url, row_factory=dict_row)
     return psycopg.connect(
         host=os.getenv("DB_HOST"),
         port=os.getenv("DB_PORT"),

@@ -38,6 +38,42 @@ import/training scripts are local-only and some still use `DB_*` directly.
 
 ## Before Sharing the Site
 
+### Initial Game Data Import
+
+The local `tools.render_game_database` utility exports an explicit allowlist of
+published questions, their audit records, difficulty revisions, levels and
+clubs, plus the full schema. It does not export player accounts, sessions,
+game history, trained models or football fact tables. Keep the editor disabled:
+this database can play frozen questions, not re-run historical analysis.
+
+Create a bundle locally (choose a new directory for every export):
+
+```sh
+.venv/bin/python -m tools.render_game_database export --bundle backups/render-game-20260923
+.venv/bin/python -m tools.verify_game_bundle --bundle backups/render-game-20260923
+```
+
+Verification creates and removes only a newly named temporary LOCAL database.
+It checks row counts, an anonymous trial, registration, a won shootout and XP.
+The bundle remains in ignored `backups/`, never GitHub or public web assets.
+
+Restore the tested bundle from the Mac, not from the Render web process:
+
+```sh
+.venv/bin/python -m tools.render_game_database restore --bundle backups/render-game-20260923
+```
+
+Paste the Render **External Database URL** into the hidden terminal prompt.
+Do not paste it into chat or put it in the shell command. Confirm the displayed
+host/database and type `IMPORT`. The restore requires TLS, verifies the archive
+checksum, refuses a nonempty database and restores in one transaction. It
+preserves the existing empty `public` schema and never drops existing objects.
+If it reports a nonempty target, stop and inspect rather than trying to clear it.
+External network access must permit this Mac during import; restrict external
+access again afterward while keeping the application's internal connection.
+
+### Launch Checks
+
 A successful deployment only means the Python web process is running. The
 database still needs schema and published questions, and the server must be
 tested for trial play, accounts, complete shootouts, XP and leaderboard updates.

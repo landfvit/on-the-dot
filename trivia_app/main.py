@@ -47,7 +47,7 @@ app.mount('/assets', TriviaAssets(directory=ROOT / 'web' / 'static'), name='asse
 app.mount('/trivia-assets', TriviaAssets(directory=ROOT / 'trivia_app' / 'static',
     public_files=('app.css','penalties.css','penalty_scene.js','solo.css','solo.js',
                   'stadium.css','stadium_intro.js','stadium_scene.js','stadium_config.js','stadium_v6_world.js','stadium_motion.js','penalty_shots.js','points_theme.css',
-                  'community.css','community.js','shell.js','shootout.css','result_share.js',
+                  'community.css','community.js','shell.js','shootout.css','result_share.js','solo_mobile.css','solo_mobile.js',
                   'icons/menu.svg','icons/x.svg','icons/user-round.svg','icons/trophy.svg','icons/history.svg',
                   'icons/arrow-right.svg','icons/share-2.svg','icons/football.svg','icons/copy.svg','icons/download.svg','icons/LICENSE',
                   'vendor/three/three.module.min.js','vendor/three/three.core.min.js','vendor/three/LICENSE')), name='trivia-assets')

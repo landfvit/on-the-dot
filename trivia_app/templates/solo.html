@@ -1,5 +1,6 @@
 {% extends 'trivia_base.html' %}
 {% block title %}Penalties · ON THE DOT.{% endblock %}
+{% block final_styles %}<link rel="stylesheet" href="/trivia-assets/solo_mobile.css?v=1">{% endblock %}
 {% block styles %}<link rel="stylesheet" href="/trivia-assets/penalties.css?v=2"><link rel="stylesheet" href="/trivia-assets/solo.css?v=4"><link rel="stylesheet" href="/trivia-assets/stadium.css?v=4"><link rel="stylesheet" href="/trivia-assets/shootout.css?v=3">{% endblock %}
 {% block content %}
 {% include 'stadium.html' %}
@@ -34,7 +35,7 @@
     <div class="clock"><progress id="timer" max="15" value="15" aria-label="Time remaining"></progress><output id="seconds">15.0 s</output></div>
     <h2 id="question-title" tabindex="-1"></h2>
     <div id="choices" class="solo-choices" role="group" aria-labelledby="question-title"></div>
-    <p id="feedback" role="status" aria-live="polite"></p>
+    <div class="feedback-slot"><p id="feedback" role="status" aria-live="polite"></p><button id="feedback-expand" type="button" aria-label="Read full explanation" title="Read full explanation" hidden><img src="/trivia-assets/icons/arrow-right.svg" alt=""></button></div>
     <div class="actions"><button id="next" class="primary" hidden>Next shot</button><button id="leave">End shootout</button><button id="retry" hidden>Reconnect</button></div>
     </div>
     <section id="summary" hidden aria-labelledby="result-heading">
@@ -58,5 +59,9 @@
     <div id="solo-attempts" aria-label="Your penalties"></div>
   </section></div>
 </main>
+<dialog id="feedback-dialog" aria-labelledby="feedback-heading">
+  <div class="drawer-heading"><h2 id="feedback-heading">Answer explanation</h2><button id="feedback-close" class="icon-button" type="button" aria-label="Close explanation"><img src="/trivia-assets/icons/x.svg" alt=""></button></div>
+  <p id="feedback-full"></p>
+</dialog>
 {% endblock %}
-{% block scripts %}<script src="/trivia-assets/penalty_shots.js?v=1" defer></script><script src="/trivia-assets/stadium_intro.js?v=9" defer></script><script src="/trivia-assets/penalty_scene.js?v=6" defer></script><script src="/trivia-assets/result_share.js?v=1" defer></script><script src="/trivia-assets/solo.js?v=13" defer></script>{% endblock %}
+{% block scripts %}<script src="/trivia-assets/penalty_shots.js?v=1" defer></script><script src="/trivia-assets/stadium_intro.js?v=9" defer></script><script src="/trivia-assets/penalty_scene.js?v=6" defer></script><script src="/trivia-assets/result_share.js?v=1" defer></script><script src="/trivia-assets/solo.js?v=13" defer></script><script src="/trivia-assets/solo_mobile.js?v=1" defer></script>{% endblock %}

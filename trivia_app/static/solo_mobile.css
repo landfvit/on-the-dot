@@ -1,0 +1,128 @@
+/* Compact gameplay only. Selection and the results/review retain normal scrolling.
+ * svh keeps the controls still when mobile browser toolbars expand or collapse.
+ * These variables also position the camera's framing region above the questions.
+ */
+#feedback-dialog { width:min(520px,calc(100% - 32px)); max-height:calc(100svh - 48px); padding:20px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); }
+#feedback-dialog::backdrop { background:#03090cb3; backdrop-filter:blur(4px); }
+#feedback-dialog .drawer-heading { margin-bottom:16px; }
+#feedback-dialog h2 { font-size:18px; margin:0; }
+#feedback-full { line-height:1.6; overflow-wrap:anywhere; }
+
+@media (max-width:800px), (max-height:540px) and (max-width:1100px) {
+  body.stadium-playing:not(.stadium-ending) {
+    --play-panel-height:min(580px,max(360px,60svh),calc(100svh - 170px));
+    --play-header-height:calc(52px + env(safe-area-inset-top,0px));
+    --play-question-size:18px;
+    --play-answer-size:14px;
+  }
+  body.stadium-playing:not(.stadium-ending) #stadium-controls {
+    height:var(--play-header-height); min-height:0;
+    padding:env(safe-area-inset-top,0px) 12px 0;
+  }
+  body.stadium-playing:not(.stadium-ending) #stadium-controls strong { font-size:18px; }
+  body.stadium-playing:not(.stadium-ending) #stadium-controls > div { flex-wrap:nowrap; gap:8px; }
+  body.stadium-playing:not(.stadium-ending) #stadium-role,
+  body.stadium-playing:not(.stadium-ending) #stadium-score { display:none; }
+  body.stadium-playing:not(.stadium-ending) #shootout-board {
+    top:calc(var(--play-header-height) + 5px); left:10px; padding:4px 8px;
+  }
+  body.stadium-playing:not(.stadium-ending) .shootout-team { min-height:20px; }
+  body.stadium-playing:not(.stadium-ending) #shootout-round { margin-top:2px; font-size:10px; }
+  body.stadium-playing:not(.stadium-ending):has(#shootout-board) #stadium-framing {
+    top:calc(var(--play-header-height) + 64px);
+    bottom:auto; height:calc(100svh - var(--play-panel-height) - var(--play-header-height) - 72px);
+    left:12px; right:12px;
+  }
+  body.stadium-playing:not(.stadium-ending) .solo-questions {
+    top:calc(100svh - var(--play-panel-height)); bottom:auto; left:0; right:0;
+    height:var(--play-panel-height); width:100%; padding:10px 12px max(10px,env(safe-area-inset-bottom,0px));
+    overflow:hidden; display:flex; flex-direction:column; gap:4px;
+  }
+  body.stadium-playing:not(.stadium-ending) #quiz-run { flex:1; min-height:0; }
+  body.stadium-playing:not(.stadium-ending) #question-panel {
+    height:100%; min-height:0; display:grid; gap:4px;
+    /* Fixed tracks prevent changes in question length, selection badges or
+     * feedback from moving the answer buttons and the next-shot action. */
+    grid-template-rows:32px 16px minmax(0,1.2fr) minmax(96px,1fr) 44px 44px;
+  }
+  body.stadium-playing:not(.stadium-ending) #question-panel > * { min-width:0; min-height:0; }
+  body.stadium-playing:not(.stadium-ending) .run-meta {
+    display:grid; grid-template-columns:minmax(0,1fr) auto; grid-template-rows:14px 14px;
+    gap:0 8px; padding:0; border:0; font-size:11px; line-height:14px;
+  }
+  body.stadium-playing:not(.stadium-ending) .run-meta #run-category {
+    grid-column:1/-1; width:auto; font-size:11px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+  }
+  body.stadium-playing:not(.stadium-ending) .clock { margin:0; gap:8px; font-size:11px; }
+  /* Keep hidden clock/Next in their slots but inaccessible to clicks and focus. */
+  body.stadium-playing:not(.stadium-ending) #question-panel .clock[hidden],
+  body.stadium-playing:not(.stadium-ending) #next[hidden] { display:flex!important; visibility:hidden; pointer-events:none; }
+  body.stadium-playing:not(.stadium-ending) #question-title {
+    margin:0; font-size:var(--play-question-size); line-height:1.25; align-self:stretch;
+    display:flex; align-items:center; overflow-wrap:anywhere;
+  }
+  body.stadium-playing:not(.stadium-ending) .solo-choices {
+    margin:0; gap:6px; grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:repeat(2,minmax(0,1fr));
+  }
+  body.stadium-playing:not(.stadium-ending) .solo-choices button {
+    min-width:0; min-height:44px; height:100%; padding:6px 9px; font-size:var(--play-answer-size); line-height:1.2;
+  }
+  /* The selected state already has a distinct fill. Keep its label for screen
+   * readers without growing one answer tile after the user taps it. */
+  body.stadium-playing:not(.stadium-ending) .answer-selection {
+    position:absolute; width:1px; height:1px; margin:0; overflow:hidden; clip-path:inset(50%);
+  }
+  body.stadium-playing:not(.stadium-ending) .feedback-slot { display:flex; align-items:center; gap:6px; overflow:hidden; }
+  body.stadium-playing:not(.stadium-ending) #feedback {
+    flex:1; margin:0; padding:0; min-width:0; font-size:12px; line-height:16px;
+    display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; max-height:32px; overflow:hidden;
+  }
+  body.stadium-playing:not(.stadium-ending) #feedback-expand {
+    flex:0 0 44px; min-height:44px; padding:10px; display:grid; place-items:center;
+  }
+  #feedback-expand img { width:18px; height:18px; filter:invert(1); }
+  body.stadium-playing:not(.stadium-ending) #question-panel > .actions {
+    display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); grid-auto-rows:44px; gap:6px;
+  }
+  body.stadium-playing:not(.stadium-ending) #question-panel > .actions:has(#retry:not([hidden])) { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  body.stadium-playing:not(.stadium-ending) #question-panel > .actions button {
+    min-width:0; min-height:44px; padding:6px 8px; font-size:12px; line-height:1.2; justify-content:center; align-items:center;
+  }
+  /* Connection notices replace metadata without resizing the playing grid.
+   * Reconnect remains reachable in the action row. */
+  body.stadium-playing:not(.stadium-ending) .solo-questions > :is(#error,#notice):not(:empty) {
+    position:absolute; z-index:1; left:12px; right:12px; top:10px; margin:0; padding:0;
+    background:var(--surface); font-size:11px; line-height:14px;
+  }
+  body.stadium-playing:not(.stadium-ending) .solo-questions:has(#error:not([hidden]):not(:empty)) .run-meta { visibility:hidden; }
+}
+
+/* Landscape phones use the existing side-by-side camera, with the same stable
+ * slots. This also handles a short desktop window without covering the goal. */
+@media (max-height:540px) and (min-width:480px) and (max-width:1100px) {
+  body.stadium-playing:not(.stadium-ending) { --stadium-panel-width:54vw; --play-question-size:16px; --play-answer-size:13px; }
+  body.stadium-playing:not(.stadium-ending) .solo-questions {
+    top:var(--play-header-height); left:auto; right:env(safe-area-inset-right,0px);
+    width:var(--stadium-panel-width); height:calc(100svh - var(--play-header-height));
+    padding:6px 10px max(6px,env(safe-area-inset-bottom,0px)); border-top:0; border-left:1px solid var(--border);
+  }
+  body.stadium-playing:not(.stadium-ending) #question-panel {
+    gap:4px; grid-template-rows:28px 12px minmax(0,1.2fr) minmax(92px,1fr) 32px 44px;
+  }
+  body.stadium-playing:not(.stadium-ending) #feedback { -webkit-line-clamp:2; }
+  body.stadium-playing:not(.stadium-ending):has(#shootout-board) #stadium-framing {
+    left:max(12px,env(safe-area-inset-left,0px)); right:calc(var(--stadium-panel-width) + 12px);
+    top:calc(var(--play-header-height) + 64px); bottom:12px; height:auto;
+  }
+  body.stadium-playing:not(.stadium-ending) .solo-questions > :is(#error,#notice):not(:empty) { top:0; bottom:auto; }
+}
+
+@media (max-height:360px) and (min-width:480px) and (max-width:1100px) {
+  body.stadium-playing:not(.stadium-ending) { --stadium-panel-width:64vw; --play-header-height:44px; }
+  body.stadium-playing:not(.stadium-ending) .solo-questions { padding:4px 8px; }
+  body.stadium-playing:not(.stadium-ending) #question-panel { gap:2px; grid-template-rows:14px 6px minmax(0,1fr) 92px 44px 44px; }
+  body.stadium-playing:not(.stadium-ending) .run-meta { grid-template-rows:14px; }
+  body.stadium-playing:not(.stadium-ending) .run-meta #run-category { display:none; }
+  body.stadium-playing:not(.stadium-ending) .clock output { display:none; }
+  body.stadium-playing:not(.stadium-ending) #question-title { line-height:1.2; }
+}

@@ -20,7 +20,8 @@ sys.meta_path.insert(0, NoLocalPackages())
 from fastapi.testclient import TestClient
 from trivia_app.main import app
 client = TestClient(app)
-for path in ['/', '/penalties', '/account', '/leaderboard', '/trivia-assets/solo.js']:
+for path in ['/', '/penalties', '/account', '/leaderboard', '/trivia-assets/solo.js',
+             '/trivia-assets/solo_mobile.css', '/trivia-assets/solo_mobile.js']:
     assert client.get(path).status_code == 200, path
 '''
         result = subprocess.run([sys.executable, '-c', script],

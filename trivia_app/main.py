@@ -22,6 +22,7 @@ from api.solo_routes import router as solo
 from api.solo_difficulty import router as solo_difficulty
 from api.trivia_writer import router as trivia_writer
 from api.game_community import router as game_community
+from trivia_app.game_guide import guide_context
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -53,6 +54,7 @@ app.mount('/trivia-assets', TriviaAssets(directory=ROOT / 'trivia_app' / 'static
                   'community.css','community.js','shell.js','shootout.css','result_share.js','solo_mobile.css','solo_mobile.js',
                   'account_settings.css','account_settings.js','public_ui.css','public_ui.js',
                   'audio.css','audio.js','icons/volume-2.svg','icons/volume-x.svg',
+                  'game_guide.css','game_guide.js','guide/shooter.png','guide/keeper.png','icons/circle-help.svg',
                   'icons/eye.svg','icons/eye-off.svg',
                   *(f'clubs/{club["team_id"]}.png' for club in public_metadata['clubs']),
                   'icons/menu.svg','icons/x.svg','icons/user-round.svg','icons/trophy.svg','icons/history.svg',
@@ -157,6 +159,11 @@ def solo_page(request:Request):
 @app.get('/account',response_class=HTMLResponse)
 def account_page(request:Request):
     return templates.TemplateResponse(request=request,name='account.html',context={'active_page':'account'})
+
+
+@app.get('/how-to-play',response_class=HTMLResponse)
+def game_guide_page(request:Request):
+    return templates.TemplateResponse(request=request,name='game_guide.html',context=guide_context())
 
 
 @app.get('/leaderboard',response_class=HTMLResponse)

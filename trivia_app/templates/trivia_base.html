@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="/trivia-assets/points_theme.css?v=6">
     {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/community.css?v=6">{% endif %}
     {% block final_styles %}{% endblock %}
-    {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/public_ui.css?v=2"><script src="/trivia-assets/public_ui.js?v=1" defer></script>{% endif %}
+    {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/public_ui.css?v=3"><script src="/trivia-assets/public_ui.js?v=1" defer></script>{% endif %}
     {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/audio.css?v=1"><script src="/trivia-assets/audio.js?v=2" defer></script>{% endif %}
 </head>
 <body>
@@ -37,6 +37,7 @@
         <a href="/leaderboard">Leaderboard <img src="/trivia-assets/icons/trophy.svg" alt=""></a>
         <a href="/history">Your history <img src="/trivia-assets/icons/history.svg" alt=""></a>
         <a href="/account">Your profile <img src="/trivia-assets/icons/user-round.svg" alt=""></a>
+        <a href="/how-to-play">How to play <img src="/trivia-assets/icons/circle-help.svg" alt=""></a>
       </nav>
       <section class="sound-settings" aria-label="Sound settings">
         <div class="sound-setting-row"><span>Sound effects</span><button class="icon-button" type="button" data-sound-toggle aria-label="Mute sound" title="Mute sound" aria-pressed="true"><img src="/trivia-assets/icons/volume-2.svg" alt=""></button></div>

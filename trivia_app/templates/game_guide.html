@@ -1,0 +1,73 @@
+{% extends 'trivia_base.html' %}
+{% block title %}How to play · ON THE DOT.{% endblock %}
+{% block styles %}<link rel="stylesheet" href="/trivia-assets/shootout.css?v=3"><link rel="stylesheet" href="/trivia-assets/game_guide.css?v=1">{% endblock %}
+{% block content %}
+<main class="game-guide">
+  <header class="guide-heading"><h1>How to play</h1><a class="primary-link" href="/penalties">Play penalties <img src="/trivia-assets/icons/arrow-right.svg" alt=""></a></header>
+  <p class="guide-intro">One question. One penalty. You shoot first, then defend the opponent's kick.</p>
+  <nav class="guide-jump" aria-label="Game rules"><a href="#shootout">The shootout</a><a href="#rewards">XP &amp; streaks</a><a href="#teams">Your team</a></nav>
+
+  <section id="shootout" class="guide-section" aria-labelledby="shootout-title">
+    <div class="guide-section-heading"><h2 id="shootout-title">Shoot. Save. Repeat.</h2><span class="guide-timer">{{ rules.answer_ms // 1000 }} seconds / answer</span></div>
+    <div class="guide-roles">
+      <figure><img class="guide-scene" src="/trivia-assets/guide/shooter.png" width="900" height="600" alt="The game's penalty spot, football and goalkeeper facing your shot.">
+        <figcaption><h3>Your kick</h3><p><strong>Correct answer: goal.</strong><br>Wrong answer: saved. Time runs out: missed.</p></figcaption>
+      </figure>
+      <figure><img class="guide-scene" src="/trivia-assets/guide/keeper.png" width="900" height="600" alt="The game's goalkeeper holding the ball after saving a penalty.">
+        <figcaption><h3>Your save</h3><p><strong>Correct answer: save.</strong><br>A wrong answer or timeout gives the opponent a goal.</p></figcaption>
+      </figure>
+    </div>
+    <p>{{ rules.initial_kicks }} penalties each, unless the winner is decided earlier. A tie goes to sudden death: a lead wins only after both sides have taken the same number of kicks.</p>
+    <fieldset class="guide-scenarios" hidden><legend class="sr-only">Shootout examples</legend>
+      {% for example in examples %}<label><input type="radio" name="guide-scenario" value="{{ example.code }}" aria-controls="example-{{ example.code }}" {% if loop.first %}checked{% endif %}><span>{{ example.title }}</span></label>{% endfor %}
+    </fieldset>
+    <div class="guide-example-stage">
+      {% for example in examples %}
+      <section id="example-{{ example.code }}" class="guide-example" aria-labelledby="example-title-{{ example.code }}">
+        <h3 id="example-title-{{ example.code }}">{{ example.title }}</h3>
+        <div class="guide-scoreboard" role="img" aria-label="Example: you {{ example.score.player }}, opponent {{ example.score.opponent }}. {{ example.caption }}">
+          {% for side,label in [('player','You'),('opponent','Opponent')] %}
+          <div class="shootout-team" aria-hidden="true"><span>{{ label }}</span><strong>{{ example.score[side] }}</strong><div class="shootout-kicks">
+            {% for goal in example.rows[side] %}<span class="shootout-kick {{ 'pending' if goal is none else 'goal' if goal else 'miss' }}"></span>{% endfor %}
+          </div></div>
+          {% endfor %}
+        </div>
+        <p>{{ example.caption }}</p>
+      </section>
+      {% endfor %}
+    </div>
+    <div class="guide-kick-legend"><span><i class="shootout-kick goal" aria-hidden="true"></i>Goal</span><span><i class="shootout-kick miss" aria-hidden="true"></i>No goal</span><span><i class="shootout-kick pending" aria-hidden="true"></i>Not taken</span></div>
+    <p class="guide-note">Ending a shootout early counts as a loss. Win rate = wins &divide; (wins + losses).</p>
+  </section>
+
+  <section id="rewards" class="guide-section" aria-labelledby="rewards-title">
+    <h2 id="rewards-title">Every correct answer earns XP</h2>
+    <p>Correct answers earn XP when shooting <em>and</em> saving. A win multiplies the XP from that shootout. A perfect score is not required.</p>
+    <table class="guide-rewards"><caption class="sr-only">XP rewards by difficulty</caption><thead><tr><th scope="col">Difficulty</th><th scope="col">Correct answer</th><th scope="col">Win multiplier</th></tr></thead><tbody>
+      {% for difficulty in ['easy','medium','hard'] %}<tr><th scope="row">{{ difficulty|title }}</th><td>{{ rules.xp_by_difficulty[difficulty] }} XP</td><td>&times;{{ rules.win_multipliers[difficulty] }}</td></tr>{% endfor %}
+    </tbody></table>
+    <div class="guide-xp-example"><img src="/trivia-assets/icons/trophy.svg" width="28" height="28" alt=""><div><span>Example: {{ reward_example.correct }} correct answers, Medium win</span><strong>{{ reward_example.correct }} &times; {{ rules.xp_by_difficulty.medium }} &times; {{ reward_example.multiplier }} = {{ reward_example.total_xp }} XP</strong></div></div>
+    <p>Without a win, you keep base XP only. Saved XP builds your level. The player leaderboard ranks level, wins or win rate.</p>
+    <div class="guide-progress-rules">
+      <section><h3>Daily streak</h3><div class="guide-streak" aria-label="Example of a three-day streak">{% for day in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] %}<span><i class="{{ 'complete' if loop.index <= 3 else '' }}" aria-hidden="true"></i>{{ day }}</span>{% endfor %}</div>
+        <p>Finish a shootout and answer every question before time runs out. Winning is not required. A timeout or ending early does not extend the streak. Each day resets at 00:00 UTC.</p></section>
+      <section><h3>Fresh questions</h3><p>Registered players do not receive the same question again within a week. The question pool resets every Monday at 00:00 UTC.</p><p>Questions and answer options are shuffled. Category and Team / scope determine which questions are in your game.</p></section>
+    </div>
+    <div class="guide-guest"><h3>Guest or registered?</h3><p>Guest games are unlimited. An account saves XP, levels, streaks and your match record. Guest results stay separate and do not transfer to a new account.</p><a href="/account?mode=register">Create account</a></div>
+  </section>
+
+  <section id="teams" class="guide-section" aria-labelledby="teams-title">
+    <h2 id="teams-title">Your team, your badge</h2>
+    <div class="guide-team-identity"><span>your_username</span><img class="club-badge" src="/trivia-assets/clubs/33.png" width="40" height="40" alt="Manchester United example badge"><small>Example identity</small></div>
+    <p>Joining a team adds its badge beside your name on your profile and the player leaderboard. It is an optional way to show which club you support.</p>
+    <div class="guide-team-rules">
+      <section><h3>Club identity</h3><p>Your team gives no XP bonus and does not change your questions or difficulty. You can change teams or choose No team; your XP and record stay yours.</p></section>
+      <section><h3>Quiz scope</h3><p>The separate Team / scope choice selects the question pool for a shootout. Supporting Manchester United does not stop you playing questions about any other club.</p></section>
+    </div>
+    <p class="guide-note">Club-versus-club leaderboards are not available yet. Current rankings compare individual players.</p>
+    <a class="primary-link" href="/account">Your profile <img src="/trivia-assets/icons/user-round.svg" alt=""></a>
+  </section>
+  <div class="guide-end"><a class="primary-link" href="/penalties">Play penalties <img src="/trivia-assets/icons/arrow-right.svg" alt=""></a></div>
+</main>
+{% endblock %}
+{% block scripts %}<script src="/trivia-assets/game_guide.js?v=1" defer></script>{% endblock %}

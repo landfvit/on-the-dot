@@ -18,17 +18,36 @@ def period_start(period, now):
 
 @router.get('/leaderboard')
 def leaderboard(request: Request, period: Literal['today', 'week', 'all'] = 'today',
-                metric: Literal['level','wins','win_rate','xp']='xp',
+                metric: Literal['level','streak','wins','win_rate','xp']='xp',
+                board: Literal['players','teams']='players',
                 offset: int = Query(0, ge=0, le=10000), limit: int = Query(25, ge=1, le=100)):
     with get_connection() as conn:
-        username = None
+        username = team_id = None
         if request.cookies.get(COOKIE):
-            try: username = account(conn, request)['username']
+            try:
+                user = account(conn, request)
+                username, team_id = user['username'], user['club_id']
             except HTTPException as exc:
                 if exc.status_code != 401: raise
         now = conn.execute('SELECT clock_timestamp() AS now').fetchone()['now']
-        if metric=='level':period='all'
+        if metric in ('level','streak'):period='all'
         since = period_start(period, now)
+        # Only these two fixed SQL fragments vary; no request value is SQL text.
+        source = '''SELECT username,xp,total_xp,wins,losses,played,win_rate,club,level,streak,
+                        username sort_name,username=%(username)s is_me FROM levels
+                    WHERE CASE WHEN %(metric)s IN ('wins','win_rate') THEN played>0
+                        WHEN %(metric)s='streak' THEN total_xp>0 OR played>0 OR streak>0
+                        ELSE xp>0 OR played>0 END'''
+        if board == 'teams':
+            # Average member percentages, not total wins / total matches. Members
+            # with no matches have NULL win_rate and do not dilute that average.
+            source = '''SELECT c.team_id,c.name,count(l.account_id)::int members,
+                        COALESCE(sum(l.xp),0)::bigint xp,COALESCE(sum(l.total_xp),0)::bigint total_xp,
+                        COALESCE(sum(l.level),0)::bigint level,COALESCE(sum(l.streak),0)::bigint streak,
+                        COALESCE(sum(l.wins),0)::bigint wins,COALESCE(sum(l.losses),0)::bigint losses,
+                        COALESCE(sum(l.played),0)::bigint played,avg(l.win_rate) win_rate,
+                        c.name sort_name,c.team_id=%(team_id)s is_me
+                    FROM game_clubs c LEFT JOIN levels l ON l.club_id=c.team_id GROUP BY c.team_id,c.name'''
         # One SQL snapshot for ranks, distribution and the current player's
         # position. Ties share a rank; username only stabilizes pagination.
         result = conn.execute('''WITH points AS (
@@ -40,36 +59,46 @@ def leaderboard(request: Request, period: Literal['today', 'week', 'all'] = 'tod
                 100.0*count(*) FILTER(WHERE won)/NULLIF(count(*),0) win_rate
             FROM game_match_results WHERE finished_at<=%(now)s AND (%(since)s::timestamptz IS NULL OR finished_at>=%(since)s)
             GROUP BY account_id
+        ), activity AS (
+            SELECT account_id,day,
+                day-(row_number() OVER(PARTITION BY account_id ORDER BY day))::int island
+            FROM game_daily_activity WHERE day<=(%(now)s::timestamptz AT TIME ZONE 'UTC')::date
+        ), streaks AS (
+            SELECT account_id,count(*)::int streak FROM activity GROUP BY account_id,island
+            HAVING max(day)>=(%(now)s::timestamptz AT TIME ZONE 'UTC')::date-1
         ), scores AS (
-            SELECT a.username,COALESCE(p.xp,0) xp,COALESCE(p.total_xp,0) total_xp,
+            SELECT a.account_id,a.username,a.club_id,COALESCE(s.streak,0) streak,
+                COALESCE(p.xp,0) xp,COALESCE(p.total_xp,0) total_xp,
                 COALESCE(m.wins,0) wins,COALESCE(m.losses,0) losses,COALESCE(m.played,0) played,m.win_rate,
                 CASE WHEN c.team_id IS NOT NULL THEN jsonb_build_object('team_id',c.team_id,'name',c.name) END club
             FROM game_accounts a LEFT JOIN points p USING(account_id) LEFT JOIN matches m USING(account_id)
+            LEFT JOIN streaks s USING(account_id)
             LEFT JOIN game_clubs c ON c.team_id=a.club_id WHERE NOT a.is_guest AND a.deleted_at IS NULL
         ), levels AS (
             SELECT *,
                    (SELECT level FROM game_levels WHERE minimum_xp<=total_xp
                     ORDER BY minimum_xp DESC LIMIT 1) level
-            FROM scores WHERE CASE WHEN %(metric)s IN ('wins','win_rate') THEN played>0 ELSE xp>0 OR played>0 END
-        ), ranking_values AS (
+            FROM scores
+        ), competitors AS (''' + source + '''), ranking_values AS (
             SELECT *,CASE %(metric)s WHEN 'level' THEN level WHEN 'wins' THEN wins
-                WHEN 'win_rate' THEN win_rate ELSE xp END ranking_value FROM levels
+                WHEN 'streak' THEN streak WHEN 'win_rate' THEN win_rate ELSE xp END ranking_value FROM competitors
         ), ranked AS (
-            SELECT dense_rank() OVER(ORDER BY ranking_value DESC) rank,* FROM ranking_values
+            SELECT dense_rank() OVER(ORDER BY ranking_value DESC NULLS LAST) rank,* FROM ranking_values
         ) SELECT
             (SELECT count(*) FROM ranked) participants,
-            COALESCE((SELECT jsonb_agg(r ORDER BY r.ranking_value DESC,r.username) FROM (
-                SELECT * FROM ranked ORDER BY ranking_value DESC,username LIMIT %(limit)s OFFSET %(offset)s
+            COALESCE((SELECT jsonb_agg(to_jsonb(r)-'sort_name'-'is_me' ORDER BY r.ranking_value DESC NULLS LAST,r.sort_name) FROM (
+                SELECT * FROM ranked ORDER BY ranking_value DESC NULLS LAST,sort_name LIMIT %(limit)s OFFSET %(offset)s
             ) r),'[]'::jsonb) entries,
-            (SELECT to_jsonb(r) FROM ranked r WHERE username=%(username)s) me,
+            (SELECT to_jsonb(r)-'sort_name'-'is_me' FROM ranked r WHERE is_me) me,
             (SELECT jsonb_agg(b ORDER BY b.minimum) FROM (
                 SELECT minimum,label,(SELECT count(*) FROM ranked WHERE xp>=minimum
                     AND (maximum IS NULL OR xp<maximum)) count
                 FROM (VALUES (0,100,'<100'),(100,250,'100-249'),(250,500,'250-499'),
                     (500,1000,'500-999'),(1000,NULL,'1,000+')) buckets(minimum,maximum,label)
             ) b) distribution''',
-            {'since': since, 'now': now, 'username': username, 'limit': limit, 'offset': offset,'metric':metric}).fetchone()
-        return {**result, 'period': period, 'metric':metric,'since': since, 'as_of': now, 'timezone': 'UTC',
+            {'since': since, 'now': now, 'username': username, 'team_id':team_id,
+             'limit': limit, 'offset': offset,'metric':metric}).fetchone()
+        return {**result, 'period': period, 'metric':metric,'board':board,'since': since, 'as_of': now, 'timezone': 'UTC',
                 'offset': offset, 'limit': limit, 'signed_in': username is not None}
 
 

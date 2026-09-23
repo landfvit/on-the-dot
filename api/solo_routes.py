@@ -102,7 +102,7 @@ def load_deck(conn,ident,body,now,size=10,exclude=()):
     candidates=[r for r in candidates if str(r['question_id']) not in exclude]
     rows=topics.balanced_sample(candidates,body.topic,size=size)
     if len(rows)!=size:
-        raise HTTPException(409,f'Only {len(rows)} unused approved questions remain in this selection; {size} are required. Try another category or difficulty. Weekly reset: {reset:%Y-%m-%d %H:%M} UTC.')
+        raise HTTPException(409,f'No new shootout is available for this selection right now. Try a different difficulty or wait for the weekly reset: {reset:%Y-%m-%d %H:%M} UTC.')
     snapshots={r['question_id']:r for r in conn.execute('''SELECT question_id,release_id,question
         FROM penalty_bank_questions WHERE release_id=ANY(%s) AND question_id=ANY(%s)''',
         (releases,[r['question_id'] for r in rows])).fetchall()}

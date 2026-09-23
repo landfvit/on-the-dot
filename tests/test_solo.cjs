@@ -68,9 +68,11 @@ test('resumed live question skips travel and retains server deadline',async()=>{
 });
 
 test('solo catalog prevents unsupported difficulty from starting',async()=>{
-  const s=setup();await boot(s);assert.equal(s.get('start').disabled,false);
-  s.get('category').value='GEN';s.get('category').emit('change');assert.equal(s.get('start').disabled,true);
-  assert.match(s.get('availability').textContent,/0\/10 unused approved/);
+  const s=setup();reply(s.requests[0],user);await flush();
+  reply(s.requests[1],{...catalog,categories:[{code:'ALL',counts:{easy:0,medium:10,hard:10}}]});await flush();
+  reply(s.requests[2],{run:null});await flush();assert.equal(s.get('start').disabled,true);
+  assert.match(s.get('availability').textContent,/No new shootout/);
+  const count=s.requests.length;s.get('quiz-start').emit('submit');await flush();assert.equal(s.requests.length,count);
   s.radio.value='medium';s.get('medium').emit('change');assert.equal(s.get('start').disabled,false);
 });
 test('quiz instructions use the server answer duration',async()=>{
@@ -284,7 +286,7 @@ test('returning to selection refreshes weekly counts before enabling start',asyn
   reply(request,{...catalog,resets_at:'2026-09-28T00:00:00Z',categories:[{code:'ALL',label:'All clubs',counts:{easy:0,medium:10,hard:10}}]});
   await returning;
   assert.equal(s.get('start').disabled,true);
-  assert.match(s.get('availability').textContent,/0\/10 unused approved/);
+  assert.match(s.get('availability').textContent,/No new shootout/);
   assert.match(s.get('weekly-reset').textContent,/2026-09-28 at 00:00 UTC/);
   s.radio.value='medium';s.get('medium').emit('change');assert.equal(s.get('start').disabled,false);
 });
@@ -360,36 +362,36 @@ test('ending a live shootout plays one loss cue, never a win',async()=>{
 test('server rejection refreshes eligibility when another tab used the questions',async()=>{
   const s=setup();await boot(s);
   const starting=s.get('quiz-start').emit('submit');await flush();
-  reply(s.requests[3],{detail:'Only 0 unused approved questions remain'},409);await flush();
+  reply(s.requests[3],{detail:'No new shootout is available for this selection right now.'},409);await flush();
   assert.equal(s.requests[4].url,'/api/solo/catalog');
   reply(s.requests[4],{...catalog,categories:[{code:'ALL',label:'All clubs',counts:{easy:0,medium:10,hard:10}}]});
-  await starting;assert.equal(s.get('start').disabled,true);assert.match(s.get('error').textContent,/Only 0 unused/);
+  await starting;assert.equal(s.get('start').disabled,true);assert.match(s.get('error').textContent,/No new shootout/);
 });
 
-test('weekly rollover refreshes an idle selection without changing the selected category',async()=>{
+test('weekly rollover refreshes an idle selection without changing difficulty',async()=>{
   const s=setup();reply(s.requests[0],user);await flush();
   reply(s.requests[1],{...catalog,resets_at:'2000-01-03T00:00:00Z'});await flush();
   reply(s.requests[2],{run:null});await flush();
-  s.get('category').value='GEN';s.radio.value='medium';s.get('category').emit('change');
+  s.radio.value='medium';s.get('medium').emit('change');
   s.timers.find(t=>t.ms===30000).fn();await flush();
   assert.equal(s.requests[3].url,'/api/solo/catalog');assert.equal(s.get('start').disabled,true);
   reply(s.requests[3],{...catalog,resets_at:'2099-09-28T00:00:00Z'});await flush();
-  assert.equal(s.get('category').value,'GEN');assert.equal(s.get('start').disabled,false);
+  assert.equal(s.radio.value,'medium');assert.equal(s.get('start').disabled,false);
 });
 
-test('category is independent from team and difficulty and is submitted to the server',async()=>{
+test('new games always submit mixed topics and all clubs without displaying counts',async()=>{
   const s=setup();reply(s.requests[0],user);await flush();
   reply(s.requests[1],{...catalog,topics:[
     {code:'ALL',label:'Mixed topics',counts_by_team:{ALL:{easy:10,medium:20,hard:30}}},
     {code:'kits',label:'Kits & sponsors',counts_by_team:{ALL:{easy:0,medium:20,hard:5},GEN:{easy:0,medium:0,hard:0}}},
   ]});await flush();reply(s.requests[2],{run:null});await flush();
-  s.get('topic').value='kits';s.get('topic').emit('change');
-  assert.equal(s.get('start').disabled,true);assert.equal(s.get('medium-available').textContent,'20 available');
+  // Stale filter values cannot narrow the now difficulty-only selection.
+  s.get('topic').value='kits';s.get('category').value='GEN';
+  assert.equal(s.get('start').disabled,false);assert.equal(s.get('medium-available').textContent,'');
   s.radio.value='medium';s.get('medium').emit('change');assert.equal(s.get('start').disabled,false);
-  s.get('category').value='GEN';s.get('category').emit('change');assert.equal(s.get('start').disabled,true);
-  s.get('category').value='ALL';s.get('category').emit('change');
   const starting=s.get('quiz-start').emit('submit');await flush();
-  assert.deepEqual(JSON.parse(s.requests[3].options.body),{category:'ALL',topic:'kits',difficulty:'medium',request_id:'request-3'});
-  reply(s.requests[3],run({difficulty:'medium',category:{label:'All clubs',topic_code:'kits',topic_label:'Kits & sponsors'}}));await starting;
-  assert.equal(s.get('run-category').textContent,'Kits & sponsors · All clubs · Medium');
+  assert.deepEqual(JSON.parse(s.requests[3].options.body),{category:'ALL',topic:'ALL',difficulty:'medium',request_id:'request-3'});
+  assert.equal(s.get('availability').textContent,'');
+  reply(s.requests[3],run({difficulty:'medium',category:{label:'All clubs',topic_code:'ALL',topic_label:'Mixed topics'}}));await starting;
+  assert.equal(s.get('run-category').textContent,'Mixed topics · All clubs · Medium');
 });

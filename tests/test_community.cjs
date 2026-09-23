@@ -2,16 +2,17 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const source=fs.readFileSync(require('node:path').join(__dirname,'../trivia_app/static/community.js'),'utf8');
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 function setup(view='leaderboard') {
-  const nodes=new Map(),requests=[],selected={value:'today'},metric={value:'wins'};
+  const nodes=new Map(),requests=[],selected={value:'today'},metric={value:'wins'},board={value:'players'};
   const element=tag=>({tag,children:[],style:{},hidden:false,handlers:{},textContent:'',append(...items){this.children.push(...items);},replaceChildren(...items){this.children=items;},setAttribute(k,v){this[k]=v;},addEventListener(k,fn){this.handlers[k]=fn;}});
   const get=id=>{if(!nodes.has(id))nodes.set(id,element('div'));return nodes.get(id);};
   const tabs=[get('today'),get('week'),get('all')];
   vm.runInNewContext(source,{document:{getElementById:get,createElement:element,
-    querySelector:s=>s==='.community-page'?{dataset:{view}}:s.includes('metric')?metric:selected,querySelectorAll:s=>s.includes('metric')?[get('level'),get('wins'),get('win_rate')]:tabs},
+    querySelector:s=>s==='.community-page'?{dataset:{view}}:s.includes('metric')?metric:s.includes('board')?board:selected,
+    querySelectorAll:s=>s.includes('metric')?[get('xp'),get('streak'),get('level'),get('wins'),get('win_rate')]:s.includes('board')?[get('players'),get('teams')]:tabs},
     AbortController,Date,encodeURIComponent,
     PointsUI:{badge:club=>club?.team_id&&club?.name?.trim()?Object.assign(element('img'),{alt:club.name}):null},
     fetch:(url,options)=>new Promise(resolve=>requests.push({url,options,resolve}))});
-  return {get,requests,selected,metric};
+  return {get,requests,selected,metric,board};
 }
 const player={rank:1,username:'<script>player</script>',accent:'blue',level:2,xp:100,total_xp:220};
 const board={entries:[player],me:player,participants:1,signed_in:true,period:'today',since:'2026-09-22T00:00:00Z',as_of:'2026-09-22T12:00:00Z',distribution:[{minimum:100,label:'100-249',count:1}]};
@@ -55,11 +56,31 @@ test('history rows link to owner-authorized run details and paginate',async()=>{
   s.get('next-page').handlers.click();assert.match(s.requests[1].url,/offset=20/);
 });
 
-test('ranking tabs request the selected metric and display wins losses and rate',async()=>{
+test('ranking tabs request the selected metric and display its value',async()=>{
   const s=setup();s.metric.value='win_rate';s.get('win_rate').handlers.change();
   assert.match(s.requests.at(-1).url,/metric=win_rate/);
   reply(s.requests.at(-1),{...board,metric:'win_rate',entries:[{...player,wins:12,losses:8,win_rate:60,club:{name:'Manchester United',team_id:33}}]});await flush();
-  const row=s.get('ranking-rows').children[0];assert.equal(row.children[3].textContent,'12');assert.equal(row.children[4].textContent,'8');assert.equal(row.children[5].textContent,'60.0%');
+  const row=s.get('ranking-rows').children[0];assert.equal(row.children.length,3);assert.equal(row.children[2].textContent,'60.0%');
   assert.equal(row.children[1].children[1].alt,'Manchester United');
   s.metric.value='level';s.get('level').handlers.change();assert.match(s.requests.at(-1).url,/period=all&metric=level/);
+});
+
+test('team ranking uses returned totals and badges, never averages them again',async()=>{
+  const s=setup();s.board.value='teams';s.get('teams').handlers.change();
+  assert.match(s.requests.at(-1).url,/board=teams/);
+  const team={rank:1,team_id:33,name:'Manchester United',members:3,xp:1000,wins:4,win_rate:62.5,streak:5,level:6};
+  reply(s.requests.at(-1),{...board,board:'teams',metric:'win_rate',entries:[team],me:team});await flush();
+  const row=s.get('ranking-rows').children[0];
+  assert.equal(row.className,'own-rank');assert.equal(row.children[2].textContent,'62.5%');
+  assert.equal(row.children[1].children[0].tag,'span');assert.equal(row.children[1].children[1].alt,team.name);
+  assert.equal(s.get('rank-name').textContent,'Team');assert.equal(s.get('team-ranking-note').hidden,false);
+  assert.equal(s.get('team-level-choice').hidden,false);assert.equal(s.get('participant-count').textContent,'1 team');
+});
+
+test('current streak ignores the period filter and shows days',async()=>{
+  const s=setup();s.metric.value='streak';s.get('streak').handlers.change();
+  assert.match(s.requests.at(-1).url,/period=all&metric=streak/);
+  reply(s.requests.at(-1),{...board,metric:'streak',period:'all',since:null,entries:[{...player,streak:7}]});await flush();
+  assert.equal(s.get('ranking-rows').children[0].children[2].textContent,'7');
+  assert.match(s.get('ranking-period').textContent,/Current streak.*days/);
 });

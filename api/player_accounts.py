@@ -111,7 +111,11 @@ def check_username(username):
 
 
 def private_profile(conn,row):
+    now=conn.execute('SELECT clock_timestamp() AS now').fetchone()['now']
+    next_change=row.get('club_changed_at')
+    if next_change:next_change+=timedelta(hours=72)
     return {**profile(conn,row),'email':row['email'],
+            'team_change':{'can_change':next_change is None or now>=next_change,'next_change_at':next_change},
             'preferences':{'animations':row['animations'],'reduced_motion':row['reduced_motion']}}
 
 
@@ -216,6 +220,13 @@ def join_club(body:ClubEdit,request:Request):
         row=account(conn,request,lock=True)
         if body.team_id is not None and not conn.execute('SELECT 1 FROM game_clubs WHERE team_id=%s',(body.team_id,)).fetchone():
             raise HTTPException(422,'Select a Premier League team from the list')
+        if body.team_id==row['club_id']:
+            return private_profile(conn,row)
+        now=conn.execute('SELECT clock_timestamp() AS now').fetchone()['now']
+        next_change=row.get('club_changed_at')
+        if next_change and now<next_change+timedelta(hours=72):
+            available=(next_change+timedelta(hours=72)).astimezone(timezone.utc)
+            raise HTTPException(409,f'You can change teams again on {available:%d %b %Y at %H:%M} UTC.')
         row=conn.execute('UPDATE game_accounts SET club_id=%s WHERE account_id=%s RETURNING *',(body.team_id,row['account_id'])).fetchone()
         return private_profile(conn,row)
 

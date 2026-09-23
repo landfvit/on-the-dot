@@ -45,21 +45,30 @@ class GameGuideTests(unittest.TestCase):
 
     def test_team_and_progress_copy_matches_current_capabilities(self):
         html = TestClient(app).get('/how-to-play').text
-        for text in ('Your team gives no XP bonus', 'Club-versus-club leaderboards are not available yet',
+        for text in ('Your team gives no XP bonus', "The team leaderboard adds up current members' XP",
+                     'you must wait 3 days before changing again',
                      'Guest games are unlimited', 'every Monday at 00:00 UTC',
                      'A timeout or ending early does not extend the streak', 'Ending a shootout early counts as a loss'):
             self.assertIn(text, html)
         self.assertIn('/how-to-play#teams', TestClient(app).get('/account').text)
         self.assertIn('class="game-rules-link"', TestClient(app).get('/penalties').text)
 
-    def test_question_availability_notice_is_on_guide_and_guest_home(self):
+    def test_guide_and_guest_home_explain_difficulty_only_selection(self):
         client = TestClient(app)
         for path in ('/', '/how-to-play'):
             with self.subTest(path=path):
                 html = client.get(path).text
-                self.assertIn('Question availability:', html)
-                self.assertIn('Some teams have fewer available questions in Team / scope.', html)
-                self.assertIn('choose All clubs or try a different category or difficulty.', html)
+                self.assertIn('Choose Easy, Medium or Hard.', html)
+                self.assertIn('Every new shootout mixes teams and topics', html)
+                self.assertNotIn('Team / scope', html)
+                self.assertNotIn('Question availability:', html)
+
+    def test_game_selection_only_offers_difficulty_and_no_question_counts(self):
+        html = TestClient(app).get('/penalties').text
+        self.assertEqual(html.count('name="difficulty"'), 3)
+        for removed in ('id="topic"', 'id="category"', '-available', 'Loading categories', 'Loading teams'):
+            self.assertNotIn(removed, html)
+        self.assertIn('id="add-team"', TestClient(app).get('/account').text)
 
     def test_all_guide_assets_are_public(self):
         client = TestClient(app)

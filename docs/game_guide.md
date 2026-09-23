@@ -19,8 +19,15 @@ are private and non-cacheable, varying on Cookie. The explicit `/penalties` and
 - `trivia_app/templates/game_guide.html` describes the current account and game
   behaviour. Update its prose when changing streak eligibility, weekly question
   rotation, guest persistence, club affiliation or leaderboard capabilities.
-- Joining a club currently adds a badge only. Club membership is independent of
-  the Team / scope question filter. There is no team XP bonus or club leaderboard.
+- Joining a club adds a badge and contributes to the current-member team
+  leaderboard. Membership never filters questions or grants an XP bonus.
+  Joining, switching and leaving all start a database-enforced 72-hour cooldown.
+  Team XP, level, wins and current streak are sums. Team win rate is the arithmetic
+  mean of members' rates, excluding those with no games in the selected period.
+- Public game selection offers only Easy, Medium and Hard. New games request
+  `category=ALL` and `topic=ALL`; the existing balanced sampling and weekly
+  no-repeat rules still apply. Counts remain internal for eligibility checks,
+  but are not displayed. Existing scoped games can still be resumed unchanged.
 - `trivia_app/static/game_guide.js` progressively enhances the examples using
   native radio controls. All examples remain visible without JavaScript.
 - The guide reuses the gameplay scoreboard styles and football masks. Its two

@@ -16,7 +16,7 @@ class CommunityTests(unittest.TestCase):
         client=TestClient(app)
         for path in ['/penalties','/leaderboard','/history','/account']:
             response=client.get(path);self.assertEqual(response.status_code,200)
-            self.assertIn('menu-drawer',response.text);self.assertIn('profile-drawer',response.text)
+            self.assertIn('menu-drawer',response.text);self.assertNotIn('profile-drawer',response.text)
             self.assertIn('ON THE DOT',response.text)
             self.assertNotIn('POINTS',response.text)
             self.assertNotIn('/internal/trivia',response.text)

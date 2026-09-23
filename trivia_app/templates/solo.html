@@ -15,14 +15,10 @@
   <div class="solo-penalty-layout"><div class="solo-questions">
   <section id="selection" aria-label="Choose a quiz">
     <form id="quiz-start" class="quiz-selection">
-      <div class="quiz-filters">
-        <label>Category<select id="topic" required disabled><option>Loading categories...</option></select></label>
-        <label>Team / scope<select id="category" required disabled><option>Loading teams...</option></select></label>
-      </div>
       <fieldset class="difficulty-options"><legend>Difficulty</legend>
-        <label><input type="radio" name="difficulty" value="easy" checked><span>Easy <small id="easy-rate">10 XP / answer</small><small id="easy-perfect">10/10: 100 XP</small><small id="easy-available"></small></span></label>
-        <label><input type="radio" name="difficulty" value="medium"><span>Medium <small id="medium-rate">20 XP / answer</small><small id="medium-perfect">10/10: 400 XP</small><small id="medium-available"></small></span></label>
-        <label><input type="radio" name="difficulty" value="hard"><span>Hard <small id="hard-rate">30 XP / answer</small><small id="hard-perfect">10/10: 900 XP</small><small id="hard-available"></small></span></label>
+        <label><input type="radio" name="difficulty" value="easy" checked><span>Easy <small id="easy-rate">10 XP / answer</small><small id="easy-perfect">Win: 2x XP</small></span></label>
+        <label><input type="radio" name="difficulty" value="medium"><span>Medium <small id="medium-rate">20 XP / answer</small><small id="medium-perfect">Win: 3x XP</small></span></label>
+        <label><input type="radio" name="difficulty" value="hard"><span>Hard <small id="hard-rate">30 XP / answer</small><small id="hard-perfect">Win: 4x XP</small></span></label>
       </fieldset>
       <p id="quiz-rules" class="muted">5 penalties each · 15 seconds per answer</p>
       <p id="trial-note" class="muted" hidden>Guest mode · Progress is not saved</p>
@@ -72,4 +68,4 @@
   <p id="feedback-full"></p>
 </dialog>
 {% endblock %}
-{% block scripts %}<script src="/trivia-assets/penalty_shots.js?v=1" defer></script><script src="/trivia-assets/stadium_intro.js?v=11" defer></script><script src="/trivia-assets/penalty_scene.js?v=6" defer></script><script src="/trivia-assets/result_share.js?v=1" defer></script><script src="/trivia-assets/solo.js?v=15" defer></script><script src="/trivia-assets/solo_mobile.js?v=1" defer></script>{% endblock %}
+{% block scripts %}<script src="/trivia-assets/penalty_shots.js?v=1" defer></script><script src="/trivia-assets/stadium_intro.js?v=11" defer></script><script src="/trivia-assets/penalty_scene.js?v=6" defer></script><script src="/trivia-assets/result_share.js?v=1" defer></script><script src="/trivia-assets/solo.js?v=16" defer></script><script src="/trivia-assets/solo_mobile.js?v=1" defer></script>{% endblock %}

@@ -4,10 +4,16 @@
 <main class="community-page" data-view="{{ active_page }}">
   <header class="community-heading"><p class="section-label">ON THE DOT. / {{ 'SOLO' if active_page == 'leaderboard' else 'YOUR GAMES' }}</p><h1>{{ 'Leaderboard' if active_page == 'leaderboard' else 'Your history' }}</h1></header>
   {% if active_page == 'leaderboard' %}
+  <fieldset class="period-tabs board-tabs"><legend class="sr-only">Leaderboard</legend>
+    <label><input type="radio" name="board" value="players" checked><span>Players</span></label>
+    <label><input type="radio" name="board" value="teams"><span>Teams</span></label>
+  </fieldset>
   <fieldset class="period-tabs ranking-tabs"><legend class="sr-only">Rank by</legend>
-    <label><input type="radio" name="metric" value="level" checked><span>Level</span></label>
+    <label><input type="radio" name="metric" value="xp" checked><span>XP</span></label>
+    <label><input type="radio" name="metric" value="streak"><span>Streak</span></label>
     <label><input type="radio" name="metric" value="wins"><span>Wins</span></label>
     <label><input type="radio" name="metric" value="win_rate"><span>Win rate</span></label>
+    <label id="team-level-choice" hidden><input type="radio" name="metric" value="level"><span>Levels</span></label>
   </fieldset>
   <fieldset class="period-tabs"><legend class="sr-only">Leaderboard period</legend>
     <label><input type="radio" name="period" value="today"><span>Today</span></label>
@@ -16,7 +22,8 @@
   </fieldset>
   <div id="ranking-self" class="ranking-self" hidden></div>
   <p id="ranking-period" class="muted"></p>
-  <div class="ranking-table" id="ranking-table" hidden><table><thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col" id="rank-level">Level</th><th scope="col" id="rank-wins">Wins</th><th scope="col">Losses</th><th scope="col" id="rank-win_rate">Win rate</th></tr></thead><tbody id="ranking-rows"></tbody></table></div>
+  <p id="team-ranking-note" class="muted" hidden>Team totals follow current members. Win rate averages members' win rates, excluding members with no recorded win or loss in the selected period.</p>
+  <div class="ranking-table" id="ranking-table" hidden><table><thead><tr><th scope="col">Rank</th><th scope="col" id="rank-name">Player</th><th scope="col" id="rank-value" aria-sort="descending">XP</th></tr></thead><tbody id="ranking-rows"></tbody></table></div>
   <section id="distribution" class="score-distribution" hidden aria-labelledby="distribution-title">
     <div class="section-heading"><h2 id="distribution-title">XP distribution</h2><span id="participant-count"></span></div>
     <div id="distribution-bars"></div>
@@ -30,4 +37,4 @@
   {% if active_page == 'leaderboard' %}{% with ad_slot='leaderboard-bottom' %}{% include 'ad_slot.html' %}{% endwith %}{% endif %}
 </main>
 {% endblock %}
-{% block scripts %}<script src="/trivia-assets/community.js?v=5" defer></script>{% endblock %}
+{% block scripts %}<script src="/trivia-assets/community.js?v=6" defer></script>{% endblock %}

@@ -1,0 +1,29 @@
+.answer-editor { grid-column: 1 / -1; min-width: 0; border-block: 1px solid #dce1e5; padding: 20px 0 24px; }
+.answer-editor > header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.answer-editor h2 { margin: 0; font-size: 20px; }
+.answer-editor h3 { font-size: 14px; margin: 18px 0 8px; }
+#writer-model { font-size: 12px; color: #66716b; }
+.answer-editor-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; }
+.answer-editor-grid > div { min-width: 0; }
+#writer-form { display: grid; gap: 10px; }
+#writer-question { resize: vertical; min-height: 110px; width: 100%; padding: 12px; border: 1px solid #bbc8c0; border-radius: 4px; background: white; line-height: 1.6; }
+.answer-editor button { width: fit-content; max-width: 100%; white-space: normal; overflow-wrap: anywhere; min-height: 40px; border: 1px solid #bbc8c0; border-radius: 4px; padding: 9px 14px; background: white; color: #235b3e; text-align: left; }
+.answer-editor button.trivia-primary { color: white; background: #226f41; }
+.answer-editor details { margin-top: 20px; }
+#writer-examples { padding: 0; list-style: none; margin-bottom: 0; }
+#writer-examples button { border: 0; border-radius: 0; border-bottom: 1px solid #e4e8e5; background: transparent; width: 100%; padding-inline: 0; line-height: 1.5; }
+#writer-examples button:hover { color: #a82c67; }
+#writer-status { min-height: 22px; margin: 0; }
+#writer-status.error { color: #a82c50; }
+.answer-editor-result p { overflow-wrap: anywhere; line-height: 1.6; }
+#writer-answer { display: block; font-size: 25px; font-weight: 700; overflow-wrap: anywhere; color: #226f41; }
+#writer-details { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 8px 16px; }
+#writer-details dd { margin: 0; overflow-wrap: anywhere; }
+#writer-details dt, #writer-evidence { color: #66716b; }
+#writer-details dd:has(table) { grid-column: 1 / -1; min-width: 0; }
+#writer-details table { border-collapse: collapse; table-layout: fixed; width: 100%; min-width: 0; font-size: 12px; }
+#writer-details th, #writer-details td { padding: 8px 4px; border-bottom: 1px solid #dce1e5; text-align: left; overflow-wrap: anywhere; vertical-align: top; white-space: normal; min-width: 0; max-width: none; }
+#writer-details th:first-child { width: 16%; }
+#writer-details th:nth-child(2) { width: 24%; }
+#writer-answer-section a { display: inline-block; margin: 12px; }
+@media(max-width:760px) { .answer-editor-grid { grid-template-columns: minmax(0, 1fr); gap: 20px; } }

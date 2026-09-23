@@ -1,0 +1,120 @@
+{% extends base_template | default("base.html") %}
+{% block title %}Trivia Studio | POINTS{% endblock %}
+{% block styles %}<link rel="stylesheet" href="/assets/css/trivia.css?v=7">{% if standalone %}<link rel="stylesheet" href="/trivia-assets/query.css?v=2"><link rel="stylesheet" href="/trivia-assets/writer.css?v=1">{% endif %}{% endblock %}
+{% block content %}
+<section class="trivia-page" id="trivia-page" data-standalone="{{ 'true' if standalone else 'false' }}">
+    <header class="trivia-heading">
+        <div><span class="trivia-eyebrow">QUESTION WORKSPACE</span><h1>Trivia Studio</h1></div>
+        <div class="trivia-dataset"><span>Data snapshot</span><strong id="dataset-date">Loading...</strong><small id="dataset-summary"></small></div>
+    </header>
+    <nav class="trivia-tabs" aria-label="Trivia views">
+        <button type="button" id="editor-tab" aria-pressed="true">Editor</button>
+        {% if standalone %}<button type="button" id="query-tab" aria-pressed="false">Sports query</button>{% endif %}
+        {% if standalone %}<button type="button" id="training-tab" aria-pressed="false">Training</button>{% endif %}
+        <button type="button" id="library-tab" aria-pressed="false">Question library</button>
+        {% if standalone %}<button type="button" id="quizzes-tab" aria-pressed="false">Quizzes</button>{% endif %}
+        <button type="button" id="audit-tab" aria-pressed="false">Data quality</button>
+    </nav>
+    <p id="trivia-status" role="status" aria-live="polite"></p>
+    <div id="editor-view" class="trivia-workspace">
+        {% if standalone %}{% include "writer_panel.html" %}{% endif %}
+        <form id="trivia-form" class="trivia-controls">
+            <h2>Definition</h2>
+            <label>Question type<select id="template" required></select></label>
+            <label>Competition<select id="league" required><option value="">Select competition</option></select></label>
+            <label>Team<select id="team" required disabled><option value="">Select team</option></select></label>
+            <label id="player-field" hidden>Player<select id="player" disabled><option value="">Select player</option></select></label>
+            <label id="name-policy-field" hidden>Name matching<select id="name-policy" disabled><option value="unique-surname-v1">Names and unambiguous surnames</option><option value="exact-v1">Exact source names</option></select></label>
+            <label>Venue<select id="venue"><option value="all">Home and away</option><option value="home">Home</option><option value="away">Away</option></select></label>
+            <label id="opponent-field">Opponents<select id="opponent"><option value="">All opponents</option></select></label>
+            <fieldset class="trivia-period"><legend>Time period</legend>
+                <label>Period type<select id="period-mode" required>
+                    <option value="">Select period</option><option value="seasons">Selected seasons</option>
+                    <option value="season_range">Season range</option><option value="dates">Date range (UTC)</option>
+                    <option value="all">All available seasons</option>
+                </select></label>
+                <fieldset id="period-seasons" hidden disabled><legend>Seasons</legend><div id="season-options" class="trivia-season-options"></div></fieldset>
+                <fieldset id="period-season_range" class="trivia-pair" hidden disabled><legend>Season range</legend>
+                    <label>From<select id="season-start" required></select></label><label>Through<select id="season-end" required></select></label>
+                </fieldset>
+                <fieldset id="period-dates" class="trivia-pair" hidden disabled><legend>Dates (inclusive, UTC)</legend>
+                    <label>From<input type="date" id="date-start" required></label><label>Through<input type="date" id="date-end" required></label>
+                </fieldset>
+            </fieldset>
+            <fieldset id="goal-fields" hidden disabled><legend>Scoring conditions</legend>
+                <label>Count<select id="goal-count"><option value="goals">Goals</option><option value="scoring_matches">Matches with a goal</option></select></label>
+                <label>Role<select id="goal-role"><option value="all">All appearances</option><option value="substitute">Used substitute</option></select></label>
+                <div class="trivia-pair"><label>After recorded minute<input id="goal-minute" type="number" min="0" max="90" step="1" placeholder="Any minute"></label>
+                <label>Added minute<input id="goal-extra" type="number" min="0" max="30" step="1" value="0"></label></div>
+            </fieldset>
+            <fieldset id="condition-fields"><legend>Score checkpoint</legend>
+                <div class="trivia-pair"><label>Recorded minute<input id="minute" type="number" min="1" max="90" step="1" value="80" required></label>
+                <label>Added minute<input id="extra" type="number" min="0" max="30" step="1" value="0" required></label></div>
+                <label>Goal difference<select id="operator"><option value="eq">Exactly</option><option value="lte">At most</option><option value="gte">At least</option></select></label>
+                <input id="difference" aria-label="Goal difference value" type="number" min="-20" max="20" step="1" value="-2" required>
+                <p class="trivia-provenance">Timing: after events recorded at this minute. Precision: minutes, not seconds.</p>
+            </fieldset>
+            <fieldset id="kit-fields" hidden disabled><legend>Kit</legend>
+                <label>Kit set<select id="kit-type"><option value="home">Home / first</option><option value="away">Away / second</option><option value="third">Third</option></select></label>
+            </fieldset>
+            <fieldset id="weather-fields"><legend>Historical weather</legend>
+                <label>Weather filter<select id="weather-metric"><option value="">No weather filter</option><option value="temperature_c">Air temperature (C)</option><option value="precipitation_mm">Preceding-hour precipitation (mm)</option></select></label>
+                <div id="weather-threshold" class="trivia-pair" hidden>
+                    <label>Comparison<select id="weather-operator"><option value="gt">Above</option><option value="gte">At least</option><option value="lt">Below</option><option value="lte">At most</option></select></label>
+                    <label>Threshold<input id="weather-value" type="number" min="-100" max="1000" step="any" value="0"></label>
+                </div>
+            </fieldset>
+            <p id="context-coverage" class="trivia-provenance"></p>
+            <label>Minimum sample<input id="minimum-sample" type="number" min="1" max="1000" step="1" value="10" required></label>
+            <button id="calculate" class="trivia-primary" type="submit" disabled>Calculate</button>
+        </form>
+        <section class="trivia-results" aria-label="Question result">
+            <header class="trivia-result-heading"><div class="trivia-team"><img id="selected-team-logo" width="32" height="32" alt="" hidden><span id="selected-team">Question preview</span></div><span id="question-state" class="trivia-state">Unsaved</span></header>
+            <h2 id="question-text">No calculation</h2>
+            <div class="trivia-metrics" aria-live="polite">
+                <div><span>Answer</span><strong id="answer-value">-</strong><small id="answer-fraction"></small></div>
+                <div id="answer-stat" hidden><span id="answer-stat-label">Goals</span><strong id="answer-stat-value">-</strong></div>
+                <div><span id="coverage-total-label">Selected matches</span><strong id="coverage-total">-</strong></div>
+                <div><span id="coverage-matched-label">Matching condition</span><strong id="coverage-matched">-</strong></div>
+                <div><span>Excluded</span><strong id="coverage-excluded">-</strong></div>
+            </div>
+            <div id="quality-warnings" class="trivia-warnings" aria-live="polite"></div>
+            <p id="answer-scope" class="trivia-scope"></p>
+            <p id="result-summary" class="trivia-scope" hidden></p>
+            <section id="kit-evidence" class="trivia-kit-evidence" hidden><h3>Shirt colour evidence</h3>
+                <div class="trivia-kit-proof"><img id="kit-proof-image" width="114" height="177" alt="Source shirt body" hidden><div><span id="kit-colour-swatch" hidden></span><strong id="kit-colour-label"></strong><p id="kit-palette"></p><a id="kit-source-link" target="_blank" rel="noopener noreferrer">Commons source</a></div></div>
+            </section>
+            <div class="trivia-result-actions"><button id="save-question" type="button" disabled>Save draft</button><button id="publish-question" type="button" disabled>Publish</button><button id="new-question" type="button">New question</button></div>
+            <section id="ranking-section" class="trivia-ranking" hidden>
+                <header><h3>Ranking</h3><button type="button" id="ranking-reset" hidden>All match evidence</button></header>
+                <div class="trivia-table-scroll"><table><thead><tr><th>Rank</th><th>Name</th><th id="ranking-unit">Goals</th><th>Match evidence</th></tr></thead><tbody id="ranking-body"></tbody></table></div>
+            </section>
+            <details id="provenance-section" class="trivia-provenance-panel" hidden><summary>Source and verification</summary><dl id="provenance-body"></dl></details>
+            <section id="match-evidence-section" class="trivia-evidence"><header><h3>Match evidence</h3><label>Show<select id="evidence-filter"><option value="matched">Matching</option><option value="excluded">Excluded</option><option value="not_matched">Condition not met</option><option value="all">All selected</option></select></label></header>
+                <p id="evidence-scope" class="trivia-scope"></p>
+                <div class="trivia-table-scroll"><table><thead><tr><th>Date (UTC)</th><th>Match / opponent</th><th>Venue</th><th>Checkpoint / contribution</th><th>Final</th><th>Result / quality</th></tr></thead><tbody id="evidence-body"><tr><td colspan="6">No matches</td></tr></tbody></table></div>
+                <div class="trivia-pagination"><button id="evidence-prev" type="button" disabled aria-label="Previous evidence page" title="Previous page">Previous</button><span id="evidence-page">0 matches</span><button id="evidence-next" type="button" disabled aria-label="Next evidence page" title="Next page">Next</button></div>
+            </section>
+            <form id="answer-test" class="trivia-answer-test" hidden><label>Test answer<input id="answer-input" type="number" step="any" required></label><button type="submit">Check answer</button><output id="grade-result"></output></form>
+        </section>
+    </div>
+    <section id="library-view" hidden><header class="trivia-library-heading"><h2>Question library</h2><button id="refresh-library" type="button">Refresh</button></header><div id="question-list">No saved questions</div></section>
+    <section id="audit-view" hidden><header class="trivia-library-heading"><h2>Season coverage</h2><button id="refresh-audit" type="button">Refresh</button></header><div class="trivia-table-scroll"><table><thead><tr><th>Season</th><th>Teams</th><th>Fixtures</th><th>Finished</th><th>Verified results</th><th>Goal timelines</th><th>Scorers</th><th>Status</th></tr></thead><tbody id="audit-body"></tbody></table></div></section>
+    {% if standalone %}
+    {% include "query_panel.html" %}
+    {% include "training_panel.html" %}
+    <section id="quizzes-view" hidden>
+        <header class="trivia-library-heading"><h2>Quiz library</h2><button id="refresh-quizzes" type="button">Refresh</button></header>
+        <form id="quiz-builder" class="trivia-quiz-builder">
+            <label>Title<input id="quiz-title" maxlength="160" required></label>
+            <label>Description<input id="quiz-description" maxlength="1000"></label>
+            <h3>Published questions</h3><div id="quiz-question-options"></div>
+            <h3>Question order</h3><ol id="quiz-order"></ol>
+            <button type="submit" id="save-quiz">Save quiz draft</button>
+        </form>
+        <div id="quiz-library"></div>
+    </section>
+    {% endif %}
+</section>
+{% endblock %}
+{% block scripts %}<script src="/assets/js/trivia.js?v=9" defer></script>{% if standalone %}<script src="/trivia-assets/writer.js?v=1" defer></script><script src="/trivia-assets/studio.js?v=1" defer></script><script src="/trivia-assets/query.js?v=1" defer></script><script src="/trivia-assets/training_results.js?v=2" defer></script><script src="/trivia-assets/training.js?v=2" defer></script>{% endif %}{% endblock %}

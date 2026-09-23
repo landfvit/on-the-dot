@@ -1,0 +1,39 @@
+{% extends 'trivia_base.html' %}
+{% block title %}ON THE DOT. · Penalty Trivia{% endblock %}
+{% block styles %}<link rel="stylesheet" href="/trivia-assets/penalties.css?v=2"><link rel="stylesheet" href="/trivia-assets/stadium.css?v=4">{% endblock %}
+{% block content %}
+{% include 'stadium.html' %}
+<main class="penalty-page" lang="en">
+  <div class="penalty-heading"><div><h1>Penalties</h1></div><label class="motion-control"><input id="motion-toggle" type="checkbox" checked> Animations</label></div>
+  <div class="scoreboard" aria-label="Score"><div><strong id="player-a">You</strong><small id="role-a">Shooter</small></div><div class="score-center"><strong id="score">0 : 0</strong><small id="match-label">PvP · first to 10 goals</small></div><div class="opponent"><strong id="player-b">Opponent</strong><small id="role-b">Waiting</small></div></div>
+  <div class="penalty-layout">
+    <section class="question-column" aria-labelledby="question-title">
+      <div id="setup">
+        <fieldset class="mode-control"><legend>Private PvP</legend><label><input type="radio" name="mode" value="pvp" checked> Private match</label></fieldset>
+        <a href="/penalties">Solo penalties</a>
+        <label class="field">Player name<input id="player-name" maxlength="32" autocomplete="nickname" value="Player"></label>
+        <label class="field">Question pack<select id="pack" disabled><option value="">Loading packs...</option></select></label>
+        <p id="pack-status" class="muted"></p>
+        <button id="create-game" class="primary" disabled>Create room</button>
+        <form id="join-form"><label class="field">Room code<input id="room-code" maxlength="10" pattern="[a-fA-F0-9]{10}" autocomplete="off" required></label><button type="submit">Join</button></form>
+      </div>
+      <div id="room-tools" hidden><label class="field">Invite link<input id="invite-link" readonly></label><button id="copy-link" type="button">Copy link</button><button id="ready-game" class="primary">Ready to play</button></div>
+      <div class="question-meta"><span id="connection">Ready</span><span id="round-count"></span></div>
+      <div class="timer-track"><div id="timer-fill"></div></div>
+      <h2 id="question-title" tabindex="-1">Private penalty shootout</h2>
+      <div id="answers" class="penalty-answers" role="group" aria-labelledby="question-title"></div>
+      <div id="feedback" role="status" aria-live="polite" aria-atomic="true"></div>
+      <div id="error" role="alert" hidden></div>
+      <div class="game-actions"><button id="retry-connection" hidden>Reconnect</button><button id="next-shot" class="primary" hidden>Next shot</button><button id="rematch" class="primary" hidden>Rematch</button><button id="copy-result" hidden>Copy result</button><button id="leave-game" hidden>Leave game</button><button id="new-game" hidden>New game</button></div>
+      <div id="result-stats" hidden></div>
+    </section>
+    <section class="visual-column" aria-label="Penalty pitch">
+      <div id="attempts" aria-label="Recent penalties"></div>
+      <p id="rules-note">Private PvP · First to 10 goals · Unranked</p>
+      <p id="pack-label" class="muted">Premier League · General</p>
+    </section>
+  </div>
+  <noscript>JavaScript is required to play.</noscript>
+</main>
+{% endblock %}
+{% block scripts %}<script src="/trivia-assets/penalty_shots.js?v=1" defer></script><script src="/trivia-assets/stadium_intro.js?v=5" defer></script><script src="/trivia-assets/penalty_scene.js?v=5" defer></script><script src="/trivia-assets/penalties.js?v=9" defer></script>{% endblock %}

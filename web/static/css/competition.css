@@ -1,0 +1,1149 @@
+.competition-schedule {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    align-items: start;
+}
+
+.fixture-calendar {
+    padding: 16px;
+    border-right: 1px solid var(--border);
+}
+
+.fixture-calendar[hidden] {
+    display: none;
+}
+
+.competition-schedule:has(.fixture-calendar[hidden]) {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.calendar-toolbar {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr) 32px;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 14px;
+}
+
+.calendar-toolbar h3 {
+    margin: 0;
+    font-size: 14px;
+    text-align: center;
+}
+
+.calendar-toolbar button,
+.calendar-actions button {
+    min-height: 32px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text-primary);
+    font: inherit;
+    cursor: pointer;
+}
+
+.calendar-toolbar button:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.calendar-weekdays,
+.calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 3px;
+}
+
+.calendar-weekdays {
+    margin-bottom: 6px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.calendar-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    height: 44px;
+    padding: 2px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.calendar-day small {
+    height: 10px;
+    line-height: 10px;
+    font-size: 9px;
+}
+
+.calendar-day.outside-month {
+    color: var(--text-muted);
+    opacity: 0.5;
+}
+
+.calendar-day.has-fixtures {
+    background: var(--sport-accent-soft);
+    color: #206637;
+    font-weight: 700;
+}
+
+.calendar-day[aria-current="date"] {
+    border-color: #238447;
+}
+
+.calendar-day.selected {
+    background: #238447;
+    color: white;
+    opacity: 1;
+}
+
+.calendar-day:hover,
+.calendar-day:focus-visible {
+    outline: 2px solid #2563b8;
+    outline-offset: -2px;
+}
+
+.calendar-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.calendar-actions button {
+    padding: 6px 10px;
+    font-size: 11px;
+}
+
+.competition-schedule .competition-match-row {
+    grid-template-columns: 48px minmax(0, 1fr) 64px minmax(0, 1fr);
+    padding: 14px 12px;
+    gap: 8px;
+}
+
+.competition-schedule .competition-data-status {
+    display: none;
+}
+
+.competition-schedule .competition-team-link {
+    max-width: 100%;
+    font-size: 12px;
+}
+
+.competition-schedule .competition-team-link span {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
+    .competition-schedule { grid-template-columns: minmax(0, 1fr); }
+    .fixture-calendar { border-right: 0; border-bottom: 1px solid var(--border); }
+}
+
+@media (max-width: 480px) {
+    .competition-schedule .competition-match-row {
+        grid-template-columns: 32px minmax(0, 1fr) 42px minmax(0, 1fr);
+        gap: 5px;
+        padding: 12px 8px;
+    }
+    .competition-schedule .competition-team-link { gap: 4px; font-size: 11px; }
+    .competition-schedule .competition-team-logo { width: 18px; height: 18px; }
+}
+
+.competition-page {
+    min-height: 100vh;
+    padding: 28px 20px 60px;
+}
+
+
+.competition-page-inner {
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto;
+}
+
+
+.competition-back-link {
+    display: inline-flex;
+    margin-bottom: 18px;
+    color: #64748b;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+
+.competition-back-link:hover {
+    color: var(--sport-accent);
+}
+
+
+.competition-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+
+    padding: 24px;
+
+    background: #ffffff;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+}
+
+
+.competition-identity {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+
+.competition-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 64px;
+    height: 64px;
+
+    flex-shrink: 0;
+
+    border-radius: 16px;
+
+    background:
+        var(
+            --sport-accent-soft,
+            #dcfce7
+        );
+
+    color:
+        var(
+            --sport-accent,
+            #16a34a
+        );
+
+    font-size: 20px;
+    font-weight: 800;
+}
+
+
+.competition-badge-logo {
+    width: 100%;
+    height: 100%;
+
+    padding: 7px;
+
+    object-fit: contain;
+
+    box-sizing: border-box;
+}
+
+
+.competition-country {
+    display: block;
+
+    margin-bottom: 5px;
+
+    color: #64748b;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.05em;
+}
+
+
+.competition-header h1 {
+    margin: 0;
+
+    color: #0f172a;
+
+    font-size: 30px;
+    line-height: 1.1;
+}
+
+
+.competition-season-control {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    min-width: 150px;
+}
+
+
+.competition-season-control label {
+    color: #64748b;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    text-transform: uppercase;
+}
+
+
+.competition-season-control select {
+    width: 100%;
+
+    padding: 10px 12px;
+
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+
+    background: #ffffff;
+
+    color: #0f172a;
+
+    font: inherit;
+    font-weight: 600;
+}
+
+
+.competition-tabs {
+    display: flex;
+    gap: 4px;
+
+    margin-top: 18px;
+    padding: 5px;
+
+    overflow-x: auto;
+
+    background: #ffffff;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+}
+
+
+.competition-tab {
+    padding: 10px 18px;
+
+    border: 0;
+    border-radius: 8px;
+
+    background: transparent;
+
+    color: #64748b;
+
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+
+.competition-tab:hover {
+    background: #f8fafc;
+
+    color: #0f172a;
+}
+
+
+.competition-tab.active {
+    background:
+        var(
+            --sport-accent-soft,
+            #dcfce7
+        );
+
+    color:
+        var(
+            --sport-accent,
+            #16a34a
+        );
+}
+
+
+.competition-view {
+    margin-top: 18px;
+
+    background: #ffffff;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+
+    overflow: hidden;
+}
+
+
+.competition-view.hidden {
+    display: none;
+}
+
+
+.competition-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+
+    padding: 20px 22px;
+
+    border-bottom: 1px solid #e2e8f0;
+}
+
+
+.competition-section-header h2 {
+    margin: 0 0 4px;
+
+    color: #0f172a;
+
+    font-size: 19px;
+}
+
+
+.competition-section-header p {
+    margin: 0;
+
+    color: #64748b;
+
+    font-size: 13px;
+}
+
+
+.competition-all-link {
+    color:
+        var(
+            --sport-accent,
+            #16a34a
+        );
+
+    font-size: 13px;
+    font-weight: 700;
+
+    text-decoration: none;
+}
+
+
+.competition-match-day + .competition-match-day {
+    border-top: 1px solid #e2e8f0;
+}
+
+
+.competition-match-day-header {
+    padding: 11px 18px;
+
+    background: #f8fafc;
+
+    color: #475569;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    text-transform: uppercase;
+}
+
+
+.competition-match-row {
+    display: grid;
+
+    grid-template-columns:
+        70px
+        minmax(0, 1fr)
+        90px
+        minmax(0, 1fr)
+        80px;
+
+    align-items: center;
+
+    min-height: 58px;
+
+    padding: 0 18px;
+
+    border-top: 1px solid #f1f5f9;
+
+    cursor: pointer;
+}
+
+
+.competition-match-row:hover {
+    background: #f8fafc;
+}
+
+
+.competition-match-status {
+    color: #64748b;
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+
+.competition-match-team {
+    min-width: 0;
+
+    color: #0f172a;
+
+    font-size: 14px;
+    font-weight: 650;
+}
+
+
+.competition-match-team.home {
+    text-align: right;
+}
+
+
+.competition-match-team.away {
+    text-align: left;
+}
+
+
+.competition-team-link {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 8px;
+
+    color: inherit;
+
+    text-decoration: none;
+}
+
+
+.competition-match-team.home
+.competition-team-link {
+    flex-direction: row-reverse;
+    justify-content: flex-start;
+}
+
+
+.competition-team-logo {
+    width: 21px;
+    height: 21px;
+
+    flex-shrink: 0;
+
+    object-fit: contain;
+}
+
+
+.competition-team-link:hover {
+    color:
+        var(
+            --sport-accent,
+            #16a34a
+        );
+}
+
+
+.competition-match-score {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+
+    color: #0f172a;
+
+    font-size: 15px;
+    font-weight: 800;
+}
+
+
+.competition-data-status {
+    justify-self: end;
+
+    padding: 4px 7px;
+
+    border-radius: 999px;
+
+    background: #f1f5f9;
+
+    color: #64748b;
+
+    font-size: 10px;
+    font-weight: 700;
+
+    text-transform: uppercase;
+}
+
+
+.competition-data-status.complete {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+
+.competition-data-status.partial {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+
+.competition-table-wrapper {
+    overflow-x: auto;
+}
+
+
+.competition-standings-table {
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+
+.competition-standings-table th,
+.competition-standings-table td {
+    padding: 12px 14px;
+
+    border-bottom: 1px solid #f1f5f9;
+
+    text-align: center;
+
+    white-space: nowrap;
+}
+
+
+.competition-standings-table th {
+    background: #f8fafc;
+
+    color: #64748b;
+
+    font-size: 11px;
+    font-weight: 700;
+
+    text-transform: uppercase;
+}
+
+
+.competition-standings-table td {
+    color: #334155;
+
+    font-size: 13px;
+}
+
+
+.competition-standings-table th:nth-child(2),
+.competition-standings-table td:nth-child(2) {
+    text-align: left;
+}
+
+
+.competition-standings-position {
+    color: #64748b;
+    font-weight: 700;
+}
+
+
+.competition-standings-team-link {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 8px;
+
+    color: #0f172a;
+
+    font-weight: 700;
+
+    text-decoration: none;
+}
+
+
+.competition-standings-team-link:hover {
+    color:
+        var(
+            --sport-accent,
+            #16a34a
+        );
+}
+
+
+.competition-standings-points {
+    color: #0f172a !important;
+    font-weight: 800;
+}
+
+
+.competition-team-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fill,
+            minmax(220px, 1fr)
+        );
+
+    gap: 14px;
+
+    padding: 18px;
+}
+
+
+.competition-team-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+
+    padding: 16px;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+
+    color: inherit;
+
+    text-decoration: none;
+
+    transition:
+        border-color 0.15s ease,
+        transform 0.15s ease;
+}
+
+
+.competition-team-card:hover {
+    border-color:
+        var(
+            --sport-accent,
+            #16a34a
+        );
+
+    transform: translateY(-1px);
+}
+
+
+.competition-team-card-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 44px;
+    height: 44px;
+
+    flex-shrink: 0;
+
+    border-radius: 10px;
+
+    background:
+        var(
+            --sport-accent-soft,
+            #dcfce7
+        );
+
+    color:
+        var(
+            --sport-accent,
+            #16a34a
+        );
+
+    font-size: 13px;
+    font-weight: 800;
+}
+
+
+.competition-team-card-logo {
+    width: 100%;
+    height: 100%;
+
+    padding: 5px;
+
+    object-fit: contain;
+
+    box-sizing: border-box;
+}
+
+
+.competition-team-card-content {
+    min-width: 0;
+    flex: 1;
+}
+
+
+.competition-team-card-name {
+    margin: 0 0 5px;
+
+    overflow: hidden;
+
+    color: #0f172a;
+
+    font-size: 14px;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+.competition-team-card-meta {
+    color: #64748b;
+
+    font-size: 12px;
+}
+
+
+.competition-team-card-position {
+    color: #64748b;
+
+    font-size: 13px;
+    font-weight: 800;
+}
+
+
+.competition-player-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fill,
+            minmax(240px, 1fr)
+        );
+
+    gap: 14px;
+
+    padding: 18px;
+}
+
+
+.competition-player-card {
+    display: flex;
+    gap: 13px;
+
+    padding: 14px;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+
+    color: inherit;
+
+    text-decoration: none;
+}
+
+
+.competition-player-card:hover {
+    border-color:
+        var(
+            --sport-accent,
+            #16a34a
+        );
+}
+
+
+.competition-player-photo {
+    width: 52px;
+    height: 52px;
+
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    object-fit: cover;
+
+    background: #f1f5f9;
+}
+
+
+.competition-player-photo-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 52px;
+    height: 52px;
+
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    background: #f1f5f9;
+
+    color: #64748b;
+
+    font-size: 12px;
+    font-weight: 800;
+}
+
+
+.competition-player-content {
+    min-width: 0;
+    flex: 1;
+}
+
+
+.competition-player-name {
+    margin: 0 0 3px;
+
+    overflow: hidden;
+
+    color: #0f172a;
+
+    font-size: 14px;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+.competition-player-meta {
+    color: #64748b;
+
+    font-size: 12px;
+}
+
+
+.competition-player-stats {
+    display: flex;
+    gap: 12px;
+
+    margin-top: 7px;
+
+    color: #475569;
+
+    font-size: 11px;
+}
+
+
+.competition-loading,
+.competition-empty,
+.competition-error {
+    padding: 30px 20px;
+
+    color: #64748b;
+
+    text-align: center;
+}
+
+
+.competition-error {
+    color: #b91c1c;
+}
+
+
+@media (
+    max-width: 760px
+) {
+
+    .competition-page {
+        padding:
+            18px
+            12px
+            40px;
+    }
+
+
+    .competition-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+
+    .competition-season-control {
+        width: 100%;
+    }
+
+
+    .competition-match-row {
+        grid-template-columns:
+            48px
+            minmax(0, 1fr)
+            60px
+            minmax(0, 1fr);
+
+        padding:
+            0
+            10px;
+    }
+
+
+    .competition-data-status {
+        display: none;
+    }
+
+
+    .competition-section-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+}
+
+
+.competition-leaders-header {
+    align-items: flex-end;
+}
+
+
+.competition-leader-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+
+.competition-leader-tab {
+    padding: 8px 12px;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+
+    background: #ffffff;
+
+    color: #64748b;
+
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+
+.competition-leader-tab:hover {
+    border-color: #cbd5e1;
+    color: #0f172a;
+}
+
+
+.competition-leader-tab.active {
+    border-color:
+        var(
+            --sport-accent,
+            #16a34a
+        );
+
+    background:
+        var(
+            --sport-accent-soft,
+            #dcfce7
+        );
+
+    color:
+        var(
+            --sport-accent,
+            #16a34a
+        );
+}
+
+
+.competition-leaders-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+
+.competition-leaders-table th,
+.competition-leaders-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    text-align: center;
+    white-space: nowrap;
+}
+
+
+.competition-leaders-table th {
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+
+.competition-leaders-table td {
+    color: #334155;
+    font-size: 13px;
+}
+
+
+.competition-leaders-table th:nth-child(2),
+.competition-leaders-table td:nth-child(2) {
+    text-align: left;
+}
+
+
+.competition-leader-rank {
+    width: 48px;
+    color: #64748b !important;
+    font-weight: 800;
+}
+
+
+.competition-leader-player {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 220px;
+    color: inherit;
+    text-decoration: none;
+}
+
+
+.competition-leader-player:hover strong {
+    color:
+        var(
+            --sport-accent,
+            #16a34a
+        );
+}
+
+
+.competition-leader-photo {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #f1f5f9;
+}
+
+
+.competition-leader-player-text {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+}
+
+
+.competition-leader-player-text strong {
+    overflow: hidden;
+    color: #0f172a;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+.competition-leader-player-text small {
+    overflow: hidden;
+    max-width: 260px;
+    color: #64748b;
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+@media (
+    max-width: 760px
+) {
+
+    .competition-leaders-header {
+        align-items: flex-start;
+    }
+
+
+    .competition-leader-tabs {
+        width: 100%;
+    }
+
+
+    .competition-leader-tab {
+        flex: 1;
+        min-width: max-content;
+    }
+
+
+    .competition-leader-player {
+        min-width: 180px;
+    }
+}

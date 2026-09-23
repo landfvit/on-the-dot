@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Premier League Analytics</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/styles.css?v=10"
+    >
+</head>
+
+<body>
+
+    <header class="top-header">
+
+        <div class="top-header-inner">
+
+            <a
+                href="/"
+                class="logo"
+            >
+                PL Analytics
+            </a>
+
+            <nav class="top-navigation">
+
+                <a
+                    href="/"
+                    class="top-navigation-link active"
+                >
+                    Scores
+                </a>
+
+                <span class="top-navigation-link">
+                    Teams
+                </span>
+
+                <span class="top-navigation-link">
+                    Players
+                </span>
+
+                <span class="top-navigation-link">
+                    Predictions
+                </span>
+
+            </nav>
+
+            <div class="header-actions">
+                Search
+            </div>
+
+        </div>
+
+    </header>
+
+
+    <nav class="sport-navigation">
+
+        <div class="sport-navigation-inner">
+
+            <div class="sport-link active">
+                Football
+            </div>
+
+        </div>
+
+    </nav>
+
+
+    <div class="page-layout">
+
+        <aside class="left-sidebar">
+
+            <div class="sidebar-section">
+
+                <h3 class="sidebar-title">
+                    Competition
+                </h3>
+
+                <div class="competition-link active">
+                    Premier League
+                </div>
+
+            </div>
+
+
+            <div class="sidebar-section">
+
+                <label
+                    for="season-select"
+                    class="sidebar-title"
+                >
+                    Season
+                </label>
+
+                <select id="season-select">
+                </select>
+
+            </div>
+
+        </aside>
+
+
+        <main class="main-content">
+
+            <section class="competition-header">
+
+                <div>
+
+                    <p class="competition-country">
+                        England
+                    </p>
+
+                    <h1>
+                        Premier League
+                    </h1>
+
+                </div>
+
+                <div
+                    class="api-indicator"
+                    id="api-indicator"
+                >
+                    connecting
+                </div>
+
+            </section>
+
+
+            <section>
+
+                <div class="section-header">
+
+                    <div>
+                        <h2>
+                            Matches
+                        </h2>
+
+                        <p id="match-summary">
+                            Loading matches...
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="matches-container"
+                    class="matches-container"
+                >
+                    <div class="loading-card">
+                        Loading matches...
+                    </div>
+                </div>
+
+            </section>
+
+        </main>
+
+
+        <aside class="right-sidebar">
+
+            <div class="info-card">
+
+                <p class="info-label">
+                    Competition
+                </p>
+
+                <h3>
+                    Premier League
+                </h3>
+
+                <div class="info-row">
+                    <span>
+                        Country
+                    </span>
+
+                    <strong>
+                        England
+                    </strong>
+                </div>
+
+                <div class="info-row">
+                    <span>
+                        Teams
+                    </span>
+
+                    <strong>
+                        20
+                    </strong>
+                </div>
+
+                <div class="info-row">
+                    <span>
+                        Matches
+                    </span>
+
+                    <strong id="sidebar-match-count">
+                        -
+                    </strong>
+                </div>
+
+            </div>
+
+        </aside>
+
+    </div>
+
+
+    <script
+        src="/static/app.js?v=10"
+        defer
+    ></script>
+
+</body>
+
+</html>

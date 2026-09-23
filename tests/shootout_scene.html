@@ -1,0 +1,75 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Shootout renderer checks</title>
+<style>body{margin:0;background:#293f37;color:white;font:14px monospace}#host{height:65vh;position:relative}canvas{display:block}#frame{position:absolute;inset:30px 20px}button{padding:12px}#captures{display:flex;flex-wrap:wrap}img{width:180px}#result{max-height:100px;overflow:auto}</style>
+<button id="run">Test scene</button><button id="focus">Test blur transition</button><button id="zones">Test all shot zones</button><button id="save">Keeper save</button><button id="goal">Keeper goal conceded</button><pre id="result">Ready</pre><div id="host"><div id="frame"></div></div><div id="captures"></div>
+<script src="/trivia-assets/penalty_shots.js"></script>
+<script type="module">
+import {createStadium} from '/trivia-assets/stadium_scene.js?v=8';
+const host=document.querySelector('#host'),result=document.querySelector('#result');
+let focusProbe=null;
+const engine=createStadium(host,document.querySelector('#frame'),()=>result.textContent='WebGL failure',amount=>{
+  // Read actual canvas pixels after pose/render, before the browser clears the
+  // non-preserved drawing buffer. No production renderer test hooks are needed.
+  if(focusProbe)queueMicrotask(()=>focusProbe?.(amount));
+});
+const samples=[];
+function capture(label){
+  const canvas=host.querySelector('canvas'),copy=document.createElement('canvas');
+  copy.width=canvas.width;copy.height=canvas.height;
+  const context=copy.getContext('2d');context.drawImage(canvas,0,0);
+  const pixels=context.getImageData(0,0,copy.width,copy.height).data;
+  let occupied=0,hash=0,mean=[0,0,0];for(let i=0;i<pixels.length;i+=16){if(pixels[i+3])occupied++;hash=(Math.imul(hash,31)+pixels[i]+pixels[i+1]+pixels[i+2])|0;for(let c=0;c<3;c++)mean[c]+=pixels[i+c]/(pixels.length/16);}
+  const img=document.createElement('img');img.src=copy.toDataURL();img.alt=label;document.querySelector('#captures').append(img);
+  samples.push({label,occupied,hash,mean,inspection:engine.inspect()});
+}
+document.querySelector('#focus').onclick=async()=>{
+  samples.length=0;document.querySelector('#captures').replaceChildren();result.textContent='Running';
+  const thresholds=[0,.01,.1,.25,.5,.75,.9,.99,1];let next=0,frames=0;
+  const errors=[];
+  focusProbe=amount=>{
+    const view=engine.inspect();if(view.progress<1)return;
+    frames++;
+    if(!view.environmentVisible||!view.standsSolid||view.geometryFocus!==0)errors.push('Geometry faded or disappeared');
+    if(next<thresholds.length&&amount>=thresholds[next]){capture(`blur ${thresholds[next]}`);next++;}
+  };
+  await engine.setView('shooter',{intro:true,duration:7000});focusProbe=null;
+  const last=samples.at(-1),previous=samples.at(-2);
+  const endColorDelta=last&&previous?Math.max(...last.mean.map((n,i)=>Math.abs(n-previous.mean[i]))):Infinity;
+  const colorDrift=last?Math.max(...samples.flatMap(s=>s.mean.map((n,i)=>Math.abs(n-samples[0].mean[i])))):Infinity;
+  // Linear-light blur can gently lift the sRGB mean around white seat lines.
+  // Limit that overall drift to 3% while checking endpoint continuity tightly.
+  const pass=errors.length===0&&samples.length===thresholds.length&&samples.every(s=>s.occupied>100)
+    &&endColorDelta<.5&&colorDrift<255*.03&&samples[0].hash!==last.hash;
+  result.textContent=JSON.stringify({pass,frames,endColorDelta,colorDrift,errors,viewport:[innerWidth,innerHeight],samples},null,2);
+};
+document.querySelector('#run').onclick=async()=>{
+  samples.length=0;document.querySelector('#captures').replaceChildren();result.textContent='Running';
+  await engine.setView('shooter');capture('shooter');
+  await engine.setView('keeper',{duration:300});capture('keeper');
+  await engine.shot('save',true);capture('save');
+  let sampled=false;
+  await engine.finish(1500,reveal=>{if(!sampled&&reveal>.05){capture('overhead');sampled=true;}});
+  const pass=samples.length===4&&samples.every(s=>s.occupied>100)&&samples[0].hash!==samples[1].hash
+    &&samples.every(s=>s.inspection.markingsVisible&&s.inspection.keeperVisible&&s.inspection.ballVisible)
+    &&samples[2].inspection.caught&&samples[2].inspection.ball.every((n,i)=>Math.abs(n-samples[2].inspection.hands[i])<.001)
+    &&samples[3].inspection.camera[1]>100;
+  result.textContent=JSON.stringify({pass,viewport:[innerWidth,innerHeight],samples},null,2);
+};
+for(const outcome of ['save','goal'])document.querySelector('#'+outcome).onclick=async()=>{
+  result.textContent='Running';await engine.setView('keeper');await engine.shot(outcome,true);
+  capture(outcome);result.textContent=JSON.stringify(engine.inspect(),null,2);
+};
+document.querySelector('#zones').onclick=async()=>{
+  samples.length=0;document.querySelector('#captures').replaceChildren();
+  const checks=[];
+  for(const outcome of ['save','goal'])for(const high of [false,true])for(const side of [-1,0,1]){
+    await engine.setView('keeper');const camera=engine.inspect().camera;
+    const target={id:`${high?'high':'low'}-${side}`,side,high};
+    await engine.shot(outcome,false,{outcome,target,keeper:outcome==='save'?target:{...target,side:side===0?1:-side}});
+    capture(`${outcome}-${target.id}`);const view=engine.inspect();
+    checks.push(view.keeperVisible&&view.ballVisible&&view.markingsVisible&&view.camera.every((n,i)=>n===camera[i])
+      &&(outcome==='save'?view.caught&&view.ball.every((n,i)=>Math.abs(n-view.hands[i])<.001):!view.caught&&view.ball[0]>52.5));
+  }
+  result.textContent=JSON.stringify({pass:checks.every(Boolean)&&samples.every(s=>s.occupied>100),checks:checks.length,viewport:[innerWidth,innerHeight],samples},null,2);
+};
+</script></html>

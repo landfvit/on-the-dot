@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Premier League Analytics Admin</title>
+
+    <link
+        rel="stylesheet"
+        href="/static/admin.css"
+    >
+</head>
+
+<body>
+
+    <header class="header">
+        <div>
+            <h1>Premier League Analytics</h1>
+            <p>Developer dashboard</p>
+        </div>
+
+        <div
+            class="api-status"
+            id="api-status"
+        >
+            checking api...
+        </div>
+    </header>
+
+
+    <main class="container">
+
+        <section>
+            <h2>Overview</h2>
+
+            <div
+                class="cards"
+                id="overview-cards"
+            >
+            </div>
+        </section>
+
+
+        <section>
+            <h2>Season coverage</h2>
+
+            <div class="table-container">
+                <table>
+
+                    <thead>
+                        <tr>
+                            <th>Season</th>
+                            <th>Teams</th>
+                            <th>Fixtures</th>
+                            <th>Finished</th>
+                            <th>Complete stats</th>
+                            <th>Missing stats</th>
+                            <th>Coverage</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="season-table">
+                    </tbody>
+
+                </table>
+            </div>
+        </section>
+
+
+        <section>
+            <h2>Data quality</h2>
+
+            <div
+                class="quality-grid"
+                id="quality-grid"
+            >
+            </div>
+        </section>
+
+
+        <section>
+            <h2>Recent imports</h2>
+
+            <div class="table-container">
+                <table>
+
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Season</th>
+                            <th>Status</th>
+                            <th>Rows</th>
+                            <th>Requests</th>
+                            <th>Started</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="imports-table">
+                    </tbody>
+
+                </table>
+            </div>
+        </section>
+
+
+        <section>
+            <h2>Fixtures</h2>
+
+            <div class="filters">
+
+                <div class="filter">
+                    <label for="season-filter">
+                        Season
+                    </label>
+
+                    <select id="season-filter">
+                        <option value="">
+                            All seasons
+                        </option>
+                    </select>
+                </div>
+
+
+                <div class="filter">
+                    <label for="team-filter">
+                        Team
+                    </label>
+
+                    <select id="team-filter">
+                        <option value="">
+                            All teams
+                        </option>
+                    </select>
+                </div>
+
+
+                <div class="filter">
+                    <label for="data-status-filter">
+                        Data status
+                    </label>
+
+                    <select id="data-status-filter">
+
+                        <option value="">
+                            All
+                        </option>
+
+                        <option value="complete">
+                            Complete
+                        </option>
+
+                        <option value="partial">
+                            Partial
+                        </option>
+
+                        <option value="missing">
+                            Missing
+                        </option>
+
+                    </select>
+                </div>
+
+
+                <div class="filter">
+                    <label for="limit-filter">
+                        Results
+                    </label>
+
+                    <select id="limit-filter">
+
+                        <option value="20">
+                            20
+                        </option>
+
+                        <option
+                            value="30"
+                            selected
+                        >
+                            30
+                        </option>
+
+                        <option value="50">
+                            50
+                        </option>
+
+                        <option value="100">
+                            100
+                        </option>
+
+                    </select>
+                </div>
+
+
+                <button
+                    id="reset-filters"
+                    class="button"
+                >
+                    Reset filters
+                </button>
+
+            </div>
+
+
+            <p
+                class="fixture-count"
+                id="fixture-count"
+            >
+            </p>
+
+
+            <div class="table-container">
+                <table>
+
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Season</th>
+                            <th>Home</th>
+                            <th>Score</th>
+                            <th>Away</th>
+                            <th>Data</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="fixtures-table">
+                    </tbody>
+
+                </table>
+            </div>
+        </section>
+
+
+        <section>
+            <h2>Teams</h2>
+
+            <div
+                class="teams-grid"
+                id="teams-grid"
+            >
+            </div>
+        </section>
+
+    </main>
+
+
+    <script
+        src="/static/admin.js?v=1"
+        defer
+    ></script>
+
+</body>
+
+</html>

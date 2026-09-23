@@ -1,0 +1,20 @@
+{% extends base_template | default("base.html") %}
+{% block title %}Trivia | PL Analytics{% endblock %}
+{% block styles %}<link rel="stylesheet" href="/assets/css/trivia.css?v=4">{% endblock %}
+{% block content %}
+<main class="trivia-page trivia-play">
+    <header class="trivia-heading"><h1>Football trivia</h1><span id="play-progress"></span></header>
+    <p id="play-status" role="status">Loading questions...</p>
+    <button type="button" id="play-retry" hidden>Retry</button>
+    <section id="play-question" hidden>
+        <h2 id="play-text" tabindex="-1"></h2>
+        <form id="play-form" class="trivia-answer-test">
+            <label>Your answer<input id="play-answer" type="number" step="any" required autocomplete="off"></label>
+            <button type="submit" id="play-submit" class="trivia-primary">Submit answer</button>
+        </form>
+        <p id="play-result" role="status" aria-live="polite"></p>
+        <button type="button" id="play-next" hidden>Next question</button>
+    </section>
+</main>
+{% endblock %}
+{% block scripts %}<script src="/assets/js/trivia_play.js?v=4" defer></script>{% endblock %}

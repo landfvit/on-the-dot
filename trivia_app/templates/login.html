@@ -1,0 +1,13 @@
+{% extends "trivia_base.html" %}
+{% block title %}Studio sign in | ON THE DOT.{% endblock %}
+{% block content %}
+<main class="quiz-page studio-login">
+    <h1>Studio sign in</h1>
+    {% if error %}<p role="alert">{{ error }}</p>{% endif %}
+    <form action="/login" method="post">
+        <label>Username<input name="username" autocomplete="username" required maxlength="200"></label>
+        <label>Password<input name="password" type="password" autocomplete="current-password" required maxlength="512"></label>
+        <button type="submit" class="primary">Sign in</button>
+    </form>
+</main>
+{% endblock %}

@@ -1,0 +1,2 @@
+# Separate Apple Silicon runtime, not part of the web application's environment.
+mlx-lm[train]==0.31.1

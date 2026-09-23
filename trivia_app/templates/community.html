@@ -1,0 +1,32 @@
+{% extends 'trivia_base.html' %}
+{% block title %}{{ 'Leaderboard' if active_page == 'leaderboard' else 'Your history' }} · ON THE DOT.{% endblock %}
+{% block content %}
+<main class="community-page" data-view="{{ active_page }}">
+  <header class="community-heading"><p class="section-label">ON THE DOT. / {{ 'SOLO' if active_page == 'leaderboard' else 'YOUR GAMES' }}</p><h1>{{ 'Leaderboard' if active_page == 'leaderboard' else 'Your history' }}</h1></header>
+  {% if active_page == 'leaderboard' %}
+  <fieldset class="period-tabs ranking-tabs"><legend class="sr-only">Rank by</legend>
+    <label><input type="radio" name="metric" value="level" checked><span>Level</span></label>
+    <label><input type="radio" name="metric" value="wins"><span>Wins</span></label>
+    <label><input type="radio" name="metric" value="win_rate"><span>Win rate</span></label>
+  </fieldset>
+  <fieldset class="period-tabs"><legend class="sr-only">Leaderboard period</legend>
+    <label><input type="radio" name="period" value="today"><span>Today</span></label>
+    <label><input type="radio" name="period" value="week"><span>7 days</span></label>
+    <label><input type="radio" name="period" value="all" checked><span>All time</span></label>
+  </fieldset>
+  <div id="ranking-self" class="ranking-self" hidden></div>
+  <p id="ranking-period" class="muted"></p>
+  <div class="ranking-table" id="ranking-table" hidden><table><thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col" id="rank-level">Level</th><th scope="col" id="rank-wins">Wins</th><th scope="col">Losses</th><th scope="col" id="rank-win_rate">Win rate</th></tr></thead><tbody id="ranking-rows"></tbody></table></div>
+  <section id="distribution" class="score-distribution" hidden aria-labelledby="distribution-title">
+    <div class="section-heading"><h2 id="distribution-title">XP distribution</h2><span id="participant-count"></span></div>
+    <div id="distribution-bars"></div>
+  </section>
+  {% else %}
+  <div id="history-list"></div>
+  {% endif %}
+  <p id="community-status" role="status">Loading...</p>
+  <div class="community-actions"><button id="community-retry" hidden>Try again</button><a id="community-signin" href="/account" hidden>Sign in</a><a id="community-play" class="primary-link" href="/penalties" hidden>Play penalties <img src="/trivia-assets/icons/arrow-right.svg" alt=""></a></div>
+  <nav id="community-pagination" class="pagination" aria-label="Results pages" hidden><button id="previous-page">Previous</button><span id="page-number"></span><button id="next-page">Next</button></nav>
+</main>
+{% endblock %}
+{% block scripts %}<script src="/trivia-assets/community.js?v=4" defer></script>{% endblock %}

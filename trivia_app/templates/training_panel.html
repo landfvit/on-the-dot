@@ -1,0 +1,35 @@
+<section id="training-view" class="query-workspace" hidden>
+    <header class="trivia-library-heading"><h2>Training examples</h2><button type="button" id="training-refresh">Refresh</button></header>
+    <p class="trivia-scope">Metric-phrase annotations / local CPU baseline / not deployed</p>
+    <p id="training-counts" class="trivia-scope"></p>
+    <p id="training-status" role="status" aria-live="polite"></p>
+    {% include "model_results_panel.html" %}
+    <h3>Annotation editor</h3>
+    <form id="annotation-form" class="query-form">
+        <label>Original query<textarea id="annotation-text" rows="2" maxlength="1000" required></textarea></label>
+        <label>Metric phrase<input id="annotation-phrase" maxlength="300" required></label>
+        <div class="query-context">
+            <label>Label<select id="annotation-label" required></select></label>
+            <label>Split<select id="annotation-split"><option value="train">Train</option><option value="validation">Validation</option><option value="test">Test</option></select></label>
+        </div>
+        <label>Paraphrase family<input id="annotation-family" maxlength="80" pattern="[a-z0-9][a-z0-9_-]{0,79}" required></label>
+        <label>Review notes<textarea id="annotation-note" maxlength="2000" rows="2"></textarea></label>
+        <div class="trivia-result-actions"><button type="submit" id="annotation-save">Save draft</button><button type="button" id="annotation-new">New example</button></div>
+    </form>
+    <section>
+        <h3>Human verification</h3>
+        <p id="annotation-revision" class="trivia-scope">No saved annotation</p>
+        <label><input type="checkbox" id="annotation-confirm">I verified the phrase, label and split family. This is not verification of the full query.</label>
+        <p><button type="button" id="annotation-verify" disabled>Verify annotation</button></p>
+    </section>
+    <section><h3>Dataset</h3><div id="training-examples"></div>
+        <div class="trivia-result-actions"><button type="button" id="training-prev" disabled>Previous</button><span id="training-page"></span><button type="button" id="training-next" disabled>Next</button></div>
+    </section>
+    <section><h3>Unrecognized queries</h3><p class="trivia-scope">Private query log. Copies remain unverified until reviewed.</p><div id="training-inbox"></div>
+        <button type="button" id="training-inbox-more" hidden>More queries</button>
+    </section>
+    <section><h3>Local training</h3>
+        <label>Command<pre>.venv/bin/python src/train_query_model.py</pre></label>
+        <p class="trivia-scope">Required per label: 2 train families, 1 validation family, 1 test family. Latest human-verified revisions only.</p>
+    </section>
+</section>

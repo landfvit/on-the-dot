@@ -1,0 +1,366 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+Competition | PL Analytics
+{% endblock %}
+
+
+{% block styles %}
+
+<link
+    rel="stylesheet"
+    href="/assets/css/competition.css?v=4"
+>
+
+{% endblock %}
+
+
+{% block content %}
+
+<main
+    id="competition-page"
+    class="competition-page"
+    data-league-id="{{ league_id }}"
+    data-season="{{ season if season is not none else '' }}"
+>
+
+    <div class="competition-page-inner">
+
+        <a
+            href="/"
+            class="competition-back-link"
+        >
+            ← Sports
+        </a>
+
+
+        <section class="competition-header">
+
+            <div class="competition-identity">
+
+                <div
+                    id="competition-badge"
+                    class="competition-badge"
+                >
+                    PL
+                </div>
+
+
+                <div>
+
+                    <span
+                        id="competition-country"
+                        class="competition-country"
+                    >
+                        Loading...
+                    </span>
+
+                    <h1 id="competition-name">
+                        Loading competition...
+                    </h1>
+
+                </div>
+
+            </div>
+
+
+            <div class="competition-season-control">
+
+                <label for="competition-season-select">
+                    Season
+                </label>
+
+                <select
+                    id="competition-season-select"
+                >
+                </select>
+
+            </div>
+
+        </section>
+
+
+        <nav class="competition-tabs">
+
+            <button
+                class="competition-tab active"
+                data-view="matches"
+                type="button"
+            >
+                Matches
+            </button>
+
+            <button
+                class="competition-tab"
+                data-view="standings"
+                type="button"
+            >
+                Standings
+            </button>
+
+            <button
+                class="competition-tab"
+                data-view="teams"
+                type="button"
+            >
+                Teams
+            </button>
+
+            <button
+                class="competition-tab"
+                data-view="leaders"
+                type="button"
+            >
+                Leaders
+            </button>
+
+        </nav>
+
+
+        <section
+            id="competition-matches-view"
+            class="competition-view"
+        >
+
+            <header class="competition-section-header">
+
+                <div>
+
+                    <h2>
+                        Matches
+                    </h2>
+
+                    <p id="competition-matches-summary">
+                        Loading matches...
+                    </p>
+
+                </div>
+
+            </header>
+
+
+            <div class="competition-schedule">
+                <section class="fixture-calendar" aria-label="Fixture calendar" hidden>
+                    <div class="calendar-toolbar">
+                        <button type="button" id="calendar-previous" aria-label="Previous month" title="Previous month">&larr;</button>
+                        <h3 id="calendar-month" aria-live="polite"></h3>
+                        <button type="button" id="calendar-next" aria-label="Next month" title="Next month">&rarr;</button>
+                    </div>
+                    <div class="calendar-weekdays" aria-hidden="true">
+                        <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+                    </div>
+                    <div id="calendar-days" class="calendar-days" role="group" aria-labelledby="calendar-month"></div>
+                    <div class="calendar-actions">
+                        <button type="button" id="calendar-today">Today</button>
+                        <button type="button" id="calendar-nearest">Nearest fixture</button>
+                    </div>
+                </section>
+                <div id="competition-matches" class="competition-matches" aria-live="polite"></div>
+            </div>
+
+        </section>
+
+
+        <section
+            id="competition-standings-view"
+            class="competition-view hidden"
+        >
+
+            <header class="competition-section-header">
+
+                <div>
+
+                    <h2>
+                        Standings
+                    </h2>
+
+                    <p id="competition-standings-summary">
+                        League table
+                    </p>
+
+                </div>
+
+            </header>
+
+
+            <div class="competition-table-wrapper">
+
+                <table class="competition-standings-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                #
+                            </th>
+
+                            <th>
+                                Team
+                            </th>
+
+                            <th>
+                                P
+                            </th>
+
+                            <th>
+                                W
+                            </th>
+
+                            <th>
+                                D
+                            </th>
+
+                            <th>
+                                L
+                            </th>
+
+                            <th>
+                                GF
+                            </th>
+
+                            <th>
+                                GA
+                            </th>
+
+                            <th>
+                                GD
+                            </th>
+
+                            <th>
+                                Pts
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody id="competition-standings-body">
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+
+        <section
+            id="competition-teams-view"
+            class="competition-view hidden"
+        >
+
+            <header class="competition-section-header">
+
+                <div>
+
+                    <h2>
+                        Teams
+                    </h2>
+
+                    <p id="competition-teams-summary">
+                        Competition teams
+                    </p>
+
+                </div>
+
+            </header>
+
+
+            <div
+                id="competition-teams"
+                class="competition-team-grid"
+            >
+            </div>
+
+        </section>
+
+
+        <section
+            id="competition-leaders-view"
+            class="competition-view hidden"
+        >
+
+            <header class="competition-section-header competition-leaders-header">
+
+                <div>
+
+                    <h2>
+                        Leaders
+                    </h2>
+
+                    <p id="competition-leaders-summary">
+                        Season leaders
+                    </p>
+
+                </div>
+
+
+                <div class="competition-leader-tabs">
+
+                    <button
+                        class="competition-leader-tab active"
+                        data-leader-type="scorers"
+                        type="button"
+                    >
+                        Top scorers
+                    </button>
+
+                    <button
+                        class="competition-leader-tab"
+                        data-leader-type="rating"
+                        type="button"
+                    >
+                        Rating
+                    </button>
+
+                    <button
+                        class="competition-leader-tab"
+                        data-leader-type="goalkeepers"
+                        type="button"
+                    >
+                        Goalkeepers
+                    </button>
+
+                </div>
+
+            </header>
+
+
+            <div class="competition-table-wrapper">
+
+                <table class="competition-leaders-table">
+
+                    <thead id="competition-leaders-head">
+                    </thead>
+
+                    <tbody id="competition-leaders-body">
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+    </div>
+
+</main>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script
+    src="/assets/js/fixture_calendar.js?v=1"
+    defer
+></script>
+
+<script
+    src="/assets/js/competition.js?v=4"
+    defer
+></script>
+
+{% endblock %}

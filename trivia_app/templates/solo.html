@@ -1,0 +1,62 @@
+{% extends 'trivia_base.html' %}
+{% block title %}Penalties · ON THE DOT.{% endblock %}
+{% block styles %}<link rel="stylesheet" href="/trivia-assets/penalties.css?v=2"><link rel="stylesheet" href="/trivia-assets/solo.css?v=4"><link rel="stylesheet" href="/trivia-assets/stadium.css?v=4"><link rel="stylesheet" href="/trivia-assets/shootout.css?v=3">{% endblock %}
+{% block content %}
+{% include 'stadium.html' %}
+<section id="shootout-board" aria-label="Penalty shootout score" hidden>
+  <div class="shootout-team"><span>You</span><strong id="score-player">0</strong><div id="kicks-player" class="shootout-kicks"></div></div>
+  <div class="shootout-team"><span>Opponent</span><strong id="score-opponent">0</strong><div id="kicks-opponent" class="shootout-kicks"></div></div>
+  <small id="shootout-round"></small>
+</section>
+<main class="solo-page solo-penalties" data-page="solo">
+  <header class="solo-heading"><h1>Penalties</h1></header>
+  <div id="notice" role="status" aria-live="polite"></div><div id="error" role="alert" hidden></div>
+  <div class="solo-penalty-layout"><div class="solo-questions">
+  <section id="selection" aria-label="Choose a quiz">
+    <form id="quiz-start" class="quiz-selection">
+      <div class="quiz-filters">
+        <label>Category<select id="topic" required disabled><option>Loading categories...</option></select></label>
+        <label>Team / scope<select id="category" required disabled><option>Loading teams...</option></select></label>
+      </div>
+      <fieldset class="difficulty-options"><legend>Difficulty</legend>
+        <label><input type="radio" name="difficulty" value="easy" checked><span>Easy <small id="easy-rate">10 XP / answer</small><small id="easy-perfect">10/10: 100 XP</small><small id="easy-available"></small></span></label>
+        <label><input type="radio" name="difficulty" value="medium"><span>Medium <small id="medium-rate">20 XP / answer</small><small id="medium-perfect">10/10: 400 XP</small><small id="medium-available"></small></span></label>
+        <label><input type="radio" name="difficulty" value="hard"><span>Hard <small id="hard-rate">30 XP / answer</small><small id="hard-perfect">10/10: 900 XP</small><small id="hard-available"></small></span></label>
+      </fieldset>
+      <p id="quiz-rules" class="muted">5 penalties each · 15 seconds per answer</p>
+      <p id="trial-note" class="muted" hidden>Free trial · Progress is not saved</p>
+      <p id="availability" class="muted" role="status"></p><p id="weekly-reset" class="muted" hidden></p><button class="primary" id="start" disabled>Start quiz</button>
+    </form>
+  </section>
+  <section id="quiz-run" hidden aria-labelledby="question-title">
+    <div id="question-panel">
+    <div class="run-meta"><span id="run-category"></span><span id="run-position"></span><strong id="run-xp"></strong></div>
+    <div class="clock"><progress id="timer" max="15" value="15" aria-label="Time remaining"></progress><output id="seconds">15.0 s</output></div>
+    <h2 id="question-title" tabindex="-1"></h2>
+    <div id="choices" class="solo-choices" role="group" aria-labelledby="question-title"></div>
+    <p id="feedback" role="status" aria-live="polite"></p>
+    <div class="actions"><button id="next" class="primary" hidden>Next shot</button><button id="leave">End shootout</button><button id="retry" hidden>Reconnect</button></div>
+    </div>
+    <section id="summary" hidden aria-labelledby="result-heading">
+      <div class="result-heading-row"><h2 id="result-heading" tabindex="-1"></h2><button id="share-result" class="icon-button" type="button" aria-label="Share with friends" title="Share with friends" disabled><img src="/trivia-assets/icons/share-2.svg" alt=""><span>Share with friends</span></button></div>
+      <p id="result-completion" class="muted"></p>
+      <div class="metrics" id="result-metrics"></div>
+      <div id="result-level" hidden><strong id="result-level-label"></strong><progress id="result-level-progress" aria-label="Level progress"></progress><p id="result-level-remaining"></p></div>
+      <p id="streak-result"></p>
+      <div class="actions result-actions"><button id="another" class="primary" hidden>New shootout</button><a id="summary-account" class="primary-link" href="/account">View profile</a><a class="primary-link" href="/leaderboard">Leaderboard</a></div>
+      <p id="share-status" role="status"></p>
+      <div id="share-options" hidden>
+        <img id="share-preview" alt="Your shootout result card" width="1200" height="630">
+        <div class="actions"><a id="share-download" class="primary-link" download="on-the-dot-result.png"><img src="/trivia-assets/icons/download.svg" alt="">Download card</a><button id="share-copy" type="button"><img src="/trivia-assets/icons/copy.svg" alt="">Copy link</button></div>
+        <input id="share-link" aria-label="Game link" readonly>
+      </div>
+      <details id="result-review"><summary>Review answers</summary><div id="review"></div></details>
+    </section>
+  </section>
+  </div><section class="solo-pitch" aria-label="Penalty pitch">
+    <div class="solo-score"><strong id="penalty-score">0 / 10</strong><span>Goals</span><label class="motion-control"><input id="motion-toggle" type="checkbox" checked> Animations</label></div>
+    <div id="solo-attempts" aria-label="Your penalties"></div>
+  </section></div>
+</main>
+{% endblock %}
+{% block scripts %}<script src="/trivia-assets/penalty_shots.js?v=1" defer></script><script src="/trivia-assets/stadium_intro.js?v=9" defer></script><script src="/trivia-assets/penalty_scene.js?v=6" defer></script><script src="/trivia-assets/result_share.js?v=1" defer></script><script src="/trivia-assets/solo.js?v=13" defer></script>{% endblock %}

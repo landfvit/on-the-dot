@@ -1,0 +1,18 @@
+.team-insights { padding: 22px 0 30px; border-bottom: 1px solid #dce1e5; margin-bottom: 24px; color: #28343c; }
+.team-insights header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+.team-insights h2 { font-size: 18px; margin: 0; }
+.team-insights h3 { font-size: 14px; margin: 24px 0 12px; }
+.team-insights label { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.team-insights select { border: 1px solid #cfd6dc; padding: 8px; border-radius: 4px; background: #fff; font: inherit; }
+.team-insights p { font-size: 12px; color: #68717b; line-height: 1.6; }
+.insights-metrics { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; padding: 18px 0; border-bottom: 1px solid #e2e7ea; }
+.insights-metrics div { min-width: 0; display: grid; gap: 8px; }
+.insights-metrics span, .insights-metrics small { font-size: 11px; color: #68717b; }
+.insights-metrics strong { font-size: 23px; overflow-wrap: anywhere; }
+.insights-first-row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding: 13px 0; border-bottom: 1px solid #e2e7ea; font-size: 12px; }
+.insights-goal-row { display: grid; grid-template-columns: 70px minmax(0,1fr) 85px; gap: 14px; align-items: center; margin: 13px 0; font-size: 12px; }
+.insights-bars { display: grid; gap: 4px; }
+.insights-track { background: #edf0f2; height: 8px; }
+.insights-bar { height: 8px; background: #328257; }
+.insights-bar.against { background: #be5360; }
+@media(max-width:600px) { .insights-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); } .insights-goal-row { grid-template-columns: 57px minmax(0,1fr) 67px; gap: 8px; } }

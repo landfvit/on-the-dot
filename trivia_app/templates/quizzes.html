@@ -1,0 +1,19 @@
+{% extends "trivia_base.html" %}
+{% block content %}
+<main class="quiz-page">
+    <h1>Football quizzes</h1>
+    <p id="quiz-status" role="status">Loading quizzes...</p>
+    <button id="quiz-retry" type="button" hidden>Retry</button>
+    <button id="quiz-resume" type="button" hidden>Resume last quiz</button>
+    <div id="quiz-list" class="quiz-list"></div>
+    <section id="quiz-game" class="quiz-game" hidden>
+        <header><span id="quiz-progress"></span><button id="quiz-exit" type="button">Back to quizzes</button></header>
+        <h2 id="quiz-question" tabindex="-1"></h2>
+        <form id="quiz-answer-form"><label>Your answer<input id="quiz-answer" required autocomplete="off" maxlength="200"></label><button id="quiz-submit" type="submit" class="primary">Submit answer</button></form>
+        <p id="quiz-feedback" role="status"></p>
+        <button id="quiz-next" type="button" hidden>Next question</button>
+        <div id="quiz-review"></div>
+    </section>
+</main>
+{% endblock %}
+{% block scripts %}<script src="/trivia-assets/play.js?v=3" defer></script>{% endblock %}

@@ -1,0 +1,30 @@
+<section id="query-view" class="query-workspace" hidden>
+    <header class="trivia-library-heading"><h2>Sports query</h2><span class="trivia-state">Team metrics / v1</span></header>
+    <form id="query-form" class="query-form">
+        <div class="query-context">
+            <label>Competition<select id="query-competition" required></select></label>
+            <label>Minimum sample<input id="query-minimum" type="number" min="1" max="1000" value="10" required></label>
+        </div>
+        <label>Query<input id="query-text" type="text" list="query-completions" maxlength="1000" autocomplete="off" required placeholder="Manchester United win rate against Big 6 last 10 seasons"></label>
+        <datalist id="query-completions"></datalist>
+        <button type="submit" id="query-parse" class="trivia-primary">Parse query</button>
+    </form>
+    <p id="query-status" role="status" aria-live="polite"></p>
+    <div id="query-suggestions" class="query-suggestions"></div>
+    <section id="query-interpretation" hidden>
+        <h3>Recognized query</h3><dl id="query-recognized" class="query-definition"></dl>
+        <p id="query-definition" class="trivia-scope"></p>
+        <p id="query-period-definition" class="trivia-scope"></p>
+        <p id="query-snapshot" class="trivia-scope"></p>
+        <details><summary>Structured query</summary><pre id="query-json"></pre></details>
+        <button id="query-run" type="button" class="trivia-primary" disabled>Calculate</button>
+    </section>
+    <section id="query-result" hidden>
+        <div class="query-answer-heading"><img id="query-team-logo" width="40" height="40" alt="" hidden><h3 id="query-result-title"></h3></div>
+        <div class="query-answer"><strong id="query-value"></strong><span id="query-unit"></span></div>
+        <div id="query-record" class="query-record"></div>
+        <div id="query-record-bar" class="query-record-bar" role="img"></div>
+        <p id="query-coverage" class="trivia-scope"></p>
+        <button id="query-to-editor" type="button">Open in question editor</button>
+    </section>
+</section>

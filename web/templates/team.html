@@ -1,0 +1,478 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+Team | PL Analytics
+{% endblock %}
+
+
+{% block styles %}
+<link rel="stylesheet" href="/assets/css/team_insights.css?v=1">
+
+<link
+    rel="stylesheet"
+    href="/assets/css/team.css?v=10"
+>
+
+{% endblock %}
+
+
+{% block content %}
+
+<main
+    id="team-page"
+    class="team-page"
+    data-team-id="{{ team_id }}"
+    data-season="{{ season }}"
+>
+
+    <div class="team-page-inner">
+
+        <a
+            id="team-back-link"
+            href="/competitions/39?season={{ season }}"
+            class="back-link"
+        >
+            ← Back to competition
+        </a>
+
+
+        <section class="team-header">
+
+            <div class="team-header-main">
+
+                <div
+                    id="team-badge"
+                    class="team-large-badge"
+                >
+                    -
+                </div>
+
+
+                <div class="team-header-text">
+
+                    <a
+                        id="team-competition-link"
+                        href="/competitions/39?season={{ season }}"
+                        class="team-competition"
+                    >
+
+                        <span
+                            id="team-competition-logo"
+                            class="team-competition-logo"
+                        >
+                        </span>
+
+                        <span id="team-competition-name">
+                            Premier League
+                        </span>
+
+                    </a>
+
+
+                    <h1 id="team-name">
+                        Loading team...
+                    </h1>
+
+
+                    <div class="team-meta">
+
+                        <span
+                            id="team-country"
+                            class="team-country"
+                        >
+
+                            <span
+                                id="team-country-flag"
+                                class="team-country-flag"
+                            >
+                            </span>
+
+                            <span id="team-country-name">
+                                -
+                            </span>
+
+                        </span>
+
+
+                        <span class="team-meta-dot">
+                            ·
+                        </span>
+
+
+                        <span id="team-season">
+                            -
+                        </span>
+
+                    </div>
+
+
+                    <dl class="team-ground" aria-label="Home ground">
+                        <div><dt>Stadium</dt><dd id="team-stadium">Loading...</dd></div>
+                        <div><dt>Capacity</dt><dd id="team-capacity">-</dd></div>
+                    </dl>
+
+                    <div class="team-form-row">
+
+                        <span class="team-form-label">
+                            Form
+                        </span>
+
+                        <div
+                            id="team-form"
+                            class="team-form"
+                        >
+                            <span class="team-form-empty">
+                                Loading...
+                            </span>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="team-header-position">
+
+                <span>
+                    League position
+                </span>
+
+                <strong id="league-position">
+                    -
+                </strong>
+
+                <small id="league-position-context">
+                    -
+                </small>
+
+            </div>
+
+        </section>
+
+
+        <nav class="team-tabs" role="tablist" aria-label="Team details">
+            <button type="button" role="tab" id="tab-recent" aria-controls="panel-recent" aria-selected="true" tabindex="0" data-team-tab="recent">Recent matches</button>
+            <button type="button" role="tab" id="tab-upcoming" aria-controls="panel-upcoming" aria-selected="false" tabindex="-1" data-team-tab="upcoming">Upcoming matches</button>
+            <button type="button" role="tab" id="tab-stats" aria-controls="panel-stats" aria-selected="false" tabindex="-1" data-team-tab="stats">Stats</button>
+            <button type="button" role="tab" id="tab-squad" aria-controls="panel-squad" aria-selected="false" tabindex="-1" data-team-tab="squad">Squad</button>
+            <button type="button" role="tab" id="tab-kits" aria-controls="panel-kits" aria-selected="false" tabindex="-1" data-team-tab="kits">Kits</button>
+        </nav>
+
+        <section id="panel-kits" role="tabpanel" aria-labelledby="tab-kits" tabindex="0" hidden class="team-kits-section">
+            <header><h2 id="team-kits-title">Kits <span>{{ season }}/{{ "%02d"|format((season + 1) % 100) }}</span></h2><a id="team-kits-source" target="_blank" rel="noopener noreferrer" hidden>Wikimedia Commons</a></header>
+            <div id="team-kits" class="team-kits-grid" aria-live="polite">Loading kits...</div>
+        </section>
+
+        <div id="panel-stats" role="tabpanel" aria-labelledby="tab-stats" tabindex="0" hidden>
+        <section class="team-insights" aria-labelledby="insights-heading">
+            <header><h2 id="insights-heading">Results &amp; match situations</h2><label>Results<select id="insights-split"><option value="all">Full season</option><option value="home">Home</option><option value="away">Away</option><option value="last5">Last 5</option><option value="last10">Last 10</option></select></label></header>
+            <p id="insights-status" role="status">Loading insights...</p>
+            <div id="insights-results" class="insights-metrics"></div>
+            <h3>Season match situations</h3>
+            <p id="insights-coverage"></p>
+            <div id="insights-situations" class="insights-metrics"></div>
+            <div id="insights-first-goal"></div>
+            <h3>Goals by recorded minute</h3>
+            <div id="insights-goal-periods"></div>
+        </section>
+        <section class="overview-grid">
+
+            <article class="overview-card">
+
+                <span class="overview-label">
+                    Points
+                </span>
+
+                <strong
+                    id="team-points"
+                    class="overview-value"
+                >
+                    -
+                </strong>
+
+            </article>
+
+
+            <article class="overview-card">
+
+                <span class="overview-label">
+                    Played
+                </span>
+
+                <strong
+                    id="matches-played"
+                    class="overview-value"
+                >
+                    -
+                </strong>
+
+            </article>
+
+
+            <article class="overview-card">
+
+                <span class="overview-label">
+                    Record
+                </span>
+
+                <strong
+                    id="team-record"
+                    class="overview-value overview-record"
+                >
+                    -
+                </strong>
+
+            </article>
+
+
+            <article class="overview-card">
+
+                <span class="overview-label">
+                    Goal difference
+                </span>
+
+                <strong
+                    id="goal-difference"
+                    class="overview-value"
+                >
+                    -
+                </strong>
+
+            </article>
+
+
+            <article class="overview-card">
+
+                <span class="overview-label">
+                    Goals scored
+                </span>
+
+                <strong
+                    id="goals-for"
+                    class="overview-value"
+                >
+                    -
+                </strong>
+
+            </article>
+
+
+            <article class="overview-card">
+
+                <span class="overview-label">
+                    Goals conceded
+                </span>
+
+                <strong
+                    id="goals-against"
+                    class="overview-value"
+                >
+                    -
+                </strong>
+
+            </article>
+
+        </section>
+
+
+        <section class="statistics-panel">
+
+            <header class="section-header">
+
+                <div>
+
+                    <span class="section-eyebrow">
+                        Season performance
+                    </span>
+
+                    <h2>
+                        Team statistics
+                    </h2>
+
+                    <p id="statistics-coverage">
+                        Loading statistics...
+                    </p>
+
+                </div>
+
+            </header>
+
+
+            <div class="statistics-content">
+
+                <section class="statistics-group">
+
+                    <h3>
+                        Shooting
+                    </h3>
+
+                    <div
+                        id="shooting-statistics"
+                        class="statistics-grid"
+                    >
+                    </div>
+
+                </section>
+
+
+                <section class="statistics-group">
+
+                    <h3>
+                        Possession & passing
+                    </h3>
+
+                    <div
+                        id="passing-statistics"
+                        class="statistics-grid"
+                    >
+                    </div>
+
+                </section>
+
+
+                <section class="statistics-group">
+
+                    <h3>
+                        Match activity
+                    </h3>
+
+                    <div
+                        id="activity-statistics"
+                        class="statistics-grid"
+                    >
+                    </div>
+
+                </section>
+
+
+                <section class="statistics-group">
+
+                    <h3>
+                        Discipline & goalkeeping
+                    </h3>
+
+                    <div
+                        id="discipline-statistics"
+                        class="statistics-grid"
+                    >
+                    </div>
+
+                </section>
+
+            </div>
+
+        </section>
+
+
+        </div>
+
+        <section id="panel-squad" role="tabpanel" aria-labelledby="tab-squad" tabindex="0" hidden class="squad-panel">
+
+            <header class="section-header">
+
+                <div>
+
+                    <span class="section-eyebrow">
+                        Players
+                    </span>
+
+                    <h2>
+                        Squad
+                    </h2>
+
+                    <p id="squad-summary">
+                        Loading players...
+                    </p>
+
+                </div>
+
+            </header>
+
+
+            <div class="team-coaches" data-entity-preview="disabled">
+                <h3>Coaching Staff</h3>
+                <div id="team-coaches" class="team-coach-list" aria-live="polite">Loading coaches...</div>
+            </div>
+
+            <div
+                id="squad-container"
+                data-entity-preview="disabled"
+                class="squad-content"
+            >
+
+                <div class="loading-message">
+                    Loading squad...
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section id="panel-recent" role="tabpanel" aria-labelledby="tab-recent" tabindex="0" class="recent-matches-panel">
+
+            <header class="section-header recent-section-header">
+
+                <div>
+
+                    <span class="section-eyebrow">
+                        Results
+                    </span>
+
+                    <h2>
+                        Recent matches
+                    </h2>
+
+                </div>
+
+
+                <span class="recent-header-count">
+                    Last 10 completed matches
+                </span>
+
+            </header>
+
+
+            <div
+                id="recent-matches"
+                class="recent-matches"
+            >
+
+                <div class="loading-message">
+                    Loading matches...
+                </div>
+
+            </div>
+
+        </section>
+
+        <section id="panel-upcoming" role="tabpanel" aria-labelledby="tab-upcoming" tabindex="0" hidden class="recent-matches-panel">
+            <header class="section-header recent-section-header">
+                <h2>Upcoming matches</h2>
+                <span id="upcoming-count" class="recent-header-count"></span>
+            </header>
+            <div id="upcoming-matches" class="recent-matches"><div class="loading-message">Loading matches...</div></div>
+        </section>
+
+    </div>
+
+</main>
+
+{% endblock %}
+
+
+{% block scripts %}
+<script src="/assets/js/team_insights.js?v=1" defer></script>
+
+<script
+    src="/assets/js/team.js?v=9"
+    defer
+></script>
+<script src="/assets/js/team_kits.js?v=3" defer></script>
+<script src="/assets/js/team_context.js?v=1" defer></script>
+<script src="/assets/js/team_tabs.js?v=1" defer></script>
+
+{% endblock %}

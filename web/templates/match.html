@@ -1,0 +1,456 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+Match | PL Analytics
+{% endblock %}
+
+
+{% block styles %}
+<link rel="stylesheet" href="/assets/css/match_context.css?v=1">
+
+<link
+    rel="stylesheet"
+    href="/assets/css/match.css?v=6"
+>
+
+<link
+    rel="stylesheet"
+    href="/assets/css/match_lineups.css?v=4"
+>
+
+{% endblock %}
+
+
+{% block content %}
+
+<div
+    id="match-page"
+    class="match-page"
+    data-fixture-id="{{ fixture_id }}"
+>
+
+    <div class="match-page-inner">
+
+        <a
+            id="match-back-link"
+            href="/competitions/39?season=2024"
+            class="back-link"
+        >
+            ← Back to competition
+        </a>
+
+
+        <section class="scoreboard">
+
+            <div class="match-meta">
+
+                <a
+                    id="match-competition-link"
+                    href="/competitions/39?season=2024"
+                    class="match-competition-link"
+                >
+
+                    <span
+                        id="match-competition-logo"
+                        class="match-competition-logo"
+                    >
+                    </span>
+
+                    <span id="match-competition-name">
+                        Premier League
+                    </span>
+
+                </a>
+
+
+                <span id="match-date">
+                    Loading...
+                </span>
+
+            </div>
+
+
+            <div class="scoreboard-main">
+
+                <div class="scoreboard-team home-team">
+
+                    <div
+                        id="home-team-logo"
+                        class="team-placeholder"
+                    >
+                        H
+                    </div>
+
+                    <h1 id="home-team">
+                        Home
+                    </h1>
+
+                    <span
+                        id="home-position"
+                        class="team-position"
+                    >
+                        Loading position...
+                    </span>
+
+                    <div
+                        id="home-form"
+                        class="team-form"
+                    >
+                    </div>
+
+                </div>
+
+
+                <div class="scoreboard-center">
+
+                    <div
+                        id="match-status"
+                        class="match-status-badge"
+                    >
+                        -
+                    </div>
+
+                    <div class="main-score">
+
+                        <span id="home-score">
+                            -
+                        </span>
+
+                        <span class="score-separator">
+                            :
+                        </span>
+
+                        <span id="away-score">
+                            -
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="scoreboard-team away-team">
+
+                    <div
+                        id="away-team-logo"
+                        class="team-placeholder"
+                    >
+                        A
+                    </div>
+
+                    <h1 id="away-team">
+                        Away
+                    </h1>
+
+                    <span
+                        id="away-position"
+                        class="team-position"
+                    >
+                        Loading position...
+                    </span>
+
+                    <div
+                        id="away-form"
+                        class="team-form"
+                    >
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <div id="match-scorers" class="match-scorers" aria-label="Goalscorers"></div>
+        <dl id="match-environment" class="match-environment" aria-label="Match information"></dl>
+
+        <nav class="match-navigation">
+
+            <button
+                class="match-navigation-item active"
+                type="button"
+                data-view="summary"
+            >
+                Summary
+            </button>
+
+            <button
+                class="match-navigation-item"
+                type="button"
+                data-view="statistics"
+            >
+                Statistics
+            </button>
+
+            <button
+                class="match-navigation-item"
+                type="button"
+                data-view="lineups"
+            >
+                Lineups
+            </button>
+
+            <button
+                class="match-navigation-item"
+                type="button"
+                data-view="h2h"
+            >
+                H2H
+            </button>
+
+            <button
+                class="match-navigation-item disabled"
+                type="button"
+                disabled
+            >
+                Prediction
+            </button>
+
+        </nav>
+
+
+        <section
+            class="match-content-view"
+            data-view="summary"
+        >
+            <section class="match-events" aria-labelledby="events-heading">
+                <header><h2 id="events-heading">Match timeline</h2><label>Events <select id="event-filter"><option value="all">All events</option><option value="Goal">Goals</option><option value="Card">Cards</option><option value="subst">Substitutions</option><option value="Var">VAR</option></select></label></header>
+                <p id="events-quality" role="status">Loading events...</p>
+                <ol id="match-events-list"></ol>
+            </section>
+
+            <div class="match-section-heading">
+
+                <div>
+
+                    <span class="match-section-eyebrow">
+                        Pre-match context
+                    </span>
+
+                    <h2>
+                        Recent form
+                    </h2>
+
+                </div>
+
+                <p>
+                    Last five finished league matches before this fixture.
+                </p>
+
+            </div>
+
+
+            <div class="recent-form-grid">
+
+                <article class="recent-form-card">
+
+                    <header class="recent-form-header">
+
+                        <h3 id="home-recent-title">
+                            Home team
+                        </h3>
+
+                        <span>
+                            Previous matches
+                        </span>
+
+                    </header>
+
+                    <div
+                        id="home-recent-matches"
+                        class="recent-results"
+                    >
+
+                        <div class="recent-empty">
+                            Loading recent form...
+                        </div>
+
+                    </div>
+
+                </article>
+
+
+                <article class="recent-form-card">
+
+                    <header class="recent-form-header">
+
+                        <h3 id="away-recent-title">
+                            Away team
+                        </h3>
+
+                        <span>
+                            Previous matches
+                        </span>
+
+                    </header>
+
+                    <div
+                        id="away-recent-matches"
+                        class="recent-results"
+                    >
+
+                        <div class="recent-empty">
+                            Loading recent form...
+                        </div>
+
+                    </div>
+
+                </article>
+
+            </div>
+
+        </section>
+
+
+        <section
+            class="match-content-view hidden"
+            data-view="statistics"
+        >
+
+            <div class="statistics-card">
+
+                <header class="statistics-header">
+
+                    <div>
+
+                        <span class="match-section-eyebrow">
+                            Match data
+                        </span>
+
+                        <h2>
+                            Match statistics
+                        </h2>
+
+                    </div>
+
+                </header>
+
+                <div
+                    id="statistics-container"
+                    class="statistics-container"
+                >
+
+                    <div class="statistics-loading">
+                        Loading statistics...
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section
+            class="match-content-view hidden"
+            data-view="lineups"
+        >
+
+            <div class="lineups-card">
+
+                <header class="lineups-header">
+
+                    <div>
+
+                        <span class="match-section-eyebrow">
+                            Team selection
+                        </span>
+
+                        <h2>
+                            Lineups
+                        </h2>
+
+                    </div>
+
+                    <p>
+                        Starting XI, substitutes, formations and coaches.
+                    </p>
+
+                </header>
+
+                <div
+                    id="lineups-container"
+                    class="lineups-container"
+                >
+
+                    <div class="lineups-message">
+                        Loading lineups...
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <section
+            class="match-content-view hidden"
+            data-view="h2h"
+        >
+
+            <div class="h2h-card">
+
+                <header class="h2h-header">
+
+                    <div>
+
+                        <span class="match-section-eyebrow">
+                            Head to head
+                        </span>
+
+                        <h2>
+                            Previous meetings
+                        </h2>
+
+                    </div>
+
+                    <p>
+                        Latest available league meetings before this fixture.
+                    </p>
+
+                </header>
+
+                <div
+                    id="h2h-container"
+                    class="h2h-container"
+                >
+
+                    <div class="recent-empty">
+                        Loading head-to-head matches...
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </div>
+
+</div>
+
+{% endblock %}
+
+
+{% block scripts %}
+<script src="/assets/js/match_context.js?v=1" defer></script>
+
+<script
+    src="/assets/js/match.js?v=7"
+    defer
+></script>
+
+<script
+    src="/assets/js/lineup_positions.js?v=1"
+    defer
+></script>
+
+<script
+    src="/assets/js/match_lineups.js?v=4"
+    defer
+></script>
+
+{% endblock %}

@@ -1,0 +1,15 @@
+<section id="model-lab">
+    <h3>Model test</h3>
+    <form id="model-probe" class="query-form"><label>Model<select id="probe-model" required></select></label>
+        <label>Metric phrase<input id="probe-phrase" maxlength="300" required placeholder="e.g. win rate"></label>
+        <button id="probe-submit" type="submit" disabled>Test model</button>
+    </form>
+    <section id="probe-result" hidden aria-live="polite">
+        <h3 id="probe-heading"></h3><p id="probe-assessment"></p><p id="probe-seen" class="trivia-scope"></p>
+        <dl id="probe-facts" class="query-definition"></dl>
+        <h4>Class scores <small>(not confidence probabilities)</small></h4><div id="probe-scores"></div>
+        <h4>Nearest training phrases <small>(TF-IDF similarity)</small></h4><div id="probe-neighbors"></div>
+        <details><summary>Technical output</summary><pre id="probe-json"></pre></details>
+    </section>
+    <h3>Evaluation</h3><div id="training-models"></div>
+</section>

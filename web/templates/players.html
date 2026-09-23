@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+Players | PL Analytics
+{% endblock %}
+
+
+{% block styles %}
+
+<link
+    rel="stylesheet"
+    href="/assets/css/players.css?v=1"
+>
+
+{% endblock %}
+
+
+{% block content %}
+
+<main
+    id="players-page"
+    class="players-page"
+    data-season="{{ season }}"
+>
+
+    <div class="players-page-inner">
+
+        <section class="players-header">
+
+            <div>
+
+                <span class="players-eyebrow">
+                    Premier League
+                </span>
+
+                <h1>
+                    Players
+                </h1>
+
+                <p id="players-season-label">
+                    Player statistics and profiles
+                </p>
+
+            </div>
+
+        </section>
+
+
+        <section class="players-search-panel">
+
+            <div class="players-search">
+
+                <label
+                    for="player-search"
+                    class="players-search-label"
+                >
+                    Search players
+                </label>
+
+
+                <div class="players-search-box">
+
+                    <span class="players-search-icon">
+                        ⌕
+                    </span>
+
+                    <input
+                        id="player-search"
+                        type="search"
+                        placeholder="Search by player name..."
+                        autocomplete="off"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div class="players-result-info">
+
+                <span id="players-result-count">
+                    Loading players...
+                </span>
+
+            </div>
+
+        </section>
+
+
+        <section class="players-panel">
+
+            <div
+                id="players-grid"
+                class="players-grid"
+            >
+
+                <div class="players-loading">
+                    Loading players...
+                </div>
+
+            </div>
+
+        </section>
+
+    </div>
+
+</main>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script
+    src="/assets/js/players.js?v=2"
+    defer
+></script>
+
+{% endblock %}

@@ -1,0 +1,27 @@
+/* Broadcast score: fixed ball dimensions prevent layout jumps after each kick. */
+#shootout-board { position:fixed; z-index:5; left:24px; top:90px; padding:10px 14px; background:#101c20e8; color:var(--text); border-radius:4px; opacity:var(--stadium-reveal,1); pointer-events:none; }
+body:not(.stadium-playing) #shootout-board { display:none; }
+.shootout-team { display:grid; grid-template-columns:76px 22px auto; gap:10px; align-items:center; min-height:30px; font-size:13px; }
+.shootout-team strong { font-size:18px; text-align:center; font-variant-numeric:tabular-nums; }
+.shootout-kicks { display:flex; gap:7px; }
+.shootout-kick { display:block; width:19px; height:19px; flex:0 0 19px; color:#f2f4ec; }
+.shootout-kick.goal,.shootout-kick.miss { background:currentColor; mask:url('/trivia-assets/icons/football.svg') center/contain no-repeat; }
+.shootout-kick.miss { color:#f17373; }
+.shootout-kick.pending { border:1px solid #79918d; border-radius:50%; opacity:.45; }
+#shootout-round { display:block; color:var(--muted); font-size:11px; margin-top:5px; }
+body.stadium-playing:has(#shootout-board:not([hidden])) #stadium-framing { top:200px; }
+body.stadium-playing:has(#shootout-board:not([hidden])) #stadium-outcome { display:none; }
+.answer-selection { display:block; margin-top:8px; font-size:11px; font-weight:500; color:inherit; opacity:.85; }
+/* Results stay hidden while the camera returns to midfield, then share its fade. */
+.stadium-ending #stadium-layer { opacity:calc(1 - var(--stadium-result,0)); }
+.stadium-ending .solo-questions { position:fixed; left:50%; right:auto; top:50%; bottom:auto; width:min(760px,calc(100% - 32px)); max-height:calc(100dvh - 40px); height:auto; overflow:auto; border:0; border-radius:6px; padding:28px; opacity:var(--stadium-result,0); transform:translate(-50%,-50%) translateY(calc((1 - var(--stadium-result,0))*24px)); mask-image:linear-gradient(to bottom,#000 calc(var(--stadium-result,0)*160% - 60%),transparent calc(var(--stadium-result,0)*160%)); }
+.stadium-ending #shootout-board,.stadium-ending #stadium-controls,.stadium-ending .solo-score,.stadium-ending #stadium-outcome { display:none; }
+.stadium-ending .solo-questions h2 { margin-top:0; }
+@media(max-width:800px) {
+  #shootout-board { left:10px; top:72px; padding:7px 10px; }
+  body.stadium-playing:has(#shootout-board:not([hidden])) #stadium-framing { top:170px; }
+  .shootout-team { grid-template-columns:58px 20px auto; gap:6px; min-height:25px; font-size:11px; }
+  .shootout-kicks { gap:5px; }
+  .shootout-kick { width:15px; height:15px; flex-basis:15px; }
+  .stadium-ending .solo-questions { left:50%; top:50%; bottom:auto; width:calc(100% - 24px); height:auto; padding:20px; }
+}

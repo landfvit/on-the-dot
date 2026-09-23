@@ -1,0 +1,27 @@
+<section id="question-writer" class="answer-editor" aria-labelledby="writer-heading">
+    <header><h2 id="writer-heading">Question &amp; answer</h2><span id="writer-model">Checking local model...</span></header>
+    <div class="answer-editor-grid">
+        <div>
+            <form id="writer-form">
+                <label for="writer-question">Your question</label>
+                <textarea id="writer-question" rows="4" minlength="10" maxlength="1000" required placeholder="Who was Manchester United's top scorer in the Premier League in 2017/2018?"></textarea>
+                <button id="writer-submit" type="submit" class="trivia-primary">Find answer</button>
+            </form>
+            <details id="writer-examples-panel" open><summary>Examples</summary><ul id="writer-examples"></ul></details>
+        </div>
+        <div class="answer-editor-result" aria-live="polite">
+            <p id="writer-status" role="status"></p>
+            <section id="writer-interpretation" hidden>
+                <h3>Recognized question</h3><p id="writer-meaning"></p>
+                <button type="button" id="writer-confirm" hidden>Confirm meaning &amp; calculate</button>
+            </section>
+            <section id="writer-answer-section" hidden>
+                <h3>Database answer</h3><output id="writer-answer"></output>
+                <dl id="writer-details"></dl>
+                <p id="writer-evidence"></p>
+                <button type="button" id="writer-save" disabled>Save draft</button>
+                <a href="/internal/trivia/bank#bank-authoring">Saved drafts</a>
+            </section>
+        </div>
+    </div>
+</section>

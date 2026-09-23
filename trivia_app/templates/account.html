@@ -1,0 +1,50 @@
+{% extends 'trivia_base.html' %}
+{% block title %}Player profile · ON THE DOT.{% endblock %}
+{% block styles %}<link rel="stylesheet" href="/trivia-assets/solo.css?v=1">{% endblock %}
+{% block content %}
+<main class="solo-page" data-page="account" {% if profile_username %}data-username="{{ profile_username }}"{% endif %}>
+  <header class="solo-heading"><div><h1>Player profile</h1></div><a href="/penalties">Play penalties</a></header>
+  <div id="notice" role="status" aria-live="polite">Loading...</div><div id="error" role="alert" hidden></div>
+  <section id="authentication" hidden>
+    <form id="auth-form" class="account-form">
+      <fieldset class="auth-options"><legend>Account</legend><label><input type="radio" name="auth-mode" value="login" checked> Sign in</label><label><input type="radio" name="auth-mode" value="register"> Create account</label></fieldset>
+      <label id="login-field">Email or legacy username<input id="identifier" autocomplete="username" required minlength="3" maxlength="254"></label>
+      <div id="registration-fields" class="account-fields" hidden>
+        <label>Email<input id="email" type="email" autocomplete="email" required disabled maxlength="254"></label>
+        <label>Username<input id="username" autocomplete="nickname" required disabled minlength="3" maxlength="24" pattern="[A-Za-z0-9_]+" aria-describedby="username-format"></label>
+        <small id="username-format" class="muted">3–24 letters, numbers or underscores. Public on your profile.</small>
+      </div>
+      <label>Password<input id="password" type="password" autocomplete="current-password" required minlength="8" maxlength="128" aria-describedby="password-format"></label>
+      <small id="password-format" class="muted">At least 8 characters.</small>
+      <button class="primary" id="authenticate">Sign in</button>
+    </form>
+  </section>
+  <section id="profile" hidden>
+    <div class="profile-title"><div><h2 id="profile-name"></h2><p id="profile-bio"></p><p id="profile-team" class="muted"></p></div></div>
+    <div class="metrics" id="profile-metrics"></div>
+    <div class="metrics" id="profile-record"></div>
+    <label class="level-progress"><span id="level-label"></span><progress id="level-progress" max="100" value="0"></progress></label>
+    <p id="daily-status" class="muted" hidden></p>
+    <div id="own-profile" hidden>
+      <a id="public-profile" href="/account">Public profile</a>
+      <section class="account-form" aria-labelledby="team-heading">
+        <h2 id="team-heading">Your team</h2><button id="add-team" type="button" aria-expanded="false" aria-controls="team-edit">Add team</button>
+        <form id="team-edit" hidden><label for="profile-team-select">Premier League team</label><select id="profile-team-select"></select>
+          <div class="actions"><button class="primary" id="save-team">Join team</button><button id="cancel-team" type="button">Cancel</button></div>
+        </form>
+      </section>
+      <form id="email-edit" class="account-form">
+        <h2>Sign-in email</h2>
+        <label>Email<input id="account-email" type="email" autocomplete="email" required maxlength="254"></label>
+        <label>Current password<input id="email-password" type="password" autocomplete="current-password" required maxlength="128"></label>
+        <button type="submit">Save email</button>
+      </form>
+      <form id="profile-edit" class="account-form">
+        <label>Bio<textarea id="bio" rows="3" maxlength="160"></textarea></label>
+        <div class="actions"><button class="primary">Save profile</button><button id="signout" type="button">Sign out</button></div>
+      </form>
+    </div>
+  </section>
+</main>
+{% endblock %}
+{% block scripts %}<script src="/trivia-assets/solo.js?v=12" defer></script>{% endblock %}

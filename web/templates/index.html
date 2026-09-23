@@ -1,0 +1,526 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+Sports | PL Analytics
+{% endblock %}
+
+
+{% block styles %}
+
+<link
+    rel="stylesheet"
+    href="/assets/css/home.css?v=7"
+>
+
+{% endblock %}
+
+
+{% block content %}
+
+<div class="home-page">
+
+    <section class="home-hero">
+
+        <div class="home-hero-content">
+
+            <span class="home-eyebrow">
+                Sports data platform
+            </span>
+
+
+            <h1>
+                Matches, teams, players
+                and sports analytics.
+            </h1>
+
+
+            <p>
+                Explore match results, league tables,
+                team performance and player statistics
+                in one connected platform.
+            </p>
+
+
+            <div class="home-hero-actions">
+
+                <a
+                    href="/competitions/39"
+                    class="home-primary-button"
+                >
+                    Open Premier League
+                </a>
+
+
+                <a
+                    href="/players?season={{ season }}"
+                    class="home-secondary-button"
+                >
+                    Explore players
+                </a>
+
+            </div>
+
+        </div>
+
+
+        <a
+            href="/competitions/39"
+            class="home-featured-competition"
+        >
+
+            <div class="home-featured-top">
+
+                <span class="home-featured-label">
+                    Available now
+                </span>
+
+                <span class="home-featured-season">
+                    {{ season_label }}
+                </span>
+
+            </div>
+
+
+            <div class="home-featured-main">
+
+                <div class="home-featured-badge">
+                    <img src="{{ competition.logo_url }}" alt="{{ competition.league_name }}" width="56" height="56">
+                </div>
+
+
+                <div>
+
+                    <span class="home-featured-country">
+                        England
+                    </span>
+
+                    <h2>
+                        Premier League
+                    </h2>
+
+                    <p>
+                        Matches, standings, teams
+                        and player statistics
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="home-featured-footer">
+
+                <span>
+                    Open competition
+                </span>
+
+                <strong>
+                    →
+                </strong>
+
+            </div>
+
+        </a>
+
+    </section>
+
+
+    <section class="home-section">
+
+        <div class="home-section-heading">
+
+            <div>
+
+                <span class="home-section-eyebrow">
+                    Sports
+                </span>
+
+                <h2>
+                    Choose a sport
+                </h2>
+
+            </div>
+
+
+            <p>
+                Football is available now.
+                More sports will use the same platform architecture.
+            </p>
+
+        </div>
+
+
+        <div class="sport-card-grid">
+
+            <a
+                href="/competitions/39"
+                class="sport-card available"
+            >
+
+                <div class="sport-card-icon">
+                    ⚽
+                </div>
+
+
+                <div class="sport-card-content">
+
+                    <div class="sport-card-title-row">
+
+                        <h3>
+                            Football
+                        </h3>
+
+                        <span class="sport-status available">
+                            Available
+                        </span>
+
+                    </div>
+
+
+                    <p>
+                        Competitions, matches, standings,
+                        teams and players.
+                    </p>
+
+                </div>
+
+            </a>
+
+
+            <div class="sport-card">
+
+                <div class="sport-card-icon">
+                    F1
+                </div>
+
+
+                <div class="sport-card-content">
+
+                    <div class="sport-card-title-row">
+
+                        <h3>
+                            Formula 1
+                        </h3>
+
+                        <span class="sport-status">
+                            Planned
+                        </span>
+
+                    </div>
+
+
+                    <p>
+                        Race weekends, drivers,
+                        constructors and live race data.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="sport-card">
+
+                <div class="sport-card-icon">
+                    🏒
+                </div>
+
+
+                <div class="sport-card-content">
+
+                    <div class="sport-card-title-row">
+
+                        <h3>
+                            Hockey
+                        </h3>
+
+                        <span class="sport-status">
+                            Planned
+                        </span>
+
+                    </div>
+
+
+                    <p>
+                        Games, standings, teams,
+                        players and game statistics.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="sport-card">
+
+                <div class="sport-card-icon">
+                    🎾
+                </div>
+
+
+                <div class="sport-card-content">
+
+                    <div class="sport-card-title-row">
+
+                        <h3>
+                            Tennis
+                        </h3>
+
+                        <span class="sport-status">
+                            Planned
+                        </span>
+
+                    </div>
+
+
+                    <p>
+                        Tournaments, matches,
+                        rankings and player profiles.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="sport-card">
+
+                <div class="sport-card-icon">
+                    🚴
+                </div>
+
+
+                <div class="sport-card-content">
+
+                    <div class="sport-card-title-row">
+
+                        <h3>
+                            Cycling
+                        </h3>
+
+                        <span class="sport-status">
+                            Planned
+                        </span>
+
+                    </div>
+
+
+                    <p>
+                        Races, stages, riders,
+                        teams and classifications.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <section class="home-section">
+
+        <div class="home-section-heading">
+
+            <div>
+
+                <span class="home-section-eyebrow">
+                    Football
+                </span>
+
+                <h2>
+                    Featured competitions
+                </h2>
+
+            </div>
+
+        </div>
+
+
+        <div class="competition-grid">
+
+            <a
+                href="/competitions/39"
+                class="home-competition-card"
+            >
+
+                <div class="home-competition-card-header">
+
+                    <div class="home-competition-badge">
+                        <img src="{{ competition.logo_url }}" alt="{{ competition.league_name }}" width="48" height="48" loading="lazy">
+                    </div>
+
+
+                    <div class="home-competition-identity">
+
+                        <span>
+                            England
+                        </span>
+
+                        <h3>
+                            Premier League
+                        </h3>
+
+                    </div>
+
+
+                    <span class="home-arrow">
+                        →
+                    </span>
+
+                </div>
+
+
+                <p>
+                    {{ season_label }} fixtures, results and league table.
+                </p>
+
+
+                <div class="home-competition-features">
+
+                    <span>
+                        Matches
+                    </span>
+
+                    <span>
+                        Standings
+                    </span>
+
+                    <span>
+                        Teams
+                    </span>
+
+                    <span>
+                        Players
+                    </span>
+
+                </div>
+
+            </a>
+
+
+            <div class="home-competition-placeholder">
+
+                <span class="placeholder-label">
+                    More competitions
+                </span>
+
+                <h3>
+                    Football expansion
+                </h3>
+
+                <p>
+                    Additional domestic and international
+                    competitions can be added using the
+                    same competition architecture.
+                </p>
+
+                <span class="coming-soon">
+                    Coming later
+                </span>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <section class="home-section">
+
+        <div class="home-section-heading">
+
+            <div>
+
+                <span class="home-section-eyebrow">
+                    Explore
+                </span>
+
+                <h2>
+                    Platform features
+                </h2>
+
+            </div>
+
+        </div>
+
+
+        <div class="feature-card-grid">
+
+            <a
+                href="/players?season={{ season }}"
+                class="feature-card available"
+            >
+
+                <span class="feature-card-number">
+                    01
+                </span>
+
+                <h3>
+                    Player database
+                </h3>
+
+                <p>
+                    Search Premier League players,
+                    open profiles and compare season statistics.
+                </p>
+
+                <span class="feature-card-link">
+                    Explore players →
+                </span>
+
+            </a>
+
+
+            <div class="feature-card">
+
+                <span class="feature-card-number">
+                    02
+                </span>
+
+                <h3>
+                    Predictions
+                </h3>
+
+                <p>
+                    Match probabilities and model analysis
+                    built from historical team and player data.
+                </p>
+
+                <span class="coming-soon">
+                    Coming later
+                </span>
+
+            </div>
+
+
+            <div class="feature-card">
+
+                <span class="feature-card-number">
+                    03
+                </span>
+
+                <h3>
+                    Trivia
+                </h3>
+
+                <p>
+                    Data-driven sports questions,
+                    user accounts and competitive leaderboards.
+                </p>
+
+                <span class="coming-soon">
+                    Coming later
+                </span>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</div>
+
+{% endblock %}

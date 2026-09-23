@@ -1,0 +1,1026 @@
+{
+  "generated_at": "2026-09-17T12:40:24.753217+00:00",
+  "sports": {
+    "football": {
+      "teams": {
+        "42": {
+          "id": 42,
+          "name": "Arsenal",
+          "code": "ARS",
+          "country_name": "England",
+          "country_code": "GB-ENG",
+          "logo_url": "https://media.api-sports.io/football/teams/42.png"
+        },
+        "66": {
+          "id": 66,
+          "name": "Aston Villa",
+          "code": "AST",
+          "country_name": "England",
+          "country_code": "GB-ENG",
+          "logo_url": "https://media.api-sports.io/football/teams/66.png"
+        },
+        "35": {
+          "id": 35,
+          "name": "Bournemouth",
+          "code": "BOU",
+          "country_name": "England",
+          "country_code": "GB-ENG",
+          "logo_url": "https://media.api-sports.io/football/teams/35.png"
+        },
+        "55": {
+          "id": 55,
+          "name": "Brentford",
+          "code": "BRE",
+          "country_name": "England",
+          "country_code": "GB-ENG",
+          "logo_url": "https://media.api-sports.io/football/teams/55.png"
+        },
+        "51": {
+          "id": 51,
+          "name": "Brighton",
+          "code": "BRI",
+          "country_name": "England",
+          "country_code": "GB-ENG",
+          "logo_url": "https://media.api-sports.io/football/teams/51.png"
+        },
+        "49": {
+          "id": 49,
+          "name": "Chelsea",
+          "code": "CHE",
+          "country_name": "England",
+          "country_code": "GB-ENG",
+          "logo_url": "https://media.api-sports.io/football/teams/49.png"
+        },
+        "52": {
+          "id": 52,
+          "name": "Crystal Palace",
+          "code": "CRY",
+          "country_name": "England",
+          "country_code": "GB-ENG",
+          "logo_url": "https://media.api-sports.io/football/teams/52.png"
+        },
+        "45": {
+          "id": 45,
+          "name": "Everton",
+          "code": "EVE",
+          "country_name": "England",
+          "country_code": "GB-ENG",
+          "logo_url": "https://media.api-sports.io/football/teams/45.png"
+        },
+        "36": {
+          "id": 36,
+          "name": "Fulham",
+          "code": "FUL",
+          "country_name": "England",
+          "country_code": "GB-ENG",
+          "logo_url": "https://media.api-sports.io/football/teams/36.png"
+        },
+        "57": {
+          "id": 57,
+          "name": "Ipswich",
+          "code": "IPS",
+          "country_name": "England",
+          "country_code": "GB-ENG",
+          "logo_url": "https://media.api-sports.io/football/teams/57.png"
+        },
+        "46": {
+          "id": 46,
+          "name": "Leicester",
+          "code": "LEI",
+          "country_name": "England",
+          "country_code": "GB-ENG",
+          "logo_url": "https://media.api-sports.io/football/teams/46.png"
+        },
+        "40": {
+          "id": 40,
+          "name": "Liverpool",
+          "code": "LIV",
+          "country_name": "England",
+          "country_code": "GB-ENG",
+          "logo_url": "https://media.api-sports.io/football/teams/40.png"
+        },
+        "50": {
+          "id": 50,
+          "name": "Manchester City",
+          "code": "MCI",
+          "country_name": "England",
+          "country_code": "GB-ENG",
+          "logo_url": "https://media.api-sports.io/football/teams/50.png"
+        },
+        "33": {
+          "id": 33,
+          "name": "Manchester United",
+          "code": "MUN",
+          "country_name": "England",
+          "country_code": "GB-ENG",
+          "logo_url": "https://media.api-sports.io/football/teams/33.png"
+        },
+        "34": {
+          "id": 34,
+          "name": "Newcastle",
+          "code": "NEW",
+          "country_name": "England",
+          "country_code": "GB-ENG",
+          "logo_url": "https://media.api-sports.io/football/teams/34.png"
+        },
+        "65": {
+          "id": 65,
+          "name": "Nottingham Forest",
+          "code": "NOT",
+          "country_name": "England",
+          "country_code": "GB-ENG",
+          "logo_url": "https://media.api-sports.io/football/teams/65.png"
+        },
+        "41": {
+          "id": 41,
+          "name": "Southampton",
+          "code": "SOU",
+          "country_name": "England",
+          "country_code": "GB-ENG",
+          "logo_url": "https://media.api-sports.io/football/teams/41.png"
+        },
+        "47": {
+          "id": 47,
+          "name": "Tottenham",
+          "code": "TOT",
+          "country_name": "England",
+          "country_code": "GB-ENG",
+          "logo_url": "https://media.api-sports.io/football/teams/47.png"
+        },
+        "48": {
+          "id": 48,
+          "name": "West Ham",
+          "code": "WES",
+          "country_name": "England",
+          "country_code": "GB-ENG",
+          "logo_url": "https://media.api-sports.io/football/teams/48.png"
+        },
+        "39": {
+          "id": 39,
+          "name": "Wolves",
+          "code": "WOL",
+          "country_name": "England",
+          "country_code": "GB-ENG",
+          "logo_url": "https://media.api-sports.io/football/teams/39.png"
+        }
+      },
+      "competitions": {
+        "39": {
+          "id": 39,
+          "name": "Premier League",
+          "country_name": "England",
+          "country_code": "GB-ENG",
+          "flag_url": "https://media.api-sports.io/flags/gb-eng.svg",
+          "logo_url": "https://media.api-sports.io/football/leagues/39.png"
+        }
+      }
+    }
+  },
+  "countries": {
+    "AL": {
+      "code": "AL",
+      "name": "Albania",
+      "flag_url": "https://media.api-sports.io/flags/al.svg"
+    },
+    "DZ": {
+      "code": "DZ",
+      "name": "Algeria",
+      "flag_url": "https://media.api-sports.io/flags/dz.svg"
+    },
+    "AD": {
+      "code": "AD",
+      "name": "Andorra",
+      "flag_url": "https://media.api-sports.io/flags/ad.svg"
+    },
+    "AO": {
+      "code": "AO",
+      "name": "Angola",
+      "flag_url": "https://media.api-sports.io/flags/ao.svg"
+    },
+    "AG": {
+      "code": "AG",
+      "name": "Antigua-And-Barbuda",
+      "flag_url": "https://media.api-sports.io/flags/ag.svg"
+    },
+    "AR": {
+      "code": "AR",
+      "name": "Argentina",
+      "flag_url": "https://media.api-sports.io/flags/ar.svg"
+    },
+    "AM": {
+      "code": "AM",
+      "name": "Armenia",
+      "flag_url": "https://media.api-sports.io/flags/am.svg"
+    },
+    "AW": {
+      "code": "AW",
+      "name": "Aruba",
+      "flag_url": "https://media.api-sports.io/flags/aw.svg"
+    },
+    "AU": {
+      "code": "AU",
+      "name": "Australia",
+      "flag_url": "https://media.api-sports.io/flags/au.svg"
+    },
+    "AT": {
+      "code": "AT",
+      "name": "Austria",
+      "flag_url": "https://media.api-sports.io/flags/at.svg"
+    },
+    "AZ": {
+      "code": "AZ",
+      "name": "Azerbaijan",
+      "flag_url": "https://media.api-sports.io/flags/az.svg"
+    },
+    "BH": {
+      "code": "BH",
+      "name": "Bahrain",
+      "flag_url": "https://media.api-sports.io/flags/bh.svg"
+    },
+    "BD": {
+      "code": "BD",
+      "name": "Bangladesh",
+      "flag_url": "https://media.api-sports.io/flags/bd.svg"
+    },
+    "BB": {
+      "code": "BB",
+      "name": "Barbados",
+      "flag_url": "https://media.api-sports.io/flags/bb.svg"
+    },
+    "BY": {
+      "code": "BY",
+      "name": "Belarus",
+      "flag_url": "https://media.api-sports.io/flags/by.svg"
+    },
+    "BE": {
+      "code": "BE",
+      "name": "Belgium",
+      "flag_url": "https://media.api-sports.io/flags/be.svg"
+    },
+    "BZ": {
+      "code": "BZ",
+      "name": "Belize",
+      "flag_url": "https://media.api-sports.io/flags/bz.svg"
+    },
+    "BJ": {
+      "code": "BJ",
+      "name": "Benin",
+      "flag_url": "https://media.api-sports.io/flags/bj.svg"
+    },
+    "BM": {
+      "code": "BM",
+      "name": "Bermuda",
+      "flag_url": "https://media.api-sports.io/flags/bm.svg"
+    },
+    "BT": {
+      "code": "BT",
+      "name": "Bhutan",
+      "flag_url": "https://media.api-sports.io/flags/bt.svg"
+    },
+    "BO": {
+      "code": "BO",
+      "name": "Bolivia",
+      "flag_url": "https://media.api-sports.io/flags/bo.svg"
+    },
+    "BA": {
+      "code": "BA",
+      "name": "Bosnia",
+      "flag_url": "https://media.api-sports.io/flags/ba.svg"
+    },
+    "BW": {
+      "code": "BW",
+      "name": "Botswana",
+      "flag_url": "https://media.api-sports.io/flags/bw.svg"
+    },
+    "BR": {
+      "code": "BR",
+      "name": "Brazil",
+      "flag_url": "https://media.api-sports.io/flags/br.svg"
+    },
+    "BG": {
+      "code": "BG",
+      "name": "Bulgaria",
+      "flag_url": "https://media.api-sports.io/flags/bg.svg"
+    },
+    "BF": {
+      "code": "BF",
+      "name": "Burkina-Faso",
+      "flag_url": "https://media.api-sports.io/flags/bf.svg"
+    },
+    "BI": {
+      "code": "BI",
+      "name": "Burundi",
+      "flag_url": "https://media.api-sports.io/flags/bi.svg"
+    },
+    "KH": {
+      "code": "KH",
+      "name": "Cambodia",
+      "flag_url": "https://media.api-sports.io/flags/kh.svg"
+    },
+    "CM": {
+      "code": "CM",
+      "name": "Cameroon",
+      "flag_url": "https://media.api-sports.io/flags/cm.svg"
+    },
+    "CA": {
+      "code": "CA",
+      "name": "Canada",
+      "flag_url": "https://media.api-sports.io/flags/ca.svg"
+    },
+    "CL": {
+      "code": "CL",
+      "name": "Chile",
+      "flag_url": "https://media.api-sports.io/flags/cl.svg"
+    },
+    "CN": {
+      "code": "CN",
+      "name": "China",
+      "flag_url": "https://media.api-sports.io/flags/cn.svg"
+    },
+    "TW": {
+      "code": "TW",
+      "name": "Chinese-Taipei",
+      "flag_url": "https://media.api-sports.io/flags/tw.svg"
+    },
+    "CO": {
+      "code": "CO",
+      "name": "Colombia",
+      "flag_url": "https://media.api-sports.io/flags/co.svg"
+    },
+    "CD": {
+      "code": "CD",
+      "name": "Congo",
+      "flag_url": "https://media.api-sports.io/flags/cd.svg"
+    },
+    "CG": {
+      "code": "CG",
+      "name": "Congo-DR",
+      "flag_url": "https://media.api-sports.io/flags/cg.svg"
+    },
+    "CR": {
+      "code": "CR",
+      "name": "Costa-Rica",
+      "flag_url": "https://media.api-sports.io/flags/cr.svg"
+    },
+    "HR": {
+      "code": "HR",
+      "name": "Croatia",
+      "flag_url": "https://media.api-sports.io/flags/hr.svg"
+    },
+    "CU": {
+      "code": "CU",
+      "name": "Cuba",
+      "flag_url": "https://media.api-sports.io/flags/cu.svg"
+    },
+    "CW": {
+      "code": "CW",
+      "name": "Curacao",
+      "flag_url": "https://media.api-sports.io/flags/cw.svg"
+    },
+    "CY": {
+      "code": "CY",
+      "name": "Cyprus",
+      "flag_url": "https://media.api-sports.io/flags/cy.svg"
+    },
+    "CZ": {
+      "code": "CZ",
+      "name": "Czech-Republic",
+      "flag_url": "https://media.api-sports.io/flags/cz.svg"
+    },
+    "DK": {
+      "code": "DK",
+      "name": "Denmark",
+      "flag_url": "https://media.api-sports.io/flags/dk.svg"
+    },
+    "DO": {
+      "code": "DO",
+      "name": "Dominican-Republic",
+      "flag_url": "https://media.api-sports.io/flags/do.svg"
+    },
+    "EC": {
+      "code": "EC",
+      "name": "Ecuador",
+      "flag_url": "https://media.api-sports.io/flags/ec.svg"
+    },
+    "EG": {
+      "code": "EG",
+      "name": "Egypt",
+      "flag_url": "https://media.api-sports.io/flags/eg.svg"
+    },
+    "SV": {
+      "code": "SV",
+      "name": "El-Salvador",
+      "flag_url": "https://media.api-sports.io/flags/sv.svg"
+    },
+    "GB-ENG": {
+      "code": "GB-ENG",
+      "name": "England",
+      "flag_url": "https://media.api-sports.io/flags/gb-eng.svg"
+    },
+    "EE": {
+      "code": "EE",
+      "name": "Estonia",
+      "flag_url": "https://media.api-sports.io/flags/ee.svg"
+    },
+    "SZ": {
+      "code": "SZ",
+      "name": "Eswatini",
+      "flag_url": "https://media.api-sports.io/flags/sz.svg"
+    },
+    "ET": {
+      "code": "ET",
+      "name": "Ethiopia",
+      "flag_url": "https://media.api-sports.io/flags/et.svg"
+    },
+    "FO": {
+      "code": "FO",
+      "name": "Faroe-Islands",
+      "flag_url": "https://media.api-sports.io/flags/fo.svg"
+    },
+    "FJ": {
+      "code": "FJ",
+      "name": "Fiji",
+      "flag_url": "https://media.api-sports.io/flags/fj.svg"
+    },
+    "FI": {
+      "code": "FI",
+      "name": "Finland",
+      "flag_url": "https://media.api-sports.io/flags/fi.svg"
+    },
+    "FR": {
+      "code": "FR",
+      "name": "France",
+      "flag_url": "https://media.api-sports.io/flags/fr.svg"
+    },
+    "GA": {
+      "code": "GA",
+      "name": "Gabon",
+      "flag_url": "https://media.api-sports.io/flags/ga.svg"
+    },
+    "GM": {
+      "code": "GM",
+      "name": "Gambia",
+      "flag_url": "https://media.api-sports.io/flags/gm.svg"
+    },
+    "GE": {
+      "code": "GE",
+      "name": "Georgia",
+      "flag_url": "https://media.api-sports.io/flags/ge.svg"
+    },
+    "DE": {
+      "code": "DE",
+      "name": "Germany",
+      "flag_url": "https://media.api-sports.io/flags/de.svg"
+    },
+    "GH": {
+      "code": "GH",
+      "name": "Ghana",
+      "flag_url": "https://media.api-sports.io/flags/gh.svg"
+    },
+    "GI": {
+      "code": "GI",
+      "name": "Gibraltar",
+      "flag_url": "https://media.api-sports.io/flags/gi.svg"
+    },
+    "GR": {
+      "code": "GR",
+      "name": "Greece",
+      "flag_url": "https://media.api-sports.io/flags/gr.svg"
+    },
+    "GD": {
+      "code": "GD",
+      "name": "Grenada",
+      "flag_url": "https://media.api-sports.io/flags/gd.svg"
+    },
+    "GP": {
+      "code": "GP",
+      "name": "Guadeloupe",
+      "flag_url": "https://media.api-sports.io/flags/gp.svg"
+    },
+    "GT": {
+      "code": "GT",
+      "name": "Guatemala",
+      "flag_url": "https://media.api-sports.io/flags/gt.svg"
+    },
+    "GN": {
+      "code": "GN",
+      "name": "Guinea",
+      "flag_url": "https://media.api-sports.io/flags/gn.svg"
+    },
+    "HT": {
+      "code": "HT",
+      "name": "Haiti",
+      "flag_url": "https://media.api-sports.io/flags/ht.svg"
+    },
+    "HN": {
+      "code": "HN",
+      "name": "Honduras",
+      "flag_url": "https://media.api-sports.io/flags/hn.svg"
+    },
+    "HK": {
+      "code": "HK",
+      "name": "Hong-Kong",
+      "flag_url": "https://media.api-sports.io/flags/hk.svg"
+    },
+    "HU": {
+      "code": "HU",
+      "name": "Hungary",
+      "flag_url": "https://media.api-sports.io/flags/hu.svg"
+    },
+    "IS": {
+      "code": "IS",
+      "name": "Iceland",
+      "flag_url": "https://media.api-sports.io/flags/is.svg"
+    },
+    "IN": {
+      "code": "IN",
+      "name": "India",
+      "flag_url": "https://media.api-sports.io/flags/in.svg"
+    },
+    "ID": {
+      "code": "ID",
+      "name": "Indonesia",
+      "flag_url": "https://media.api-sports.io/flags/id.svg"
+    },
+    "IR": {
+      "code": "IR",
+      "name": "Iran",
+      "flag_url": "https://media.api-sports.io/flags/ir.svg"
+    },
+    "IQ": {
+      "code": "IQ",
+      "name": "Iraq",
+      "flag_url": "https://media.api-sports.io/flags/iq.svg"
+    },
+    "IE": {
+      "code": "IE",
+      "name": "Ireland",
+      "flag_url": "https://media.api-sports.io/flags/ie.svg"
+    },
+    "IL": {
+      "code": "IL",
+      "name": "Israel",
+      "flag_url": "https://media.api-sports.io/flags/il.svg"
+    },
+    "IT": {
+      "code": "IT",
+      "name": "Italy",
+      "flag_url": "https://media.api-sports.io/flags/it.svg"
+    },
+    "CI": {
+      "code": "CI",
+      "name": "Ivory-Coast",
+      "flag_url": "https://media.api-sports.io/flags/ci.svg"
+    },
+    "JM": {
+      "code": "JM",
+      "name": "Jamaica",
+      "flag_url": "https://media.api-sports.io/flags/jm.svg"
+    },
+    "JP": {
+      "code": "JP",
+      "name": "Japan",
+      "flag_url": "https://media.api-sports.io/flags/jp.svg"
+    },
+    "JO": {
+      "code": "JO",
+      "name": "Jordan",
+      "flag_url": "https://media.api-sports.io/flags/jo.svg"
+    },
+    "KZ": {
+      "code": "KZ",
+      "name": "Kazakhstan",
+      "flag_url": "https://media.api-sports.io/flags/kz.svg"
+    },
+    "KE": {
+      "code": "KE",
+      "name": "Kenya",
+      "flag_url": "https://media.api-sports.io/flags/ke.svg"
+    },
+    "XK": {
+      "code": "XK",
+      "name": "Kosovo",
+      "flag_url": "https://media.api-sports.io/flags/xk.svg"
+    },
+    "KW": {
+      "code": "KW",
+      "name": "Kuwait",
+      "flag_url": "https://media.api-sports.io/flags/kw.svg"
+    },
+    "KG": {
+      "code": "KG",
+      "name": "Kyrgyzstan",
+      "flag_url": "https://media.api-sports.io/flags/kg.svg"
+    },
+    "LA": {
+      "code": "LA",
+      "name": "Laos",
+      "flag_url": "https://media.api-sports.io/flags/la.svg"
+    },
+    "LV": {
+      "code": "LV",
+      "name": "Latvia",
+      "flag_url": "https://media.api-sports.io/flags/lv.svg"
+    },
+    "LB": {
+      "code": "LB",
+      "name": "Lebanon",
+      "flag_url": "https://media.api-sports.io/flags/lb.svg"
+    },
+    "LS": {
+      "code": "LS",
+      "name": "Lesotho",
+      "flag_url": "https://media.api-sports.io/flags/ls.svg"
+    },
+    "LR": {
+      "code": "LR",
+      "name": "Liberia",
+      "flag_url": "https://media.api-sports.io/flags/lr.svg"
+    },
+    "LY": {
+      "code": "LY",
+      "name": "Libya",
+      "flag_url": "https://media.api-sports.io/flags/ly.svg"
+    },
+    "LI": {
+      "code": "LI",
+      "name": "Liechtenstein",
+      "flag_url": "https://media.api-sports.io/flags/li.svg"
+    },
+    "LT": {
+      "code": "LT",
+      "name": "Lithuania",
+      "flag_url": "https://media.api-sports.io/flags/lt.svg"
+    },
+    "LU": {
+      "code": "LU",
+      "name": "Luxembourg",
+      "flag_url": "https://media.api-sports.io/flags/lu.svg"
+    },
+    "MO": {
+      "code": "MO",
+      "name": "Macao",
+      "flag_url": "https://media.api-sports.io/flags/mo.svg"
+    },
+    "MK": {
+      "code": "MK",
+      "name": "Macedonia",
+      "flag_url": "https://media.api-sports.io/flags/mk.svg"
+    },
+    "MW": {
+      "code": "MW",
+      "name": "Malawi",
+      "flag_url": "https://media.api-sports.io/flags/mw.svg"
+    },
+    "MY": {
+      "code": "MY",
+      "name": "Malaysia",
+      "flag_url": "https://media.api-sports.io/flags/my.svg"
+    },
+    "MV": {
+      "code": "MV",
+      "name": "Maldives",
+      "flag_url": "https://media.api-sports.io/flags/mv.svg"
+    },
+    "ML": {
+      "code": "ML",
+      "name": "Mali",
+      "flag_url": "https://media.api-sports.io/flags/ml.svg"
+    },
+    "MT": {
+      "code": "MT",
+      "name": "Malta",
+      "flag_url": "https://media.api-sports.io/flags/mt.svg"
+    },
+    "MR": {
+      "code": "MR",
+      "name": "Mauritania",
+      "flag_url": "https://media.api-sports.io/flags/mr.svg"
+    },
+    "MU": {
+      "code": "MU",
+      "name": "Mauritius",
+      "flag_url": "https://media.api-sports.io/flags/mu.svg"
+    },
+    "MX": {
+      "code": "MX",
+      "name": "Mexico",
+      "flag_url": "https://media.api-sports.io/flags/mx.svg"
+    },
+    "MD": {
+      "code": "MD",
+      "name": "Moldova",
+      "flag_url": "https://media.api-sports.io/flags/md.svg"
+    },
+    "MN": {
+      "code": "MN",
+      "name": "Mongolia",
+      "flag_url": "https://media.api-sports.io/flags/mn.svg"
+    },
+    "ME": {
+      "code": "ME",
+      "name": "Montenegro",
+      "flag_url": "https://media.api-sports.io/flags/me.svg"
+    },
+    "MA": {
+      "code": "MA",
+      "name": "Morocco",
+      "flag_url": "https://media.api-sports.io/flags/ma.svg"
+    },
+    "MM": {
+      "code": "MM",
+      "name": "Myanmar",
+      "flag_url": "https://media.api-sports.io/flags/mm.svg"
+    },
+    "NA": {
+      "code": "NA",
+      "name": "Namibia",
+      "flag_url": "https://media.api-sports.io/flags/na.svg"
+    },
+    "NP": {
+      "code": "NP",
+      "name": "Nepal",
+      "flag_url": "https://media.api-sports.io/flags/np.svg"
+    },
+    "NL": {
+      "code": "NL",
+      "name": "Netherlands",
+      "flag_url": "https://media.api-sports.io/flags/nl.svg"
+    },
+    "NZ": {
+      "code": "NZ",
+      "name": "New-Zealand",
+      "flag_url": "https://media.api-sports.io/flags/nz.svg"
+    },
+    "NI": {
+      "code": "NI",
+      "name": "Nicaragua",
+      "flag_url": "https://media.api-sports.io/flags/ni.svg"
+    },
+    "NG": {
+      "code": "NG",
+      "name": "Nigeria",
+      "flag_url": "https://media.api-sports.io/flags/ng.svg"
+    },
+    "GB-NIR": {
+      "code": "GB-NIR",
+      "name": "Northern-Ireland",
+      "flag_url": "https://media.api-sports.io/flags/gb-nir.svg"
+    },
+    "NO": {
+      "code": "NO",
+      "name": "Norway",
+      "flag_url": "https://media.api-sports.io/flags/no.svg"
+    },
+    "OM": {
+      "code": "OM",
+      "name": "Oman",
+      "flag_url": "https://media.api-sports.io/flags/om.svg"
+    },
+    "PK": {
+      "code": "PK",
+      "name": "Pakistan",
+      "flag_url": "https://media.api-sports.io/flags/pk.svg"
+    },
+    "PS": {
+      "code": "PS",
+      "name": "Palestine",
+      "flag_url": "https://media.api-sports.io/flags/ps.svg"
+    },
+    "PA": {
+      "code": "PA",
+      "name": "Panama",
+      "flag_url": "https://media.api-sports.io/flags/pa.svg"
+    },
+    "PY": {
+      "code": "PY",
+      "name": "Paraguay",
+      "flag_url": "https://media.api-sports.io/flags/py.svg"
+    },
+    "PE": {
+      "code": "PE",
+      "name": "Peru",
+      "flag_url": "https://media.api-sports.io/flags/pe.svg"
+    },
+    "PH": {
+      "code": "PH",
+      "name": "Philippines",
+      "flag_url": "https://media.api-sports.io/flags/ph.svg"
+    },
+    "PL": {
+      "code": "PL",
+      "name": "Poland",
+      "flag_url": "https://media.api-sports.io/flags/pl.svg"
+    },
+    "PT": {
+      "code": "PT",
+      "name": "Portugal",
+      "flag_url": "https://media.api-sports.io/flags/pt.svg"
+    },
+    "QA": {
+      "code": "QA",
+      "name": "Qatar",
+      "flag_url": "https://media.api-sports.io/flags/qa.svg"
+    },
+    "RO": {
+      "code": "RO",
+      "name": "Romania",
+      "flag_url": "https://media.api-sports.io/flags/ro.svg"
+    },
+    "RU": {
+      "code": "RU",
+      "name": "Russia",
+      "flag_url": "https://media.api-sports.io/flags/ru.svg"
+    },
+    "RW": {
+      "code": "RW",
+      "name": "Rwanda",
+      "flag_url": "https://media.api-sports.io/flags/rw.svg"
+    },
+    "SM": {
+      "code": "SM",
+      "name": "San-Marino",
+      "flag_url": "https://media.api-sports.io/flags/sm.svg"
+    },
+    "SA": {
+      "code": "SA",
+      "name": "Saudi-Arabia",
+      "flag_url": "https://media.api-sports.io/flags/sa.svg"
+    },
+    "GB-SCT": {
+      "code": "GB-SCT",
+      "name": "Scotland",
+      "flag_url": "https://media.api-sports.io/flags/gb-sct.svg"
+    },
+    "SN": {
+      "code": "SN",
+      "name": "Senegal",
+      "flag_url": "https://media.api-sports.io/flags/sn.svg"
+    },
+    "RS": {
+      "code": "RS",
+      "name": "Serbia",
+      "flag_url": "https://media.api-sports.io/flags/rs.svg"
+    },
+    "SG": {
+      "code": "SG",
+      "name": "Singapore",
+      "flag_url": "https://media.api-sports.io/flags/sg.svg"
+    },
+    "SK": {
+      "code": "SK",
+      "name": "Slovakia",
+      "flag_url": "https://media.api-sports.io/flags/sk.svg"
+    },
+    "SI": {
+      "code": "SI",
+      "name": "Slovenia",
+      "flag_url": "https://media.api-sports.io/flags/si.svg"
+    },
+    "SO": {
+      "code": "SO",
+      "name": "Somalia",
+      "flag_url": "https://media.api-sports.io/flags/so.svg"
+    },
+    "ZA": {
+      "code": "ZA",
+      "name": "South-Africa",
+      "flag_url": "https://media.api-sports.io/flags/za.svg"
+    },
+    "KR": {
+      "code": "KR",
+      "name": "South-Korea",
+      "flag_url": "https://media.api-sports.io/flags/kr.svg"
+    },
+    "ES": {
+      "code": "ES",
+      "name": "Spain",
+      "flag_url": "https://media.api-sports.io/flags/es.svg"
+    },
+    "SD": {
+      "code": "SD",
+      "name": "Sudan",
+      "flag_url": "https://media.api-sports.io/flags/sd.svg"
+    },
+    "SR": {
+      "code": "SR",
+      "name": "Suriname",
+      "flag_url": "https://media.api-sports.io/flags/sr.svg"
+    },
+    "SE": {
+      "code": "SE",
+      "name": "Sweden",
+      "flag_url": "https://media.api-sports.io/flags/se.svg"
+    },
+    "CH": {
+      "code": "CH",
+      "name": "Switzerland",
+      "flag_url": "https://media.api-sports.io/flags/ch.svg"
+    },
+    "SY": {
+      "code": "SY",
+      "name": "Syria",
+      "flag_url": "https://media.api-sports.io/flags/sy.svg"
+    },
+    "TJ": {
+      "code": "TJ",
+      "name": "Tajikistan",
+      "flag_url": "https://media.api-sports.io/flags/tj.svg"
+    },
+    "TZ": {
+      "code": "TZ",
+      "name": "Tanzania",
+      "flag_url": "https://media.api-sports.io/flags/tz.svg"
+    },
+    "TH": {
+      "code": "TH",
+      "name": "Thailand",
+      "flag_url": "https://media.api-sports.io/flags/th.svg"
+    },
+    "TG": {
+      "code": "TG",
+      "name": "Togo",
+      "flag_url": "https://media.api-sports.io/flags/tg.svg"
+    },
+    "TT": {
+      "code": "TT",
+      "name": "Trinidad-And-Tobago",
+      "flag_url": "https://media.api-sports.io/flags/tt.svg"
+    },
+    "TN": {
+      "code": "TN",
+      "name": "Tunisia",
+      "flag_url": "https://media.api-sports.io/flags/tn.svg"
+    },
+    "TR": {
+      "code": "TR",
+      "name": "Turkey",
+      "flag_url": "https://media.api-sports.io/flags/tr.svg"
+    },
+    "TM": {
+      "code": "TM",
+      "name": "Turkmenistan",
+      "flag_url": "https://media.api-sports.io/flags/tm.svg"
+    },
+    "UG": {
+      "code": "UG",
+      "name": "Uganda",
+      "flag_url": "https://media.api-sports.io/flags/ug.svg"
+    },
+    "UA": {
+      "code": "UA",
+      "name": "Ukraine",
+      "flag_url": "https://media.api-sports.io/flags/ua.svg"
+    },
+    "AE": {
+      "code": "AE",
+      "name": "United-Arab-Emirates",
+      "flag_url": "https://media.api-sports.io/flags/ae.svg"
+    },
+    "UY": {
+      "code": "UY",
+      "name": "Uruguay",
+      "flag_url": "https://media.api-sports.io/flags/uy.svg"
+    },
+    "US": {
+      "code": "US",
+      "name": "USA",
+      "flag_url": "https://media.api-sports.io/flags/us.svg"
+    },
+    "UZ": {
+      "code": "UZ",
+      "name": "Uzbekistan",
+      "flag_url": "https://media.api-sports.io/flags/uz.svg"
+    },
+    "VE": {
+      "code": "VE",
+      "name": "Venezuela",
+      "flag_url": "https://media.api-sports.io/flags/ve.svg"
+    },
+    "VN": {
+      "code": "VN",
+      "name": "Vietnam",
+      "flag_url": "https://media.api-sports.io/flags/vn.svg"
+    },
+    "GB-WLS": {
+      "code": "GB-WLS",
+      "name": "Wales",
+      "flag_url": "https://media.api-sports.io/flags/gb-wls.svg"
+    },
+    "YE": {
+      "code": "YE",
+      "name": "Yemen",
+      "flag_url": "https://media.api-sports.io/flags/ye.svg"
+    },
+    "ZM": {
+      "code": "ZM",
+      "name": "Zambia",
+      "flag_url": "https://media.api-sports.io/flags/zm.svg"
+    },
+    "ZW": {
+      "code": "ZW",
+      "name": "Zimbabwe",
+      "flag_url": "https://media.api-sports.io/flags/zw.svg"
+    }
+  }
+}

@@ -1,0 +1,71 @@
+/* Rozmery UI a maska nastupu. --stadium-reveal (0..1) nastavuje stejny RAF
+ * jako fade stadionu. Pri zmene panelu upravuj pouze sirku/vysku nize;
+ * #stadium-framing se prizpusobi a kamera zabrani prekryti brany otazkami.
+ */
+:root { --stadium-panel-width:min(560px,44vw); --stadium-reveal:1; }
+#stadium-layer { position:fixed; inset:0; z-index:0; background:var(--bg); }
+#stadium-layer canvas { display:block; width:100%; height:100%; }
+#stadium-framing { position:fixed; top:88px; bottom:90px; left:24px; right:calc(var(--stadium-panel-width) + 28px); visibility:hidden; pointer-events:none; }
+#stadium-controls { position:fixed; inset:0 0 auto; z-index:6; min-height:78px; padding:18px 24px; display:flex; justify-content:space-between; align-items:center; gap:12px; color:var(--text); background:var(--bg); border-bottom:1px solid var(--border); }
+#stadium-controls > div { display:flex; align-items:center; gap:20px; min-width:0; }
+#stadium-controls strong { font-size:24px; }
+#stadium-role { font-size:13px; color:var(--muted); }
+#stadium-score,#stadium-clock { font-size:14px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+#stadium-clock { min-width:42px; font-weight:750; }
+#stadium-controls button { padding:9px 12px; min-height:40px; cursor:pointer; }
+#stadium-controls button:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+#stadium-outcome { position:fixed; z-index:5; top:88px; left:24px; margin:0; font-weight:750; padding:8px 16px; }
+#stadium-unavailable { margin:18px 24px; padding:14px; border:1px solid var(--coral); color:var(--text); background:var(--surface); }
+body.stadium-playing { overflow:hidden; background:var(--bg); }
+.stadium-playing .points-header,.stadium-playing .solo-heading,.stadium-playing .penalty-heading { display:none; }
+.stadium-playing .solo-page,.stadium-playing .penalty-page { max-width:none; padding:0; margin:0; }
+.stadium-playing .solo-questions,.stadium-playing .question-column {
+    position:fixed; z-index:3; right:0; top:78px; bottom:0;
+    width:var(--stadium-panel-width); padding:28px 32px 32px; overflow:auto; overscroll-behavior:contain;
+    opacity:var(--stadium-reveal);
+    transform:translateY(calc((1 - var(--stadium-reveal))*36px));
+    /* Mekka hrana odhali panel shora dolu; posledni snimek je zcela nepruhledny. */
+    mask-image:linear-gradient(to bottom,#000 calc(var(--stadium-reveal)*160% - 60%),transparent calc(var(--stadium-reveal)*160%));
+}
+.stadium-playing .solo-questions h2,.stadium-playing .question-column h2 { line-height:1.4; min-height:0; margin:22px 0; }
+.stadium-playing .solo-choices { margin:22px 0; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.stadium-playing .solo-choices button,.stadium-playing .penalty-answers button { min-height:68px; padding:14px; font-size:16px; overflow-wrap:anywhere; }
+.stadium-playing .clock { margin:20px 0; }
+.stadium-playing .run-meta { font-size:14px; gap:12px; }
+.stadium-playing .run-meta #run-category { width:100%; }
+.stadium-playing #feedback { font-size:15px; line-height:1.65; min-height:0; }
+.stadium-playing #solo-attempts,.stadium-playing #attempts,.stadium-playing #rules-note,.stadium-playing #pack-label { display:none; }
+.stadium-playing .solo-score,.stadium-playing .scoreboard { position:fixed; z-index:3; left:24px; bottom:18px; width:calc(100% - var(--stadium-panel-width) - 52px); margin:0; padding:10px 0; opacity:var(--stadium-reveal); }
+.stadium-playing .solo-score .motion-control { display:flex; }
+.stadium-entering .solo-questions,.stadium-entering .question-column { pointer-events:none; }
+/* Bez stareho 2D nahledu vyplni nastaveni/souhrn celou obsahovou sirku. */
+body:not(.stadium-playing) .solo-penalty-layout,body:not(.stadium-playing) .penalty-layout { grid-template-columns:minmax(0,1fr); }
+body:not(.stadium-playing) .solo-page:has(#selection:not([hidden])) .solo-pitch { display:none; }
+body:not(.stadium-playing) .solo-pitch { grid-row:auto; }
+body:not(.stadium-playing) .solo-penalties,body:not(.stadium-playing) .penalty-page { max-width:960px; }
+.quiz-selection { max-width:none; }
+@media(max-width:800px) {
+    #stadium-controls { padding:12px 14px; min-height:64px; }
+    #stadium-controls > div { gap:10px; flex-wrap:wrap; }
+    #stadium-controls strong { font-size:20px; }
+    #stadium-controls button { padding:8px; font-size:12px; }
+    #stadium-role { font-size:12px; }
+    #stadium-framing { top:76px; bottom:calc(56dvh + 16px); left:14px; right:14px; }
+    .stadium-playing .solo-questions,.stadium-playing .question-column { top:auto; left:0; right:0; bottom:0; width:100%; height:56dvh; padding:18px 20px 24px; }
+    .stadium-playing .solo-score,.stadium-playing .scoreboard { display:none; }
+    .stadium-playing .solo-questions h2,.stadium-playing .question-column h2 { margin:16px 0; }
+    .stadium-playing .solo-choices button,.stadium-playing .penalty-answers button { min-height:60px; padding:12px; font-size:15px; }
+    .stadium-playing .run-meta { padding:8px 0; font-size:12px; }
+    .stadium-playing .run-meta #run-category { width:auto; font-size:12px; }
+    #stadium-outcome { top:70px; left:14px; }
+}
+@media(max-height:540px) and (min-width:600px) {
+    :root { --stadium-panel-width:44vw; }
+    #stadium-framing { top:78px; bottom:16px; left:16px; right:calc(var(--stadium-panel-width) + 16px); }
+    .stadium-playing .solo-questions,.stadium-playing .question-column { left:auto; width:var(--stadium-panel-width); top:70px; height:auto; padding:16px 20px; }
+    .stadium-playing .solo-score,.stadium-playing .scoreboard { display:none; }
+    .stadium-playing .solo-choices button,.stadium-playing .penalty-answers button { min-height:48px; padding:10px; }
+}
+@media(prefers-reduced-motion:reduce) {
+    .stadium-playing .solo-questions,.stadium-playing .question-column { transform:none; }
+}

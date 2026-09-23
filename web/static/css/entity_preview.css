@@ -1,0 +1,329 @@
+.entity-trigger,
+a[href^="/teams/"],
+a[href^="/players/"] {
+    cursor: pointer;
+}
+
+
+.entity-preview-layer {
+    position: fixed;
+    inset: 0;
+
+    z-index: 10000;
+
+    display: none;
+
+    pointer-events: none;
+}
+
+
+.entity-preview-layer.is-open {
+    display: block;
+}
+
+
+.entity-preview-card {
+    position: fixed;
+
+    width:
+        min(
+            360px,
+            calc(
+                100vw
+                - 24px
+            )
+        );
+
+    max-height:
+        calc(
+            100vh
+            - 24px
+        );
+
+    overflow-y: auto;
+
+    pointer-events: auto;
+
+    background: #ffffff;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 15px;
+
+    box-shadow:
+        0
+        18px
+        45px
+        rgba(
+            15,
+            23,
+            42,
+            0.18
+        );
+}
+
+
+.entity-preview-header {
+    display: flex;
+    align-items: center;
+
+    gap: 13px;
+
+    padding:
+        17px;
+}
+
+
+.entity-preview-logo,
+.entity-preview-logo-fallback,
+.entity-preview-player-photo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 58px;
+    height: 58px;
+
+    flex-shrink: 0;
+
+    overflow: hidden;
+
+    border: 1px solid #e2e8f0;
+    border-radius: 13px;
+
+    background: #ffffff;
+
+    color: #64748b;
+
+    font-size: 15px;
+    font-weight: 800;
+}
+
+
+.entity-preview-logo img {
+    width: 100%;
+    height: 100%;
+
+    padding: 5px;
+
+    object-fit: contain;
+
+    box-sizing: border-box;
+}
+
+
+.entity-preview-player-photo {
+    border-radius: 50%;
+
+    background: #f1f5f9;
+}
+
+
+.entity-preview-player-photo img {
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+}
+
+
+.entity-preview-identity {
+    min-width: 0;
+}
+
+
+.entity-preview-eyebrow {
+    display: block;
+
+    margin-bottom: 4px;
+
+    color:
+        var(
+            --sport-accent,
+            #16a34a
+        );
+
+    font-size: 9px;
+    font-weight: 800;
+
+    letter-spacing: 0.06em;
+
+    text-transform: uppercase;
+}
+
+
+.entity-preview-identity h3 {
+    margin: 0;
+
+    overflow: hidden;
+
+    color: #0f172a;
+
+    font-size: 17px;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+.entity-preview-identity p {
+    margin:
+        5px
+        0
+        0;
+
+    color: #64748b;
+
+    font-size: 11px;
+}
+
+
+.entity-preview-team-list {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 6px;
+
+    padding:
+        0
+        17px
+        14px;
+}
+
+
+.entity-preview-team {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 5px;
+
+    padding:
+        5px
+        8px;
+
+    border-radius: 7px;
+
+    background: #f8fafc;
+
+    color: #475569;
+
+    font-size: 10px;
+    font-weight: 650;
+}
+
+
+.entity-preview-team img {
+    width: 19px;
+    height: 19px;
+
+    object-fit: contain;
+}
+
+
+.entity-preview-stats {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            4,
+            minmax(
+                0,
+                1fr
+            )
+        );
+
+    border-top: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+
+.entity-preview-stats > div {
+    min-width: 0;
+
+    padding:
+        12px
+        7px;
+
+    text-align: center;
+}
+
+
+.entity-preview-stats > div + div {
+    border-left: 1px solid #f1f5f9;
+}
+
+
+.entity-preview-stats span {
+    display: block;
+
+    margin-bottom: 4px;
+
+    color: #94a3b8;
+
+    font-size: 9px;
+    font-weight: 700;
+
+    text-transform: uppercase;
+}
+
+
+.entity-preview-stats strong {
+    display: block;
+
+    overflow: hidden;
+
+    color: #0f172a;
+
+    font-size: 13px;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+
+.entity-preview-footer {
+    padding:
+        12px
+        17px;
+}
+
+
+.entity-preview-footer a {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+
+    color:
+        var(
+            --sport-accent,
+            #16a34a
+        );
+
+    font-size: 11px;
+    font-weight: 800;
+
+    text-decoration: none;
+}
+
+
+.entity-preview-footer a:hover {
+    text-decoration: underline;
+}
+
+
+.entity-preview-loading,
+.entity-preview-error {
+    padding:
+        30px
+        20px;
+
+    color: #64748b;
+
+    font-size: 12px;
+
+    text-align: center;
+}
+
+
+.entity-preview-error {
+    color: #b91c1c;
+}

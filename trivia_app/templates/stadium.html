@@ -1,0 +1,9 @@
+{# Shared presentation only. The quiz controllers retain all gameplay authority. #}
+<div id="stadium-layer" hidden aria-hidden="true"></div>
+<div id="stadium-framing" aria-hidden="true"></div>
+<div id="stadium-controls" hidden>
+  <div><strong>ON THE DOT<span class="points-period">.</span></strong><span id="stadium-role" role="status">Penalty taker</span><span id="stadium-score" aria-label="Score"></span><span id="stadium-clock" aria-label="Time remaining"></span></div>
+  <div class="stadium-actions"><button type="button" id="stadium-skip" hidden>Skip intro</button></div>
+</div>
+<p id="stadium-outcome" role="status" hidden></p>
+<p id="stadium-unavailable" role="alert" hidden>3D is unavailable. Check WebGL and reload to retry.</p>

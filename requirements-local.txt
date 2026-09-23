@@ -1,0 +1,4 @@
+# Shared requirements plus kit-image/research dependencies installed on this Mac.
+-r requirements.txt
+pillow==12.3.0
+mwparserfromhell==0.7.2

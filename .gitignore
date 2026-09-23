@@ -1,0 +1,63 @@
+# macos
+.DS_Store
+
+# python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# virtual environment
+.venv/
+.venv-llm/
+venv/
+
+# environment variables
+.env
+.env.*
+!.env.example
+
+# pytest
+.pytest_cache/
+
+# type checking
+.mypy_cache/
+.pyright/
+
+# coverage
+.coverage
+htmlcov/
+
+# jupyter
+.ipynb_checkpoints/
+
+# vscode
+.vscode/
+
+# pycharm
+.idea/
+
+# logs
+*.log
+
+# temporary files
+*.tmp
+*.temp
+
+# build files
+build/
+dist/
+*.egg-info/
+
+# Local databases, model weights, training datasets and generated reports.
+# Reviewed runtime fixtures can be explicitly allowlisted later if needed.
+/data/
+/reports/
+/backups/
+/COPY_MANIFEST.json
+/COPY_STATUS.md
+*.dump
+*.sqlite
+*.sqlite3
+*.pem
+*.key

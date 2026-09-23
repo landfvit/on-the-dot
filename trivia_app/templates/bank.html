@@ -1,0 +1,33 @@
+{% extends 'trivia_base.html' %}
+{% block title %}Question Bank | ON THE DOT.{% endblock %}
+{% block styles %}<link rel="stylesheet" href="/trivia-assets/bank.css?v=1">{% endblock %}
+{% block content %}
+<main class="bank-page">
+    <header class="bank-heading"><div><p class="bank-eyebrow">PRIVATE LIBRARY</p><h1>Question bank</h1></div><span id="bank-total"></span></header>
+    <p id="bank-error" role="alert" hidden></p>
+    <div id="bank-counts" class="bank-counts" aria-label="Validation summary"></div>
+    <p id="bank-provenance" class="bank-meta"></p>
+    <details class="bank-authoring" id="bank-authoring">
+        <summary>New question <span id="bank-model"></span></summary>
+        <form id="author-form">
+            <label for="author-question">Question</label>
+            <textarea id="author-question" rows="3" minlength="10" maxlength="1000" required></textarea>
+            <div class="bank-actions"><button type="submit" class="primary" id="author-check">Check question</button><button type="button" id="author-save" disabled>Save draft</button></div>
+        </form>
+        <p id="author-result" role="status"></p>
+        <div id="author-neighbors"></div>
+        <details><summary>Saved drafts</summary><div id="author-drafts"></div></details>
+    </details>
+    <form class="bank-filters" id="bank-filters">
+        <label>Search<input id="bank-search" type="search" maxlength="200" placeholder="Question or ID"></label>
+        <label>Validation<select id="bank-status"><option value="all">All questions</option><option value="flagged">Needs attention</option><option value="matched">Database match</option><option value="conflict">Disagreement</option><option value="ambiguous">Identity / ambiguity</option><option value="incomplete">Missing data</option><option value="unsupported">Source review</option></select></label>
+        <label>Club<select id="bank-section"><option value="">All clubs</option></select></label>
+        <label>Topic<select id="bank-topic"><option value="">All topics</option></select></label>
+        <button type="submit">Search</button>
+    </form>
+    <p id="bank-range" class="bank-meta" role="status"></p>
+    <section id="bank-questions" aria-label="Questions" aria-busy="true"></section>
+    <nav class="bank-pagination" aria-label="Question pages"><button id="bank-prev" aria-label="Previous page" title="Previous page">&#8592;</button><span id="bank-page-number"></span><button id="bank-next" aria-label="Next page" title="Next page">&#8594;</button></nav>
+</main>
+{% endblock %}
+{% block scripts %}<script src="/trivia-assets/bank.js?v=1" defer></script>{% endblock %}

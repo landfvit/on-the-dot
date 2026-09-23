@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>{% block title %}ON THE DOT. Trivia{% endblock %}</title>
+    <link rel="stylesheet" href="/trivia-assets/app.css?v=1">
+    {% block styles %}{% endblock %}
+    <link rel="stylesheet" href="/trivia-assets/points_theme.css?v=6">
+    {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/community.css?v=6">{% endif %}
+</head>
+<body>
+    <header class="points-header">
+        {% if not private_navigation %}<button id="menu-open" class="icon-button coral-button" aria-label="Open menu" title="Menu" aria-haspopup="dialog"><img src="/trivia-assets/icons/menu.svg" alt=""></button>{% endif %}
+        <a class="points-brand" href="/" aria-label="ON THE DOT. home">ON THE DOT<span class="points-period" aria-hidden="true">.</span></a>
+        {% if private_navigation %}
+        <nav aria-label="Main navigation">
+            <a href="/quizzes" {% if active_page == 'play' %}aria-current="page"{% endif %}>Quizzes</a>
+            <a href="/trivia" {% if active_page == 'practice' %}aria-current="page"{% endif %}>Practice</a>
+            <a href="/penalties" {% if active_page == 'penalties' %}aria-current="page"{% endif %}>Penalties</a>
+            <a href="/account" {% if active_page == 'account' %}aria-current="page"{% endif %}>Profile</a>
+            <a href="/internal/trivia" {% if active_page == 'editor' %}aria-current="page"{% endif %}>Studio</a>
+            <a href="/internal/trivia/bank" {% if active_page == 'bank' %}aria-current="page"{% endif %}>Question bank</a>
+            <a href="/internal/trivia/difficulty" {% if active_page == 'difficulty' %}aria-current="page"{% endif %}>Difficulty</a>
+        </nav>
+        <form action="/logout" method="post"><button class="points-signout" type="submit">Sign out</button></form>
+        {% endif %}
+    </header>
+    {% if not private_navigation %}
+    <dialog id="menu-drawer" class="shell-drawer" aria-labelledby="menu-title">
+      <div class="drawer-heading"><h2 id="menu-title">ON THE DOT<span>.</span></h2><button class="icon-button" data-close-dialog aria-label="Close menu" title="Close"><img src="/trivia-assets/icons/x.svg" alt=""></button></div>
+      <nav aria-label="Game menu">
+        <a href="/penalties">Play penalties <img src="/trivia-assets/icons/arrow-right.svg" alt=""></a>
+        <a href="/leaderboard">Leaderboard <img src="/trivia-assets/icons/trophy.svg" alt=""></a>
+        <a href="/history">Your history <img src="/trivia-assets/icons/history.svg" alt=""></a>
+        <a href="/account">Your profile <img src="/trivia-assets/icons/user-round.svg" alt=""></a>
+      </nav>
+    </dialog>
+    {% endif %}
+    {% block content %}{% endblock %}
+    {% block scripts %}{% endblock %}
+    {% if not private_navigation %}<script src="/trivia-assets/shell.js?v=2" defer></script>{% endif %}
+</body>
+</html>

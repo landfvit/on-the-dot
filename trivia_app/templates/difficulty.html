@@ -1,0 +1,11 @@
+{% extends 'trivia_base.html' %}
+{% block title %}Difficulty review · ON THE DOT.{% endblock %}
+{% block styles %}<link rel="stylesheet" href="/trivia-assets/solo.css?v=1">{% endblock %}
+{% block content %}
+<main class="solo-page" data-page="difficulty">
+  <header class="solo-heading"><h1>Difficulty review</h1><label><input id="pending-only" type="checkbox" checked> Pending only</label></header>
+  <div id="notice" role="status" aria-live="polite"></div><div id="error" role="alert" hidden></div>
+  <div id="assessments"></div><div class="actions"><button id="previous-page" disabled>Previous page</button><span id="page-number"></span><button id="next-page">Next page</button></div>
+</main>
+{% endblock %}
+{% block scripts %}<script src="/trivia-assets/solo.js?v=1" defer></script>{% endblock %}

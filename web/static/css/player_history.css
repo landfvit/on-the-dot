@@ -1,0 +1,45 @@
+.player-page [hidden] { display: none !important; }
+.player-tabs { display: flex; flex-wrap: wrap; gap: 6px 24px; border-bottom: 1px solid var(--border); margin-top: 22px; }
+.player-tabs button { border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--text-secondary); padding: 15px 0; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 0; }
+.player-tabs button[aria-selected="true"] { color: #287c48; border-bottom-color: #328257; }
+.player-tabs button:focus-visible, .player-history-panel :focus-visible { outline: 2px solid #287c48; outline-offset: 3px; }
+.player-history-panel { padding: 26px 0; min-width: 0; }
+.player-history-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+.player-history-heading h2 { margin: 0; font-size: 20px; }
+.player-history-heading label { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--text-secondary); }
+.player-history-heading select { max-width: 240px; min-width: 140px; font: inherit; color: var(--text-primary); border: 1px solid var(--border); padding: 9px; border-radius: 4px; background: var(--surface); }
+.player-history-note { color: var(--text-secondary); font-size: 12px; line-height: 1.7; margin: 10px 0 18px; }
+.player-history-table-scroll { max-width: 100%; overflow-x: auto; }
+.player-history-table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.player-history-table th, .player-history-table td { padding: 15px 12px; border-bottom: 1px solid var(--border); text-align: right; vertical-align: middle; }
+.player-history-table thead th { background: #eaf0ed; color: #58685e; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.player-history-table td:first-child, .player-history-table th:first-child, .player-history-table td:nth-child(2), .player-history-table th:nth-child(2) { text-align: left; }
+.player-history-table th:first-child { width: 104px; }
+.player-history-table abbr { text-decoration: underline dotted; text-underline-offset: 3px; cursor: help; }
+.player-history-table a { color: inherit; text-decoration: none; }
+.player-history-table a:hover { text-decoration: underline; }
+.player-history-table .history-season-total { font-weight: 650; }
+.player-history-table .history-club-row { color: var(--text-secondary); font-size: 12px; }
+.player-history-table .history-club-row td:first-child { padding-left: 24px; }
+.player-history-table small { display: block; font-size: 10px; line-height: 1.5; font-weight: 400; color: var(--text-secondary); margin-top: 5px; }
+.player-history-table .history-warning { color: #956a18; }
+.player-history-club { display: inline-flex; align-items: center; gap: 9px; min-height: 26px; color: inherit; text-decoration: none; max-width: 100%; }
+.player-history-club > img.entity-team-logo-inline, .player-history-club > .history-logo-fallback { width: 24px; height: 24px; flex: 0 0 24px; object-fit: contain; margin: 0; }
+.history-logo-fallback { display: inline-grid; place-items: center; background: #e5eae7; color: #54675a; font-size: 9px; font-weight: 700; border-radius: 3px; }
+.player-history-club span:last-child { overflow-wrap: anywhere; }
+.player-history-table .player-history-club { min-width: 160px; }
+.player-transfers-table { min-width: 720px; }
+.player-transfers-table td, .player-transfers-table th { text-align: left; }
+.player-transfer-type { display: inline-block; font-size: 11px; color: #267547; }
+.player-transfer-type.loan { color: #136b9b; }
+.player-transfer-type.return { color: #956a18; }
+.player-club-history { margin: 0; padding: 0; list-style: none; }
+.player-club-history li { display: grid; grid-template-columns: 200px minmax(0,1fr); gap: 26px; padding: 23px 0; border-bottom: 1px solid var(--border); }
+.history-club-dates { font-size: 12px; line-height: 1.8; color: var(--text-secondary); }
+.history-club-dates strong { display: block; font-size: 13px; color: var(--text-primary); }
+.history-club-detail { min-width: 0; border-left: 3px solid #91bc9a; padding-left: 18px; }
+.history-club-detail .player-history-club { font-size: 16px; font-weight: 650; }
+.history-club-detail p { margin: 8px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.7; }
+.player-history-error { padding: 16px 0; color: #a83232; font-size: 13px; }
+.player-history-error button { border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text-primary); padding: 8px 14px; cursor: pointer; }
+@media(max-width:600px) { .player-tabs { gap: 4px 19px; } .player-tabs button { font-size: 12px; } .player-history-heading h2 { font-size: 18px; } .player-club-history li { grid-template-columns: minmax(0,1fr); gap: 10px; } .history-club-dates strong { display: inline; margin-right: 7px; } .history-club-detail { padding-left: 13px; } }

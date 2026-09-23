@@ -52,6 +52,15 @@ class GameGuideTests(unittest.TestCase):
         self.assertIn('/how-to-play#teams', TestClient(app).get('/account').text)
         self.assertIn('class="game-rules-link"', TestClient(app).get('/penalties').text)
 
+    def test_question_availability_notice_is_on_guide_and_guest_home(self):
+        client = TestClient(app)
+        for path in ('/', '/how-to-play'):
+            with self.subTest(path=path):
+                html = client.get(path).text
+                self.assertIn('Question availability:', html)
+                self.assertIn('Some teams have fewer available questions in Team / scope.', html)
+                self.assertIn('choose All clubs or try a different category or difficulty.', html)
+
     def test_all_guide_assets_are_public(self):
         client = TestClient(app)
         for path in ('game_guide.css', 'game_guide.js', 'guide/shooter.png', 'guide/keeper.png', 'icons/circle-help.svg'):

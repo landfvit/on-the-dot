@@ -26,12 +26,12 @@ class HeaderParser(HTMLParser):
 class PublicShellTests(unittest.TestCase):
     def test_ads_are_scoped_to_game_and_leaderboard(self):
         client = TestClient(app)
-        for path in ('/', '/penalties', '/leaderboard'):
+        for path in ('/penalties', '/leaderboard'):
             page = client.get(path).text
             self.assertIn('data-ad-slot="sidebar-left"', page)
             self.assertIn('data-ad-slot="sidebar-right"', page)
         self.assertIn('data-ad-slot="gameplay-bottom"', client.get('/penalties').text)
-        for path in ('/account', '/history', '/u/example'):
+        for path in ('/', '/how-to-play', '/account', '/history', '/u/example'):
             self.assertNotIn('data-ad-slot=', client.get(path).text)
 
     def test_results_share_has_a_visible_label(self):

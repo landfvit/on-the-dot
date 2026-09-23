@@ -4,6 +4,13 @@
 the penalties selection screen, and the profile's team section. It does not
 create games, query the database, load Three.js, or request player data.
 
+The root URL `/` also shows the guide to visitors without a valid registered
+player session, including returning guests. Verified registered players retain
+the penalties screen as their home page. Only requests with a plausible player
+session cookie query the database; expired sessions are cleared. Root responses
+are private and non-cacheable, varying on Cookie. The explicit `/penalties` and
+`/how-to-play` URLs remain public and do not perform this home-page session check.
+
 ## Sources of truth
 
 - `trivia_app/game_guide.py` reads `api.solo_engine.RULES` and uses `shootout()`
@@ -34,7 +41,7 @@ It does not start a real game or write database records.
 ## Verification
 
 ```sh
-.venv/bin/python -m unittest tests.test_game_guide tests.test_public_shell tests.test_hosted_boot tests.test_stadium_assets
+.venv/bin/python -m unittest tests.test_home_page tests.test_game_guide tests.test_public_shell tests.test_hosted_boot tests.test_stadium_assets
 node tests/test_game_guide_browser.cjs
 node tests/test_mobile_layout.cjs
 ```

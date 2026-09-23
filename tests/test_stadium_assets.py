@@ -7,7 +7,7 @@ from trivia_app.main import app
 class StadiumAssetsTests(unittest.TestCase):
     def test_scene_is_in_public_solo_routes(self):
         client = TestClient(app)
-        for path in ('/penalties', '/'):
+        for path in ('/penalties', '/solo'):
             with self.subTest(path=path):
                 response = client.get(path)
                 self.assertEqual(response.status_code, 200)

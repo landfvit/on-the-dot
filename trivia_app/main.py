@@ -17,7 +17,8 @@ from api.trivia_access import require_editor, credential_tag, basic
 from api.sports_query_routes import router as sports_query
 from api.query_training import router as query_training
 from api.trivia_bank_routes import router as trivia_bank
-from api.player_accounts import router as player_accounts
+from api.player_accounts import router as player_accounts, account, COOKIE as ACCOUNT_COOKIE
+from api.database import get_connection
 from api.solo_routes import router as solo
 from api.solo_difficulty import router as solo_difficulty
 from api.trivia_writer import router as trivia_writer
@@ -132,7 +133,23 @@ def logout(request: Request):
 
 @app.get('/', response_class=HTMLResponse)
 def home(request: Request):
-    return penalties_page(request)
+    token = request.cookies.get(ACCOUNT_COOKIE, '')
+    authenticated = False
+    if token and len(token) <= 100:
+        try:
+            with get_connection() as conn:
+                account(conn, request)
+            authenticated = True
+        except HTTPException as exc:
+            if exc.status_code != 401:
+                raise
+    response = penalties_page(request) if authenticated else game_guide_page(request)
+    # The home page varies by session; never reuse one player's response for another.
+    response.headers['Cache-Control'] = 'private, no-store'
+    response.headers['Vary'] = 'Cookie'
+    if token and not authenticated:
+        response.delete_cookie(ACCOUNT_COOKIE, path='/')
+    return response
 
 
 @app.get('/quizzes', response_class=HTMLResponse, dependencies=[Depends(require_editor)])

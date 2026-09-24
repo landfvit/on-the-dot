@@ -111,7 +111,7 @@ def card_image(serialized=''):
     The shared item is always the clickable URL to its HTML result page.
     """
     data=json.loads(serialized) if serialized else None
-    bg='#222326';fg='#f7f6f2';green='#88b04b';blue='#92a8d1';coral='#ff6f61'
+    bg='#f6f3eb';fg='#111111';green='#88b04b';blue='#615f58';coral='#a52c27'
     canvas=Image.new('RGB',(1200,630),bg);draw=ImageDraw.Draw(canvas)
     def text(value,xy,size=30,fill=fg,anchor='mm',width=1080):
         value=str(value)
@@ -140,13 +140,13 @@ def card_image(serialized=''):
                 x=(256 if side==0 else 944)+(i-(len(visible)-1)/2)*38;y=315
                 draw.ellipse((x-12,y-12,x+12,y+12),fill=fg if goal else coral)
                 draw.regular_polygon((x,y,5),5,fill=bg)
-        draw.line((48,380,1152,380),fill='#54565f',width=2)
+        draw.line((48,380,1152,380),fill=fg,width=4)
         text(f"{data['correct']} / {data['total']}",(315,440),42)
         text('CORRECT ANSWERS',(315,486),20,blue)
         text('Friendly' if data['mode']=='friend' else f"{data['xp']} XP",(885,440),42)
         text('NO XP OR RATING' if data['mode']=='friend' else 'GUEST XP' if data['guest'] else 'XP EARNED',(885,486),20,blue)
-    draw.line((48,550,1152,550),fill=green,width=3)
-    text('onthedot.gg',(48,592),24,green,'lm')
+    draw.line((48,550,1152,550),fill=fg,width=4)
+    text('onthedot.gg',(48,592),24,fg,'lm')
     text('PLAY PENALTIES',(1152,592),24,fg,'rm')
     out=BytesIO();canvas.save(out,format='PNG',optimize=True);return out.getvalue()
 

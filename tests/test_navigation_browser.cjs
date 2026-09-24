@@ -3,7 +3,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
 const origin=process.env.MOBILE_TEST_URL||'http://127.0.0.1:8015';
 assert(['localhost','127.0.0.1'].includes(new URL(origin).hostname));
 const output='/tmp/on-the-dot-navigation';fs.mkdirSync(output,{recursive:true});
-const links=['/','/penalties','/daily','/friends','/leaderboard','/history','/account','/how-to-play'];
+const links=['/penalties','/leaderboard','/account'];
 (async()=>{
  const browser=await chromium.launch({channel:'chrome',headless:true});
  try{
@@ -25,10 +25,10 @@ const links=['/','/penalties','/daily','/friends','/leaderboard','/history','/ac
    await page.setViewportSize({width,height:900});await page.goto(origin+'/penalties');
    assert.equal(await page.locator('#menu-open,#menu-drawer,.shell-drawer').count(),0);
    const nav=page.getByRole('navigation',{name:'Main navigation',exact:true});
-   assert(await nav.isVisible());assert.equal(await nav.locator('img').count(),0);
+   assert(await nav.isVisible());assert.equal(await nav.locator('img').count(),3);
    assert.deepEqual(await nav.locator('a').evaluateAll(es=>es.map(e=>e.getAttribute('href'))),links);
    const boxes=await nav.locator('a').evaluateAll(es=>es.map(e=>{
-    const r=e.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,fits:e.scrollWidth<=e.clientWidth+1};
+    const r=e.getBoundingClientRect(),icon=e.querySelector('img').getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,fits:icon.left>=r.left&&icon.right<=r.right};
    }));
    for(const [i,r] of boxes.entries()){
     assert(r.x>=0&&r.x+r.w<=width+1&&r.h>=44&&r.fits,`${width}: link ${links[i]} must fit`);
@@ -46,14 +46,14 @@ const links=['/','/penalties','/daily','/friends','/leaderboard','/history','/ac
    assert(share.x>=0&&share.x+share.width<=width+1);assert(Math.abs(share.x-(width-share.width)/2)<2);
    assert.equal(await page.locator('#game-share-link').inputValue(),origin+'/');
    await page.keyboard.press('Escape');assert(!(await page.locator('#game-share-dialog').isVisible()));
-   console.log(`PASS navigation ${width}: visible links, no drawer/icons/overflow, sound and sharing`);
+   console.log(`PASS navigation ${width}: visible icon links, no drawer/overflow, sound and sharing`);
   }
   for(const path of ['/penalties','/daily','/friends']){
    await page.goto(origin+path);
    await page.locator('.game-rules-link').click();await page.waitForURL(origin+'/how-to-play');
    assert(await page.locator('.game-guide').isVisible());assert.equal(await page.locator('dialog[open]').count(),0);
    await page.locator('[data-back]').click();await page.waitForURL(origin+path);
-   await page.locator('.top-navigation a[href="/how-to-play"]').click();await page.waitForURL(origin+'/how-to-play');
+   await page.locator('.site-footer a[href="/how-to-play"]').click();await page.waitForURL(origin+'/how-to-play');
    console.log(`PASS ${path}: both help links reach full guide; Back returns to the mode`);
   }
   for(const path of ['/penalties','/friends']){

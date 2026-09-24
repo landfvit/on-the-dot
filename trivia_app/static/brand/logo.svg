@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="432" height="432" viewBox="0 0 324 324">
+  <!-- Same circle/glyph construction as brand_wordmark.html, stacked for previews. -->
+  <defs>
+    <circle id="disc" cx="50" cy="50" r="50" fill="#88b04b"/>
+    <path id="o" d="M29 27H71L83 39V61L71 73H29L17 61V39Z"/>
+    <path id="n" d="M19 73V27H65L81 43V73"/>
+    <path id="t" d="M15 27H85M50 27V73"/>
+    <path id="h" d="M19 27V73M81 27V73M19 50H81"/>
+    <path id="e" d="M82 27H32L18 41V73H82M18 50H78"/>
+    <path id="d" d="M19 27H65L81 43V73H19Z"/>
+  </defs>
+  <g transform="translate(0 12)">
+    <g><use href="#disc"/><use href="#disc" x="100"/><use href="#disc" x="200"/><use href="#disc" y="100"/><use href="#disc" x="100" y="100"/><use href="#disc" x="200" y="100"/><use href="#disc" y="200"/><use href="#disc" x="100" y="200"/><use href="#disc" x="200" y="200"/></g>
+    <g fill="none" stroke="#f6f3eb" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+      <use href="#o"/><use href="#n" x="100"/><use href="#t" y="100"/><use href="#h" x="100" y="100"/><use href="#e" x="200" y="100"/><use href="#d" y="200"/><use href="#o" x="100" y="200"/><use href="#t" x="200" y="200"/>
+    </g>
+    <circle cx="310" cy="286" r="14" fill="#88b04b"/>
+    <path d="M307 282H313L315 286L313 290H307L305 286Z" fill="#f6f3eb"/>
+  </g>
+</svg>

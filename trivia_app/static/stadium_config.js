@@ -6,7 +6,13 @@ export const V6_WORLD = {
   duration: 8.4,
   maxPixelRatio: 1.75,
   outlineOnly: false, // Plne tribuny zakryvaji zadni konstrukci i behem rozostreni.
-  pitchMarkings: { width: 0.22, elevation: 0.012, centreSpotRadius: 0.30 }, // skutečná šířka pásu, nikoli 1px WebGL line
+  pitchMarkings: { width: 0.22, elevation: 0.012, centreSpotRadius: 0.30 }, // Football markings stay white; structure outlines are black.
+  structure: { lineRadius:.035, postRadius:.075, netOpacity:.62 }, // Black stadium outlines and goal-frame thickness in metres.
+  crowd: {
+    rows:[1,2,3,4,5,6,7,8,9,10,11,12], spacing:1.25, scale:.80,
+    animate:false, jumpHeight:.30, jumpPeriod:.72, reactionSeconds:3.2,
+    shirts:[[0x88b04b,0x92a8d1,0xf6f3eb,0x457653],[0xff6f61,0x6f2c91,0xf7cac9,0x92a8d1]],
+  }, // Fewer rows / larger spacing reduces supporters without changing their logic.
   ground: { turfY: -0.025, tunnelFloorY: 0 },
   tunnel: {
     halfWidth: 4.25, height: 5.4, startZ: 40, endZ: 80,
@@ -23,24 +29,26 @@ export const V6_WORLD = {
     shotDuration: 2.2, // Let + doskok brankare + utlumeni mice na zemi.
   },
   colors: {
-    background: 0x222326,
-    outline: 0x92a8d1,
-    bright: 0xf7f6f2,
+    background: 0xf6f3eb,
+    outline: 0x111111,
+    bright: 0xf6f3eb,
     accent: 0x88b04b,
     pitch: 0x88b04b, // Exact supplied green; the second tone is the mowing stripe.
     pitchDark: 0x789c42,
-    stands: 0x34363b,
-    tunnel: 0x2b2d32,
     shirt: 0x6f2c91,
-    shirtTrim: 0xf7cac9,
-    shorts: 0x222326,
-    gloves: 0xf7f6f2,
-    gloveCuffs: 0x92a8d1,
-    boots: 0x191a1e,
-    skin: 0xd7a17d,
-    hair: 0x302922,
-    ballWhite: 0xf7f6f2,
-    ballBlack: 0x191a1e,
+    shirtTrim: 0xf6f3eb,
+    shorts: 0x111111,
+    gloves: 0xf6f3eb,
+    gloveCuffs: 0x111111,
+    boots: 0x111111,
+    skin: 0xf6f3eb,
+    hair: 0x111111,
+    ballWhite: 0xf6f3eb,
+    ballBlack: 0x111111,
+    markings: 0xffffff,
+    strikerShirt: 0x92a8d1,
+    stands: 0xebe7de,
+    tunnel: 0xf6f3eb,
   },
 };
 
@@ -53,8 +61,9 @@ export const STADIUM = {
     keeperHoldMs: 800, // Cas navic pro zretelne ukazani mice v rukavicich.
     // Contiguous samples (radius=1) prevent comb-like copies of bright seat
     // edges. Increase downsample for a softer background, not sample spacing.
-    backgroundBlur: { downsample:6, radius:1 },
+    backgroundBlur: { downsample:2, radius:.6 }, // Soft architecture, but the stepped terraces must remain recognisable.
     shotMs: V6_WORLD.penalty.shotDuration * 1000,
+    crowdHoldMs:1000, // Let both stands visibly react after the ball reaches the net/gloves.
     maxPixelRatio: V6_WORLD.maxPixelRatio,
     pitch: {length: 105, width: 68},
     goal: {width: 7.32, height: 2.44},

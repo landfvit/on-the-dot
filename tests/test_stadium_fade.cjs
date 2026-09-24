@@ -11,8 +11,11 @@ async function setup(){
   const scene=new THREE.Scene();
   let world;
   try{world=createStadiumWorld(scene);}finally{global.document=previous;}
-  const environment=scene.children.find(o=>o.isGroup),materials=new Set();
-  environment.traverse(o=>{if(o.material)materials.add(o.material);});
+  const environment=scene.children.find(o=>o.isGroup),materials=new Set(),supporterMaterials=new Set();
+  // Crowd shares the stadium transform but renders on the foreground layer so
+  // players can see its static reactions. The mask applies to architecture.
+  world.crowd.group.traverse(o=>{if(o.material)supporterMaterials.add(o.material);});
+  environment.traverse(o=>{if(o.material&&!supporterMaterials.has(o.material))materials.add(o.material);});
   return {THREE,scene,world,environment,materials};
 }
 

@@ -73,7 +73,7 @@
       if(epoch!==presentation)return;
       if(r?.outcome&&!animated.has(r.id)){
         animated.add(r.id);
-        if(r.outcome!=='replay')await stadium.shot(r.outcome,globalThis.PenaltyShots?.plan(r.outcome,code+':'+r.id));
+        await stadium.shot(r.outcome,globalThis.PenaltyShots?.plan(r.outcome,code+':'+r.id));
       }
       if(epoch!==presentation)return;
       if(terminal(s)&&!finished){
@@ -81,7 +81,7 @@
         await stadium.finish?.();
         if(s.winner!==null)globalThis.PointsAudio?.play(s.winner===s.me?'win':'loss');
         $('result-heading').focus({preventScroll:true});
-      }else if(s.phase==='ANSWERING')stadium.skip();
+      }else if(['ANSWERING','COUNTDOWN'].includes(s.phase)){stadium.skip();stadium.reset();}
     }).catch(()=>{stadium.leave();if(terminal(room)){$('question-panel').hidden=true;$('summary').hidden=false;}});
   }
   function summary(s){
@@ -98,6 +98,7 @@
   function render(s){
     if(room&&room.run_id===s.run_id&&s.server_now<room.server_now)return;
     room=s;offset=s.server_now-Date.now();
+    stadium?.supporters?.({viewerSeat:s.me,names:[0,1].map(seat=>s.players[seat]?.is_guest||!s.players[seat]?(seat===0?'Home end':'Away end'):s.players[seat].name)});
     if(terminal(s)&&$('forfeit-dialog').open)$('forfeit-dialog').close();
     // Fetch at the shared opening instant, not at each tab's arbitrary polling
     // phase. The server still withholds question/answer data before that time.

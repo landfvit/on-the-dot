@@ -41,10 +41,10 @@ class BrandAssetTests(unittest.TestCase):
                              {'/trivia-assets/brand/favicon.png?v=4','/trivia-assets/brand/favicon.svg?v=4'})
             self.assertEqual(next(icon['href'] for icon in parser.icons if icon['rel']=='apple-touch-icon'),
                              '/trivia-assets/brand/icon-180.png?v=4')
-            if path in ('/','/how-to-play'):
+            if path == '/how-to-play':
                 self.assertEqual(len(parser.images),1)
                 self.assertEqual(parser.images[0]['alt'],'ON THE DOT.')
-                self.assertEqual(parser.images[0]['src'],'/trivia-assets/brand/logo-transparent.png?v=1')
+                self.assertEqual(parser.images[0]['src'],'/trivia-assets/brand/logo-transparent.png?v=2')
             else:self.assertEqual(parser.images,[])
 
     def test_legacy_favicon_request_resolves_to_the_symbol(self):

@@ -10,13 +10,13 @@
     const motionToggle=$('motion-toggle');
     if(motionToggle){motionToggle.disabled=reduced.matches;motionToggle.checked=!reduced.matches&&globalThis.PointsPreferences?.get().animations!==false;}
     let engine = null, modules = null, version = 0, available = true, active = false, entering = false;
-    let config = null, restoreFocus = null, lastShot = null;
+    let config = null, restoreFocus = null, lastShot = null, supporterContext = {};
     const motion = () => !reduced.matches && $('motion-toggle')?.checked !== false && globalThis.PointsPreferences?.get().reduced_motion!==true;
 
     // Lokalne hostovana Three.js: zadne CDN requesty ani sledovani uzivatele.
     // Pri chybe se ukaze upozorneni. Zadny 2D renderer se uz nenacita.
     function load() {
-        if (!modules) modules = Promise.all([import('./stadium_scene.js?v=13'), import('./stadium_config.js?v=11')]);
+        if (!modules) modules = Promise.all([import('./stadium_scene.js?v=14'), import('./stadium_config.js?v=12')]);
         return modules;
     }
     async function prepare() { try { await load(); } catch { /* Chybu zobrazime az pri vstupu do hry. */ } }
@@ -54,6 +54,7 @@
             document.body.classList.remove('stadium-ending');
             $('stadium-layer').hidden=false;
             if(!engine)engine=module.createStadium($('stadium-layer'),$('stadium-framing'),fallback,reveal);
+            engine.supporters(supporterContext);
             active=true;document.body.classList.add('stadium-playing');$('stadium-controls').hidden=false;
             $('stadium-unavailable').hidden=true;
             $('stadium-role').textContent=role==='keeper'?'Goalkeeper':'Penalty taker';
@@ -100,6 +101,7 @@
         if(score!==undefined)$('stadium-score').textContent=score;
         if(clock!==undefined)$('stadium-clock').textContent=clock;
     }
+    function supporters(context){supporterContext=context;engine?.supporters(context);}
     $('stadium-skip').addEventListener('click',skip);
     $('motion-toggle')?.addEventListener('change',()=>{if(!motion()){skip();reset();}});
     window.addEventListener('points-preferences',()=>{
@@ -113,7 +115,7 @@
     window.addEventListener('keydown',event=>{if(event.key==='Escape'&&entering)skip();});
     window.addEventListener('pagehide',()=>{leave();engine?.dispose();engine=null;});
     // inspect() je pouze diagnostika kamery pro vizualni testy, ne herni stav.
-    window.PointsStadium={prepare,enter,skip,leave,shot,reset,hud,finish,
+    window.PointsStadium={prepare,enter,skip,leave,shot,reset,hud,finish,supporters,
         inspect:()=>({active,entering,...engine?.inspect()})};
     prepare();
 })();

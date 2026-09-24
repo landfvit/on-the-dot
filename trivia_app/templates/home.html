@@ -1,0 +1,31 @@
+{% extends 'trivia_base.html' %}
+{% block title %}ON THE DOT. | Football trivia{% endblock %}
+{% block styles %}<link rel="stylesheet" href="/trivia-assets/home.css?v=1">{% endblock %}
+{% block content %}
+<main class="home-page" id="main">
+  <section class="home-play" aria-labelledby="home-title">
+    <h1 id="home-title">ON THE DOT.</h1>
+    <a class="play-button" href="/penalties" aria-label="Play a solo penalty shootout"><span>Play.</span></a>
+    <p class="home-tagline">Your knowledge. On the spot.</p>
+    <p class="match-format">5 penalties each <span aria-hidden="true">/</span> 15 seconds per answer</p>
+    <nav class="home-modes" aria-label="Other game modes"><a href="/daily">Daily Challenge <img src="/trivia-assets/icons/arrow-right.svg" alt=""></a><a href="/friends">Friend Duel <img src="/trivia-assets/icons/arrow-right.svg" alt=""></a></nav>
+  </section>
+  <section class="home-rules" aria-labelledby="home-rules-title">
+    <div class="home-section-heading"><h2 id="home-rules-title">How to play.</h2>
+      <div class="rule-tabs" role="tablist" aria-label="Game rules" hidden>
+        {% for mode,label in [('solo','Solo'),('daily','Daily Challenge'),('duel','Friend Duel')] %}<button id="tab-{{ mode }}" type="button" role="tab" aria-selected="{{ 'true' if loop.first else 'false' }}" aria-controls="rules-panel" tabindex="{{ 0 if loop.first else -1 }}" data-mode="{{ mode }}">{{ label }}</button>{% endfor %}
+      </div>
+    </div>
+    <div id="rules-panel" role="tabpanel" aria-labelledby="tab-solo" tabindex="0">
+      <ol class="home-steps">
+        <li><span class="step-index">01</span><h3>Take your shot.</h3><p>Get the answer right to score. A wrong answer is saved. Run out of time and you miss.</p></li>
+        <li><span class="step-index">02</span><h3>Make the save.</h3><p>Now you're in goal. A correct answer saves their penalty. A wrong answer or timeout lets it in.</p></li>
+        <li><span class="step-index">03</span><h3>Win the shootout.</h3><p>Five penalties each, unless it's decided early. Tied? Sudden death, with equal kicks for both sides.</p></li>
+      </ol>
+      <div class="home-rules-bottom"><p id="mode-note">Play Solo as a guest. An account saves your XP and record.</p><a href="/how-to-play">Full rules <img src="/trivia-assets/icons/arrow-right.svg" alt=""></a></div>
+    </div>
+  </section>
+  <section class="home-progress" aria-label="Your progress"><div><h2>Make it count.</h2><p>XP. Streaks. Your team. Your place on the board.</p></div><a href="/account">Your profile <img src="/trivia-assets/icons/arrow-right.svg" alt=""></a></section>
+</main>
+{% endblock %}
+{% block scripts %}<script src="/trivia-assets/home.js?v=1" defer></script>{% endblock %}

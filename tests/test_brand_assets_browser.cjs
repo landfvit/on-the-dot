@@ -18,9 +18,9 @@ const output='/tmp/on-the-dot-brand';fs.mkdirSync(output,{recursive:true});
   });
   for(const [width,height] of [[320,568],[390,844],[700,1000],[768,1024],[1440,1000]]){
    await page.setViewportSize({width,height});
-   for(const path of ['/','/penalties']){
+   for(const path of ['/how-to-play','/penalties']){
     await page.goto(origin+path);
-    if(path==='/')await page.waitForFunction(()=>document.querySelector('.home-logo')?.complete&&document.querySelector('.home-logo').naturalWidth===432);
+    if(path==='/how-to-play')await page.waitForFunction(()=>document.querySelector('.home-logo')?.complete&&document.querySelector('.home-logo').naturalWidth===432);
     if(path==='/penalties')await page.waitForFunction(()=>!document.getElementById('start').disabled);
     assert.equal(await page.locator('.brand-word img').count(),0,'No raster crop may leak neighboring rows');
     const brand=page.getByRole('link',{name:'ON THE DOT. home',exact:true});
@@ -54,7 +54,7 @@ const output='/tmp/on-the-dot-brand';fs.mkdirSync(output,{recursive:true});
     assert.equal(letters[2].path,letters[7].path,'Both T glyphs must be identical');
     // Render the actual styled SVG nodes. Transparent corners detect the crop
     // artifact, and pixel counts catch missing circles or invisible lettering.
-    if(path==='/'){
+    if(path==='/how-to-play'){
      const svgs=await page.locator('.brand-letter,.brand-dot').evaluateAll(es=>es.map(e=>{
       const clone=e.cloneNode(true);clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
       clone.setAttribute('width','64');clone.setAttribute('height','64');
@@ -67,18 +67,18 @@ const output='/tmp/on-the-dot-brand';fs.mkdirSync(output,{recursive:true});
      assert.equal(svgs.length,9);
      for(const svg of svgs){
       const {data,info}=await sharp(Buffer.from(svg)).ensureAlpha().raw().toBuffer({resolveWithObject:true});
-      let green=0,black=0;
+      let green=0,cream=0;
       for(let i=0;i<data.length;i+=4)if(data[i+3]>240){
        if(data[i]===136&&data[i+1]===176&&data[i+2]===75)green++;
-       if(data[i]<10&&data[i+1]<10&&data[i+2]<10)black++;
+       if(data[i]===246&&data[i+1]===243&&data[i+2]===235)cream++;
       }
       for(const [x,y] of [[0,0],[63,0],[0,63],[63,63]])assert.equal(data[(y*info.width+x)*4+3],0,'No stray fragments outside the circle');
-      assert(green>64*64*.4);assert(black>30,'Every circle must include a visible glyph');
+      assert(green>64*64*.4);assert(cream>30,'Every green circle must include a cream glyph');
      }
     }
     assert.equal(await page.locator('#menu-open,#menu-drawer').count(),0);
     assert(await page.locator('.top-navigation').isVisible());
-    if(path==='/'){
+    if(path==='/how-to-play'){
     const logo=await page.locator('.home-logo').boundingBox(),heading=await page.locator('.brand-heading h1').boundingBox(),action=await page.locator('.brand-heading > a').boundingBox();
     assert.equal(logo.width,logo.height);assert(logo.width>=96);assert(logo.y+logo.height<height);
     assert(logo.x+logo.width<=heading.x);assert(heading.y+heading.height<=action.y+1);
@@ -87,18 +87,18 @@ const output='/tmp/on-the-dot-brand';fs.mkdirSync(output,{recursive:true});
     const wordmark=await page.locator('.home-logo').evaluate(e=>{
      const canvas=document.createElement('canvas');canvas.width=canvas.height=96;
      const ctx=canvas.getContext('2d');ctx.drawImage(e,0,0,96,96);
-     const data=ctx.getImageData(0,0,96,96).data;let transparent=0,green=0,black=0;
+     const data=ctx.getImageData(0,0,96,96).data;let transparent=0,green=0,cream=0;
      for(let i=0;i<data.length;i+=4){
       if(data[i+3]===0)transparent++;
-      if(data[i+3]>240&&data[i+1]>100&&data[i+1]>data[i]*2)green++;
-      if(data[i+3]>240&&data[i]<40&&data[i+1]<40&&data[i+2]<40)black++;
+      if(data[i+3]>240&&Math.abs(data[i]-136)<8&&Math.abs(data[i+1]-176)<8&&Math.abs(data[i+2]-75)<8)green++;
+      if(data[i+3]>240&&data[i]>240&&data[i+1]>240&&data[i+2]>230)cream++;
      }
-     return {cornerAlpha:data[3],transparent,green,black};
+     return {cornerAlpha:data[3],transparent,green,cream};
     });
     assert.equal(wordmark.cornerAlpha,0,'Wordmark background must be transparent');
-    assert(wordmark.transparent>96*96*.3,'Background and gaps must have genuine alpha');
+    assert(wordmark.transparent>96*96*.22,'Background and gaps must have genuine alpha');
     assert(wordmark.green>96*96*.2,'Green discs must remain visible');
-    assert(wordmark.black>96*96*.03,'Black lettering must remain opaque');
+    assert(wordmark.cream>96*96*.03,'Cream lettering must remain opaque');
     }else{
      assert.equal(await page.locator('.home-logo').count(),0,'Penalties must not have a duplicate logo');
      const heading=await page.locator('.solo-heading h1').boundingBox(),help=await page.locator('.game-rules-link').boundingBox();

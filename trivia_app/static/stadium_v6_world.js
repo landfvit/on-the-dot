@@ -3,7 +3,8 @@
  * Tento modul neobsahuje demo UI, vyber vysledku ani herni casomiru.
  */
 import * as THREE from './vendor/three/three.module.min.js';
-import {V6_WORLD as CONFIG} from './stadium_config.js?v=11';
+import {V6_WORLD as CONFIG} from './stadium_config.js?v=12';
+import {createCrowd} from './stadium_crowd.js?v=1';
 
 export function createStadiumWorld(scene) {
   const v=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
@@ -51,22 +52,34 @@ export function createStadiumWorld(scene) {
     const fading = isBackground(parent);
     const key = `${color}:${opacity}:${fading}`;
     if (!lineMaterials.has(key)) {
-      let mat = new THREE.LineBasicMaterial({ color, opacity, transparent: true, depthWrite: false });
+      let mat = new THREE.MeshBasicMaterial({ color, opacity, transparent: true, depthWrite: false });
       if (fading) mat = fadingMaterial(mat);
       lineMaterials.set(key, mat);
     }
     return lineMaterials.get(key);
   }
   function line(points, color = CONFIG.colors.outline, opacity = 1, parent = activeGroup) {
-    const geometry = new THREE.BufferGeometry().setFromPoints(points.map((p) => v(...p)));
-    const object = new THREE.Line(geometry, material(color, opacity, parent));
+    // Merged square rods keep a true world-space line width on mobile WebGL.
+    const box=new THREE.BoxGeometry(1,1,1).toNonIndexed(),source=box.attributes.position;
+    const vertices=[],pose=new THREE.Object3D(),point=v(),up=v(0,1,0);
+    for(let i=1;i<points.length;i++){
+      const a=v(...points[i-1]),b=v(...points[i]),direction=b.clone().sub(a);
+      if(direction.length()<.001)continue;
+      pose.position.copy(a).add(b).multiplyScalar(.5);
+      pose.scale.set(CONFIG.structure.lineRadius*2,direction.length(),CONFIG.structure.lineRadius*2);
+      pose.quaternion.setFromUnitVectors(up,direction.normalize());pose.updateMatrix();
+      for(let j=0;j<source.count;j++){point.fromBufferAttribute(source,j).applyMatrix4(pose.matrix);vertices.push(point.x,point.y,point.z);}
+    }
+    box.dispose();
+    const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+    const object = new THREE.Mesh(geometry, material(color, opacity, parent));
     if(isBackground(parent))object.renderOrder=-1;
     parent.add(object); return object;
   }
   // Malované čáry tvoří ploché trojúhelníkové pásy. WebGL linewidth se nepoužívá.
   // Rohy sdílejí vrcholy: na pokutovém území nevznikají překryvy ani spáry.
   const markingMaterial = new THREE.MeshBasicMaterial({
-    color: CONFIG.colors.bright, side: THREE.DoubleSide,
+    color: CONFIG.colors.markings, side: THREE.DoubleSide,
     polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1,
   });
   let markingNumber = 0;
@@ -126,12 +139,13 @@ export function createStadiumWorld(scene) {
   function dot(x, z, name, radius = 0.13) {
     // JEDEN PLNÝ PUNTÍK. Žádná RingGeometry, obvod ani svítící halo.
     const mesh = new THREE.Mesh(new THREE.CircleGeometry(radius, 40),
-      new THREE.MeshBasicMaterial({ color: CONFIG.colors.bright }));
+      new THREE.MeshBasicMaterial({ color: CONFIG.colors.markings }));
     mesh.rotation.x = -Math.PI/2; mesh.position.set(x, 0.024, z);
     mesh.name = name; pitch.add(mesh); return mesh;
   }
   function surface(color, extras = {}) {
-    return new THREE.MeshStandardMaterial({ color, roughness: 0.82, metalness: 0, ...extras });
+    // Flat, unlit surfaces preserve the graphic palette without glossy casts.
+    return new THREE.MeshBasicMaterial({ color });
   }
   function tube(a, b, radius, mat, parent = goal, segments = 12) {
     const object = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 1, segments), mat);
@@ -211,7 +225,7 @@ export function createStadiumWorld(scene) {
     }
     // Vzdálená brána je součást stadionu a spolu s ním zmizí.
     line([[-52.5,0,-3.66],[-52.5,2.44,-3.66],[-52.5,2.44,3.66],[-52.5,0,3.66]],
-      CONFIG.colors.bright, 0.8, environment);
+      CONFIG.colors.outline, 1, environment);
     // Bez zelených svislých značek u rohů: při výjezdu z tunelu zůstává jen bílé značení.
   }
 
@@ -253,9 +267,9 @@ export function createStadiumWorld(scene) {
   let net, netRest;
   function buildGoal() {
     const x = CONFIG.penalty.goalX, back = x+2, z = 3.66;
-    const posts = surface(0xf0f0df,{roughness:0.6});
-    continuousFrame(x,z,2.44,0.06,posts,'goal-frame-continuous');
-    const supports = surface(0x8dada7);
+    const posts = surface(CONFIG.colors.outline);
+    continuousFrame(x,z,2.44,CONFIG.structure.postRadius,posts,'goal-frame-continuous');
+    const supports = surface(CONFIG.colors.outline);
     continuousFrame(back,z,2.15,0.021,supports,'goal-rear-frame-continuous');
     for (const s of [-1,1]) {
       tube([x,0.02,s*z],[back,0.02,s*z],0.021,supports);
@@ -288,7 +302,7 @@ export function createStadiumWorld(scene) {
     geometry.setAttribute('position',new THREE.Float32BufferAttribute(points,3));
     netRest=new Float32Array(points);
     net=new THREE.LineSegments(geometry,new THREE.LineBasicMaterial({
-      color:0xc7dbcf, transparent:true, opacity:0.34, depthWrite:false,
+      color:CONFIG.colors.outline, transparent:true, opacity:CONFIG.structure.netOpacity, depthWrite:false,
     }));
     net.name='goal-net'; goal.add(net);
   }
@@ -318,13 +332,14 @@ export function createStadiumWorld(scene) {
     }
     points.push([-4.7,y,hz]); return points;
   }
+  let crowd;
   function buildStands() {
     activeGroup=environment;
     const rows=[];
     for(let i=0;i<14;i++) {
       const points=ring(59+i*1.12,40+i*1.05,8+i*0.3,0.8+i*0.85);
       rows.push(points);
-      line(points,i===13 ? CONFIG.colors.bright : CONFIG.colors.outline,i===13 ? 0.85 : 0.6);
+      line(points,CONFIG.colors.outline,1);
     }
     const inner=rows[0],outer=rows.at(-1),positions=[];
     const push=(...points)=>points.forEach((p)=>positions.push(...p));
@@ -333,7 +348,13 @@ export function createStadiumWorld(scene) {
     // Uzavrene tribuny: svah, celni obruba, zadni plast a boky u tunelu.
     // Bez techto sten jsou ze strany videt zebra a konstrukce protilehle tribuny.
     for(let i=0;i<inner.length-1;i++) {
-      quad(inner[i],outer[i],outer[i+1],inner[i+1]);
+      // Real terrace steps, not a featureless slope behind floating supporters.
+      // Each row has a horizontal tread and an opaque vertical riser.
+      for(let row=0;row<rows.length-1;row++){
+        const a=rows[row][i],b=rows[row][i+1],c=rows[row+1][i+1],d=rows[row+1][i];
+        const cLow=[c[0],a[1],c[2]],dLow=[d[0],a[1],d[2]];
+        quad(a,dLow,cLow,b);quad(dLow,d,c,cLow);
+      }
       quad(outer[i],floor(outer[i]),floor(outer[i+1]),outer[i+1]);
       quad(inner[i],inner[i+1],floor(inner[i+1]),floor(inner[i]));
     }
@@ -349,11 +370,12 @@ export function createStadiumWorld(scene) {
     // prstence podle jeho stredu by jinak mohlo prekreslit blizkou sit.
     // Plast pred obrysy: zadni cary zustanou zakryte i behem rozpousteni.
     standMesh.renderOrder=-2;fills.add(standMesh);
-    for(const i of [0,1,7,13,14,20,26,27,33,39,40,46,52,53]) line([inner[i],outer[i]],CONFIG.colors.outline,0.65);
+    for(const i of [0,1,7,13,14,20,26,27,33,39,40,46,52,53]) line([inner[i],outer[i]],CONFIG.colors.outline,1);
     for(const i of [1,7,13,20,26,33,39,46,52]) {
       const p=outer[i]; line([[p[0],0,p[2]],p],CONFIG.colors.outline,0.45);
     }
     // Bez stožárů a reflektorových ramp; zůstávají pouze nízké obrysy tribun.
+    crowd=createCrowd(environment,rows);
   }
   function buildTunnel() {
     const {halfWidth: hw, height: h, startZ: front, endZ: back} = CONFIG.tunnel;
@@ -441,7 +463,7 @@ export function createStadiumWorld(scene) {
     const cut=(a,b)=>vertices[a].clone().multiplyScalar(2).add(vertices[b]).normalize();
     const pentagons=vertices.map((_,i)=>[...adjacent[i]].map((j)=>cut(i,j)));
     const hexagons=faces.map(([a,b,c])=>[cut(a,b),cut(b,a),cut(b,c),cut(c,b),cut(c,a),cut(a,c)]);
-    const core=new THREE.Mesh(new THREE.SphereGeometry(r*0.993,48,32),surface(0x344039));
+    const core=new THREE.Mesh(new THREE.SphereGeometry(r*0.993,48,32),surface(CONFIG.colors.ballBlack));
     root.add(core);
     function panelGeometry(polygons) {
       const positions=[],normals=[];
@@ -502,7 +524,7 @@ export function createStadiumWorld(scene) {
     const model=new THREE.Group(); model.rotation.y=-Math.PI/2; model.position.y=-0.92; pivot.add(model);
     const mats={};
     for(const name of ['shirt','shirtTrim','shorts','gloves','gloveCuffs','boots','skin','hair']) mats[name]=surface(CONFIG.colors[name]);
-    if(numberText==='10'){mats.shirt.color.setHex(0x8bbfca);mats.gloves=mats.skin;mats.gloveCuffs=mats.skin;}
+    if(numberText==='10'){mats.shirt.color.setHex(CONFIG.colors.strikerShirt);mats.shirtTrim.color.setHex(CONFIG.colors.outline);mats.gloves=mats.skin;mats.gloveCuffs=mats.skin;}
     let kickingLeg=null;
     function ellipsoid(x,y,z,sx,sy,sz,mat,parent=model) {
       const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,20,14),mat);
@@ -556,7 +578,7 @@ export function createStadiumWorld(scene) {
     cylinder([-0.078,1.57,0.13],[0,1.51,0.172],0.011,mats.shirtTrim);
     cylinder([0,1.51,0.172],[0.078,1.57,0.13],0.011,mats.shirtTrim);
     const canvas=document.createElement('canvas');canvas.width=canvas.height=128;
-    const ctx=canvas.getContext('2d'); ctx.fillStyle='#fff1d5';ctx.font='bold 94px sans-serif';
+    const ctx=canvas.getContext('2d'); ctx.fillStyle=numberText==='10'?'#111111':'#f6f3eb';ctx.font='bold 94px sans-serif';
     ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(numberText,64,70);
     const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;textures.add(texture);
     const number=new THREE.Mesh(new THREE.PlaneGeometry(0.17,0.18),new THREE.MeshBasicMaterial({
@@ -604,9 +626,9 @@ export function createStadiumWorld(scene) {
     ballShadow.material.opacity=.58/(1+ball.position.y*2);
     keeperShadow.position.set(keeper.pivot.position.x,.007,keeper.pivot.position.z);
   }
-  return {ball,background:environment,pitch,keeperRig:rig(keeper),strikerRig:rig(shooter),setFocus,rippleNet,shadows,
-    dispose:()=>{textures.forEach(t=>t.dispose());},
+  return {ball,background:environment,pitch,keeperRig:rig(keeper),strikerRig:rig(shooter),setFocus,rippleNet,shadows,crowd,
+    dispose:()=>{textures.forEach(t=>t.dispose());crowd.dispose();},
     inspect:()=>({focus:fadeUniform.value,environmentVisible:environment.visible,
       standsSolid:fadeUniform.value===0&&fills.visible&&fills.children.every(o=>o.material.opacity===1&&o.material.depthWrite),
-      panels:ball.userData.panels,reference:'v6'})};
+      panels:ball.userData.panels,crowd:crowd.inspect(),reference:'v6'})};
 }

@@ -1,0 +1,96 @@
+/* Shared visual finish, loaded after the existing layout styles. Dimensions of
+ * the timed mobile game/results stay owned by solo_mobile.css/solo_results.css.
+ * Change --line-width in points_theme.css to adjust the heavy outline system. */
+body { font-family:Inter,Arial,sans-serif; -webkit-font-smoothing:antialiased; }
+::selection { color:var(--paper); background:var(--ink); }
+:is(h1,h2,h3,button,a,span) { letter-spacing:0; }
+h1,.community-heading h1,.solo-heading h1,.guide-heading h1 { font-weight:900; font-style:italic; }
+h2,.game-guide h2 { font-weight:850; }
+button,a,input,textarea,select { -webkit-tap-highlight-color:transparent; }
+.public-header { border-bottom:var(--line-width) solid var(--ink); padding:24px 0; max-width:1160px; margin:0 auto; justify-content:space-between; }
+.public-header .top-navigation { display:flex; flex:0 0 auto; flex-wrap:nowrap; gap:12px; }
+.public-header .top-navigation a { position:relative; padding:10px; width:46px; height:46px; min-height:46px; border:2px solid transparent; border-radius:50%; }
+.public-header .top-navigation a[aria-current],.public-header .top-navigation a:first-child { border-color:var(--ink); }
+.public-header .top-navigation img { width:24px; height:24px; filter:none; }
+.public-header .top-navigation a:first-child img { filter:brightness(0); }
+.public-header .top-navigation a:hover { background:var(--surface-raised); }
+.public-header .top-navigation a::after { content:attr(data-label); position:absolute; top:calc(100% + 8px); left:50%; transform:translateX(-50%); font-size:11px; font-weight:600; white-space:nowrap; opacity:0; pointer-events:none; }
+.public-header .top-navigation a:is(:hover,:focus-visible)::after { opacity:1; }
+.page-return { max-width:1160px; padding:0; margin:12px auto 0; }
+.page-return a { font-size:13px; color:var(--text); }
+.page-return img,.game-rules-link img,.icon-button img,.invite-link-row img,.guide-xp-example img,.password-toggle img,.team-options .no-team img,#feedback-expand img,#share-copy img { filter:none; }
+.icon-button { border:2px solid var(--ink); background:transparent; }
+.primary-link,.solo-page .primary,.penalty-page .primary { border:2px solid var(--ink); background:var(--ink); color:var(--paper); }
+.primary-link img,.solo-page .primary img { filter:invert(1); }
+.game-guide .primary-link,.guide-heading .primary-link,.guest-benefits .primary-link { color:var(--paper); }
+:is(.solo-page,.community-page,.result-dialog,.shell-dialog) button { border-width:2px; }
+.solo-page input:not([type=radio]):not([type=checkbox]),.solo-page select,.solo-page textarea { border-width:2px; }
+.solo-page button,.community-page button,.primary-link,.result-dialog button { border-radius:4px; font-weight:700; }
+.solo-heading,.community-heading,.guide-heading { border-bottom:var(--line-width) solid var(--ink); padding-bottom:24px; }
+.game-mode-tabs { border-bottom:2px solid var(--ink); }
+.game-mode-tabs a { min-height:44px; display:inline-flex; align-items:center; }
+.game-mode-tabs a[aria-current] { color:var(--ink); border-color:var(--ink); }
+.difficulty-options { border:var(--line-width) solid var(--ink)!important; border-radius:6px; }
+.difficulty-options label { border-right:2px solid var(--ink); }
+.difficulty-options label:has(:checked) { box-shadow:none; }
+.difficulty-options input { accent-color:var(--ink); }
+.difficulty-options label:has(:checked) input { accent-color:var(--paper); }
+#start { background:var(--brand-green); border:var(--line-width) solid var(--ink); color:var(--ink); }
+#start:hover:enabled { background:#99bd64; border-color:var(--ink); }
+.solo-choices button { border:2px solid var(--ink); background:var(--paper); font-weight:650; }
+.solo-choices button:not(:disabled):hover { background:var(--surface-raised); border-color:var(--ink); }
+.solo-choices .chosen { border-width:2px; background:var(--ink); color:var(--paper); }
+.solo-choices .correct { background:var(--selection); color:var(--ink); border-color:var(--ink); }
+.solo-choices .chosen.correct { background:var(--brand-green); color:var(--ink); border-color:var(--ink); }
+.solo-choices .incorrect { background:var(--error-surface); color:#84211e; border-color:var(--ink); }
+.solo-choices .chosen.incorrect { background:var(--coral); color:var(--paper); border-color:var(--ink); }
+.period-tabs span { border:2px solid var(--ink); background:transparent; }
+.period-tabs :checked+span { color:var(--paper); background:var(--ink); }
+.ranking-table td { background:transparent; border-top:2px solid var(--ink); }
+.ranking-table .own-rank td { background:var(--selection); }
+.ranking-self { border:2px solid var(--ink); background:transparent; }
+.ranking-self a,.ranking-self span { color:var(--ink); }
+.profile-tabs,.friend-row,.guide-section,.guide-end,.guide-guest,.history-row,.public-result { border-width:2px; }
+.guide-rewards th,.guide-rewards td { border-bottom-width:2px; }
+.guide-scenarios :checked+span { background:var(--ink); color:var(--paper); }
+.guide-scoreboard { border:var(--line-width) solid var(--ink); }
+.header-sound .sound-settings,.shell-dialog,.result-dialog,#delete-dialog,#feedback-dialog { border:var(--line-width) solid var(--ink); box-shadow:6px 6px 0 #1112; }
+:is(.shell-dialog,.result-dialog,#delete-dialog,#feedback-dialog)::backdrop { background:#1116; backdrop-filter:blur(5px); }
+#summary .metric strong,#summary .metric:nth-child(n+3) strong,#summary .metric:nth-child(2) strong { color:var(--ink); }
+#summary #share-result { border:2px solid var(--ink); background:var(--paper); color:var(--ink); }
+#summary #share-result img { filter:none; }
+#summary .result-actions > * { background:var(--ink); border:2px solid var(--ink); color:var(--paper); }
+#summary .result-actions #another { background:var(--brand-green); color:var(--ink); }
+#summary #guest-benefits a,#mode-intro button.primary { background:var(--ink); color:var(--paper); border:2px solid var(--ink); }
+.shootout-finished .solo-questions { border-width:var(--line-width)!important; }
+#stadium-controls { border-bottom:var(--line-width) solid var(--ink); }
+#stadium-controls button { border:2px solid var(--ink); background:var(--paper); color:var(--ink); }
+#shootout-board { border:2px solid var(--ink); background:var(--paper); }
+.shootout-kick.goal { color:var(--ink); }
+.shootout-kick.miss { color:var(--coral); }
+.shootout-kick.pending { border:2px solid var(--ink); opacity:.3; }
+.friend-waiting img { filter:brightness(0); opacity:1; }
+#forfeit-dialog #forfeit-confirm { background:var(--ink); color:var(--paper); border-color:var(--ink); }
+/* Do not add padding/height here: that would shift the fixed mobile answer grid. */
+.stadium-playing:not(.stadium-ending) .solo-questions { border-color:var(--ink); }
+.site-footer { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; max-width:1160px; padding:24px 0; border-top:2px solid var(--ink); text-align:left; }
+.site-footer nav { display:flex; gap:24px; }
+.site-footer a { color:var(--ink); }
+@media(max-width:1256px) {
+  .public-header,.page-return,.site-footer { margin-left:32px; margin-right:32px; }
+}
+@media(max-width:700px) {
+  .public-header { gap:16px; justify-content:space-between; padding:18px 0; }
+  .public-header,.page-return,.site-footer { margin-left:16px; margin-right:16px; }
+  .public-header .top-navigation { display:flex; grid-template-columns:none; flex-basis:auto; gap:6px; }
+  .public-header .top-navigation a { padding:10px; }
+  .public-header .top-navigation a::after { display:none; }
+  .page-return { padding:0; gap:10px; }
+  .site-footer { font-size:11px; }
+}
+@media(max-width:450px) {
+  .public-header { justify-content:center; gap:12px; }
+  .public-header .top-navigation { flex-basis:100%; justify-content:center; gap:16px; }
+  .page-return { flex-wrap:wrap; }
+  .page-return > a { display:none; }
+}

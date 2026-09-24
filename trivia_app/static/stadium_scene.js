@@ -4,8 +4,8 @@
  * Vzhled men v stadium_config.js; rozlozeni HTML prekryvu v stadium.css.
  */
 import * as THREE from './vendor/three/three.module.min.js';
-import {STADIUM as C} from './stadium_config.js?v=11';
-import {createStadiumWorld} from './stadium_v6_world.js?v=10';
+import {STADIUM as C} from './stadium_config.js?v=12';
+import {createStadiumWorld} from './stadium_v6_world.js?v=11';
 import {ballistic,bounceHeight} from './stadium_motion.js';
 
 export function createStadium(host, framing, onFailure, onReveal = () => {}) {
@@ -38,6 +38,9 @@ export function createStadium(host, framing, onFailure, onReveal = () => {}) {
     // Only the stadium background is downsampled/blurred; players, ball and goal
     // remain crisp. The same camera renders both layers, including during travel.
     world.background.traverse(o=>o.layers.set(1));camera.layers.enable(1);
+    // Keep supporters' colored shirts and result poses readable while the
+    // architecture behind them stays optically soft. They do not animate by default.
+    world.crowd.group.traverse(o=>o.layers.set(0));
     const backgroundMaterials=new Map();
     world.background.traverse(o=>{for(const material of [].concat(o.material||[]))backgroundMaterials.set(material,material.colorWrite);});
     // Rasterize at the same resolution as the sharp view, then downsample with
@@ -233,6 +236,7 @@ export function createStadium(host, framing, onFailure, onReveal = () => {}) {
         });
     }
     function resetBall() {
+        world.crowd.reset();
         ball.visible=true;
         ball.position.copy(ballHome);ball.rotation.set(.1,.25,.3);
         keeper.position.set(goalX-.4,.92,0);keeper.rotation.set(0,0,0);keeperRig.poseHands();world.rippleNet(0);
@@ -249,7 +253,7 @@ export function createStadium(host, framing, onFailure, onReveal = () => {}) {
         skip();stop();resetBall();lastOutcome=outcome;lastPlan=plan;
         if(outcome==='replay'){render();return Promise.resolve();}
         phase='shot'; const start=performance.now();
-        const runUp=role==='keeper'?C.runUpMs:0,totalMs=C.shotMs+runUp+(role==='keeper'?C.keeperHoldMs:0);
+        const runUp=role==='keeper'?C.runUpMs:0,totalMs=C.shotMs+runUp+(role==='keeper'?C.keeperHoldMs:0)+C.crowdHoldMs;
         // +Z je prava strana obrazovky strelce (+X pohled), u brankare naopak.
         const targetZ=plan.target.side*(C.goal.width/2-C.shot.postInset);
         const targetY=plan.target.high?C.goal.height-C.shot.crossbarInset:ballHome.y;
@@ -278,7 +282,7 @@ export function createStadium(host, framing, onFailure, onReveal = () => {}) {
             return {position:v(goalX-.4-.12*travel,Math.max(floor,ballistic(.92,jumpVelocity,airborne,gravity)),lateral*lateralTravel),angle};
         }
         const contactRoot=keeperPose(flightSeconds).position;
-        let kicked=false,contacted=false;
+        let kicked=false,contacted=false,reacted=false;
         const cue=name=>{try{onCue(name);}catch{/* Audio failure must never stop the shot. */}};
         function shotPose(t) {
             const elapsed=t*totalMs,approach=runUp?clamp(elapsed/runUp):1;
@@ -305,6 +309,9 @@ export function createStadium(host, framing, onFailure, onReveal = () => {}) {
             }
             keeperRig.poseHands(handTarget,dive);
             caught=outcome==='save'&&u===1;
+            // React to the server outcome only once, at physical contact.
+            if(u===1&&!reacted){world.crowd.react(outcome,role);reacted=true;}
+            if(reacted)world.crowd.update(after,!animated);
             if(caught)ball.position.copy(keeperRig.handCenter());
             else if(after>0) {
                 // Sit pohlti doprednou energii; vysoka strela pak spadne
@@ -368,7 +375,7 @@ export function createStadium(host, framing, onFailure, onReveal = () => {}) {
         backdrop.dispose();softBackdrop.dispose();blurQuad.geometry.dispose();blurMaterial.dispose();horizontalBlur.dispose();
         renderer.dispose();renderer.domElement.remove();
     }
-    return {setView,skip,shot,reset,suspend,dispose,finish,
+    return {setView,skip,shot,reset,suspend,dispose,finish,supporters:context=>world.crowd.configure(context),
         inspect:()=>({role,phase,progress,endingProgress,...world.inspect(),focus:focusAmount,geometryFocus:world.inspect().focus,camera:camera.position.toArray(),ball:ball.position.toArray(),keeper:keeper.position.toArray(),hands:keeperRig.handCenter().toArray(),lastOutcome,lastPlan,caught,keeperVisible:keeper.visible,ballVisible:ball.visible,
             markingsVisible:world.pitch.children.filter(o=>o.name.startsWith('pitch-marking-')).every(o=>o.visible&&o.layers.mask===1),drawCalls:renderer.info.render.calls})};
 }

@@ -47,7 +47,7 @@ class GameGuideTests(unittest.TestCase):
         html = TestClient(app).get('/how-to-play').text
         for text in ('Your team gives no XP bonus', "The team leaderboard adds up current members' XP",
                      'you must wait 3 days before changing again',
-                     'Guest Solo games are unlimited', 'every Monday at 00:00 UTC',
+                     'Guest Solo games and Friend Duels are open to everyone', 'every Monday at 00:00 UTC',
                      'A timeout or ending early does not extend the streak', 'Ending a shootout early counts as a loss'):
             self.assertIn(text, html)
         self.assertIn('/how-to-play#teams', TestClient(app).get('/account').text)
@@ -55,7 +55,7 @@ class GameGuideTests(unittest.TestCase):
 
     def test_guide_and_guest_home_explain_difficulty_only_selection(self):
         client = TestClient(app)
-        for path in ('/', '/how-to-play'):
+        for path in ('/how-to-play',):
             with self.subTest(path=path):
                 html = client.get(path).text
                 self.assertIn('Choose Easy, Medium or Hard.', html)

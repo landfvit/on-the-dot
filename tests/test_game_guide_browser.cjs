@@ -27,7 +27,7 @@ const output='/tmp/on-the-dot-guide';fs.mkdirSync(output,{recursive:true});
    await page.screenshot({path:`${output}/guide-${width}.png`,fullPage:true});
    await page.locator('.guide-jump a[href="#teams"]').click();assert(page.url().endsWith('#teams'));
    assert(await page.locator('#teams').isVisible());
-   await page.locator('.top-navigation a[href="/how-to-play"]').click();
+   await page.locator('.site-footer a[href="/how-to-play"]').click();
    assert(new URL(page.url()).pathname==='/how-to-play');
    console.log(`PASS guide ${width}: images, keyboard examples, team explanation and no overflow`);
   }

@@ -55,12 +55,12 @@ class TriviaAssets(StaticFiles):
 app.mount('/assets', TriviaAssets(directory=ROOT / 'web' / 'static'), name='assets')
 app.mount('/trivia-assets', TriviaAssets(directory=ROOT / 'trivia_app' / 'static',
     public_files=('app.css','penalties.css','penalty_scene.js','solo.css','solo.js',
-                  'stadium.css','stadium_intro.js','stadium_scene.js','stadium_config.js','stadium_v6_world.js','stadium_motion.js','penalty_shots.js','points_theme.css',
+                  'stadium.css','stadium_intro.js','stadium_scene.js','stadium_config.js','stadium_v6_world.js','stadium_motion.js','stadium_crowd.js','crowd_reaction.js','penalty_shots.js','points_theme.css','redesign.css','home.css','home.js',
                   'community.css','community.js','shell.js','shootout.css','result_share.js','solo_mobile.css','solo_mobile.js','solo_results.css','friends.js','game_modes.css',
                   'account_settings.css','account_settings.js','public_ui.css','public_ui.js','social.css','social.js','mode_intro.js',
                   'audio.css','audio.js','icons/volume-2.svg','icons/volume-x.svg',
                   'game_guide.css','game_guide.js','guide/shooter.png','guide/keeper.png','icons/circle-help.svg',
-                  'brand/logo.png','brand/mark.png','brand/favicon.png','brand/favicon.svg','brand/logo-transparent.png','brand/icon-180.png',
+                  'brand/logo.png','brand/mark.png','brand/favicon.png','brand/favicon.svg','brand/logo-transparent.png','brand/logo.svg','brand/icon-180.png',
                   'icons/eye.svg','icons/eye-off.svg',
                   *(f'clubs/{club["team_id"]}.png' for club in public_metadata['clubs']),
                   'icons/menu.svg','icons/x.svg','icons/user-round.svg','icons/trophy.svg','icons/history.svg',
@@ -149,22 +149,11 @@ def logout(request: Request):
 
 @app.get('/', response_class=HTMLResponse)
 def home(request: Request):
-    token = request.cookies.get(ACCOUNT_COOKIE, '')
-    authenticated = False
-    if token and len(token) <= 100:
-        try:
-            with get_connection() as conn:
-                account(conn, request)
-            authenticated = True
-        except HTTPException as exc:
-            if exc.status_code != 401:
-                raise
-    response = penalties_page(request) if authenticated else game_guide_page(request)
-    # The home page varies by session; never reuse one player's response for another.
+    # The same lightweight mode selector for guests and signed-in players.
+    # Authentication, active games and eligibility remain on their game routes.
+    response = templates.TemplateResponse(request=request, name='home.html', context={'active_page':'home'})
+    # Preserve the public shell's no-store contract across account transitions.
     response.headers['Cache-Control'] = 'private, no-store'
-    response.headers['Vary'] = 'Cookie'
-    if token and not authenticated:
-        response.delete_cookie(ACCOUNT_COOKIE, path='/')
     return response
 
 

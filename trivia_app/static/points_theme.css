@@ -1,13 +1,14 @@
-/* Supplied brand palette. Keep these five swatches unchanged; neutral surfaces
- * and tinted states provide readable contrast without recoloring the logos.
- * The renderer and exported share card mirror these tokens in their configs.
+/* Paper-and-ink UI. Green remains the logo, Play button and pitch accent.
+ * Stadium colors live in stadium_config.js; social previews in result_shares.py.
+ * Keep the paper/ink values in those two exports in sync with these tokens.
  */
 :root {
-  color-scheme:dark;
-  --brand-coral:#ff6f61; --brand-purple:#6f2c91; --brand-green:#88b04b; --brand-pink:#f7cac9; --brand-blue:#92a8d1;
-  --bg:#222326; --surface:#2b2d32; --surface-raised:#34363b; --text:#f7f6f2; --muted:#bcbfc8; --border:#54565f;
-  --accent:var(--brand-green); --accent-hover:#a2c571; --coral:var(--brand-coral); --highlight:var(--brand-blue); --ink:#191a1e;
-  --selection:#34412c; --error-surface:#492f30; --on-accent:#191a1e;
+  color-scheme:light;
+  --paper:#f6f3eb; --ink:#111111; --line-width:3px;
+  --brand-green:#88b04b; --brand-coral:#a52c27; --brand-purple:#111111; --brand-pink:#a52c27; --brand-blue:#111111;
+  --bg:var(--paper); --surface:var(--paper); --surface-raised:#ebe7de; --text:var(--ink); --muted:#615f58; --border:var(--ink);
+  --accent:var(--ink); --accent-hover:#30302d; --coral:var(--brand-coral); --highlight:var(--ink);
+  --selection:#e0e9ce; --error-surface:#f4ded8; --on-accent:var(--paper);
   color:var(--text); background:var(--bg);
 }
 body,body:has(.penalty-page),body.stadium-playing { background:var(--bg); color:var(--text); }
@@ -17,15 +18,15 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .points-header { background:var(--bg); border-color:var(--border); min-height:78px; }
 .points-brand { display:inline-flex; align-items:center; flex:none; min-height:44px; color:var(--text); font-weight:750; }
 /* Each circle owns one vector glyph. Size, letter gap, word gap and ink weight
- * are independent controls; palette green is shared with the rest of the UI.
+ * are independent controls. The discs stay green; the glyphs use cream ink.
  * The letter paths all use one cap height and baseline in brand_wordmark.html. */
 .brand-wordmark { --wordmark-height:32px; --letter-gap:2px; --word-gap:8px; --glyph-weight:9; display:flex; align-items:center; gap:var(--word-gap); height:var(--wordmark-height); }
 .brand-word { display:flex; align-items:flex-end; flex:none; gap:var(--letter-gap); height:var(--wordmark-height); }
 .brand-letter,.brand-dot { display:block; flex:none; width:var(--wordmark-height); height:var(--wordmark-height); }
 .brand-wordmark circle { fill:var(--brand-green); }
-.brand-glyph { fill:none; stroke:#000; stroke-width:var(--glyph-weight); stroke-linecap:round; stroke-linejoin:round; }
+.brand-glyph { fill:none; stroke:var(--paper); stroke-width:var(--glyph-weight); stroke-linecap:round; stroke-linejoin:round; }
 .brand-dot { width:calc(var(--wordmark-height) * .32); height:calc(var(--wordmark-height) * .32); }
-.brand-dot path { fill:#000; }
+.brand-dot path { fill:var(--paper); }
 @media(max-width:700px) { .brand-wordmark { --wordmark-height:24px; --letter-gap:1.5px; --word-gap:6px; } }
 .points-period { color:var(--accent); }
 .points-header nav a,.points-signout { color:var(--muted); }
@@ -45,14 +46,11 @@ input[type=radio],input[type=checkbox],progress { accent-color:var(--accent); }
 #notice:empty,#feedback:empty { display:none; }
 #error { background:var(--error-surface); color:var(--brand-pink); border-radius:6px; }
 #error:empty { display:none; }
-.difficulty-options label { --difficulty-color:var(--brand-green); background:var(--surface); border-color:var(--border); border-radius:6px; }
-.difficulty-options label:has([value=medium]) { --difficulty-color:var(--brand-blue); }
-.difficulty-options label:has([value=hard]) { --difficulty-color:var(--brand-pink); }
+.difficulty-options label { --difficulty-color:var(--ink); background:var(--surface); border-color:var(--border); border-radius:6px; }
 .difficulty-options label:has(:checked) { border-color:var(--difficulty-color); background:var(--selection); }
-.difficulty-options label:has([value=medium]:checked) { background:#323c50; }
-.difficulty-options label:has([value=hard]:checked) { background:var(--brand-purple); }
+.difficulty-options label:has(:checked) { background:var(--ink); color:var(--paper); --difficulty-color:var(--paper); }
 .difficulty-options small[id$="-perfect"] { display:block; color:var(--difficulty-color); }
-.difficulty-options label:has([value=hard]:checked) small { color:var(--text); }
+.difficulty-options label:has(:checked) small { color:var(--paper); }
 .run-meta,.metrics,.review-item,.assessment,.scoreboard,#result-stats,.quiz-game header,.quiz-review { border-color:var(--border); }
 .metric strong { color:var(--text); }
 .quiz-tile { background:var(--surface); border-color:var(--border); }

@@ -24,6 +24,8 @@ from api.solo_difficulty import router as solo_difficulty
 from api.trivia_writer import router as trivia_writer
 from api.game_community import router as game_community
 from api.challenge_routes import router as challenges
+from api.social_routes import router as social
+from api.result_shares import router as result_shares, shared_result, public_origin
 from trivia_app.game_guide import guide_context
 
 
@@ -35,6 +37,7 @@ app.add_middleware(SessionMiddleware, secret_key=app.state.session_secret, sessi
 templates = Jinja2Templates(directory=[str(ROOT / 'trivia_app' / 'templates'), str(ROOT / 'web' / 'templates')])
 public_metadata=json.loads((ROOT/'trivia_app'/'static'/'public_metadata.json').read_text())
 templates.env.globals['public_metadata']=public_metadata
+templates.env.globals['public_origin']=public_origin
 
 
 class TriviaAssets(StaticFiles):
@@ -54,7 +57,7 @@ app.mount('/trivia-assets', TriviaAssets(directory=ROOT / 'trivia_app' / 'static
     public_files=('app.css','penalties.css','penalty_scene.js','solo.css','solo.js',
                   'stadium.css','stadium_intro.js','stadium_scene.js','stadium_config.js','stadium_v6_world.js','stadium_motion.js','penalty_shots.js','points_theme.css',
                   'community.css','community.js','shell.js','shootout.css','result_share.js','solo_mobile.css','solo_mobile.js','solo_results.css','friends.js','game_modes.css',
-                  'account_settings.css','account_settings.js','public_ui.css','public_ui.js',
+                  'account_settings.css','account_settings.js','public_ui.css','public_ui.js','social.css','social.js','mode_intro.js',
                   'audio.css','audio.js','icons/volume-2.svg','icons/volume-x.svg',
                   'game_guide.css','game_guide.js','guide/shooter.png','guide/keeper.png','icons/circle-help.svg',
                   'brand/logo.png','brand/mark.png','brand/favicon.png','brand/favicon.svg','brand/logo-transparent.png','brand/icon-180.png',
@@ -74,6 +77,16 @@ app.include_router(solo_difficulty)
 app.include_router(trivia_writer)
 app.include_router(game_community)
 app.include_router(challenges)
+app.include_router(social)
+app.include_router(result_shares)
+
+
+@app.get('/s/{token}',response_class=HTMLResponse)
+def shared_result_page(token:str,request:Request):
+    data=shared_result(token)
+    return templates.TemplateResponse(request=request,name='shared_result.html',
+        context={'result':data,'share_url':public_origin()+'/s/'+token,'active_page':'shared'},
+        headers={'Cache-Control':'public, max-age=300'})
 
 
 @app.middleware('http')

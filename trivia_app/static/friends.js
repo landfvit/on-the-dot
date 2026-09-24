@@ -7,8 +7,13 @@
   const stadium=globalThis.PointsStadium,terminal=s=>['FINISHED','ABANDONED'].includes(s?.phase);
   const node=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
   let code=page.dataset.invite,user=null,room=null,busy=false,polling=false,offset=0,renderKey='',startRequest=null,pending=null;
-  let entered=false,introducing=false,presentation=0,role=null,animation=Promise.resolve(),finished=false,shareCard=null,openTimer=null;
+  let entered=false,introducing=false,presentation=0,role=null,animation=Promise.resolve(),finished=false,openTimer=null;
+  const sharing=globalThis.PointsResultShare.bind(()=>room?{run_id:room.run_id,mode:'friend'}:null);
+  const inviteFriend=new URLSearchParams(location.search).get('invite');
   const animated=new Set();
+  let forfeitRun=null;
+  const playerName=(s,seat)=>!s.players[seat]?'Friend':s.players[seat].is_guest?(seat===s.me?'You':'Friend'):s.players[seat].name;
+  const opponentName=s=>playerName(s,1-s.me);
   function error(message=''){$('error').textContent=message;$('error').hidden=!message;}
   async function api(path,body){
     const response=await fetch('/api/'+path,{method:body===undefined?'GET':'POST',headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});
@@ -16,20 +21,17 @@
   }
   const roomPath=()=>`friends/rooms/${encodeURIComponent(code)}`;
   function remember(value){code=value;history.replaceState(null,'',code?'/friends/'+encodeURIComponent(code):'/friends');}
-  function gate(){
-    $('quiz-start').hidden=true;$('mode-auth').hidden=false;
-    const next=encodeURIComponent(location.pathname);
-    $('mode-signin').href='/account?next='+next;$('mode-register').href='/account?mode=register&next='+next;
-  }
   function scoreboard(s){
     $('shootout-board').hidden=s.phase==='LOBBY'||terminal(s)&&!entered;
     for(const [id,seat] of [['player',s.me],['opponent',1-s.me]]){
+      const name=playerName(s,seat);
+      $('name-'+id).textContent=name;$('name-'+id).title=name;
       $('score-'+id).textContent=String(s.score[seat]);
       const shots=s.history.filter(r=>r.shooter===seat&&r.outcome!=='replay');
       const count=Math.max(5,...s.attempts),indices=Array.from({length:count},(_,i)=>i).filter(i=>count<=7||i<5||i>=count-2);
       $('kicks-'+id).replaceChildren(...indices.map(i=>{
         const shot=shots[i],result=!shot?'pending':shot.outcome==='goal'?'goal':'miss';
-        const el=node('span',undefined,'shootout-kick '+result);el.setAttribute('role','img');el.setAttribute('aria-label',`Penalty ${i+1}: ${result}`);return el;
+        const el=node('span',undefined,'shootout-kick '+result);el.setAttribute('role','img');el.setAttribute('aria-label',`${name}, penalty ${i+1}: ${result}`);return el;
       }));
     }
     $('shootout-round').textContent=terminal(s)?'Full time':Math.min(...s.attempts)>=5?'Sudden death':`Round ${s.round?.pair||1} / 5`;
@@ -37,15 +39,23 @@
   }
   function lobby(s){
     $('friend-lobby').hidden=false;$('quiz-start').hidden=true;
-    $('lobby-title').textContent='Friend Duel';$('lobby-players').textContent=s.players.map(p=>p.name+(p.ready?' · Ready':'')).join(' vs ');
-    $('lobby-status').textContent=s.players.length<2?'Send the link to your friend.':s.players[s.me].ready?'Waiting for your friend to get ready.':'Both players must be ready to start.';
+    $('lobby-title').textContent='Friend Duel';$('lobby-players').textContent=[s.me,1-s.me].map(i=>playerName(s,i)+(s.players[i]?.ready?' · Ready':'')).join(' vs ');
+    $('lobby-status').textContent=s.players.length<2?'Send the link to your friend.':s.players[s.me].ready?`Waiting for ${opponentName(s)}`:'Both players must be ready to start.';
     $('invite-link').value=location.origin+'/friends/'+code;
     $('friend-ready').hidden=s.players.length<2;$('friend-ready').disabled=busy||s.players[s.me].ready;
     $('friend-leave').hidden=false;$('friend-join').hidden=true;$('invite-controls').hidden=false;
     if(entered){
       $('selection').hidden=true;$('quiz-run').hidden=false;$('summary').hidden=true;$('question-panel').hidden=false;
-      $('question-title').textContent=introducing?'Entering the stadium...':'Waiting for your friend';
-      $('choices').replaceChildren();$('feedback').textContent='The duel starts when both players are ready.';
+      $('question-title').textContent=s.players[1-s.me]?.ready?'Getting ready...':`Waiting for ${opponentName(s)}`;
+      $('question-title').setAttribute('aria-live','polite');
+      // Occupy the existing answer slot: the loader never pushes controls down.
+      if(!$('choices').querySelector('.friend-waiting')){
+        const waiting=node('div',undefined,'friend-waiting'),ball=node('img');
+        waiting.setAttribute('aria-hidden','true');ball.src='/trivia-assets/icons/football.svg';ball.alt='';waiting.append(ball);$('choices').replaceChildren(waiting);
+      }
+      $('feedback').textContent='The duel starts when both players are ready.';
+      $('run-category').textContent=playerName(s,s.me);$('run-position').textContent=s.players[s.me].ready?'Ready':'Getting ready';$('run-xp').textContent='Friendly';
+      $('leave').hidden=false;
       $('timer').parentElement.hidden=true;$('next').hidden=true;
     }
   }
@@ -74,44 +84,36 @@
       }else if(s.phase==='ANSWERING')stadium.skip();
     }).catch(()=>{stadium.leave();if(terminal(room)){$('question-panel').hidden=true;$('summary').hidden=false;}});
   }
-  async function prepareShare(s){
-    shareCard?.dispose();shareCard=null;$('share-result').disabled=true;
-    const winner=s.winner===null?null:s.winner===s.me?'player':'opponent';
-    const shotList=s.history.filter(r=>r.outcome!=='replay');
-    const shareRun={mode:'friend',difficulty:s.difficulty,phase:s.phase,total_xp:0,correct:s.stats[s.me].correct,
-      review:s.history,rules:{questions:s.history.length},multiplier:1,opponent:s.players[1-s.me]?.name,
-      shootout:{player:s.score[s.me],opponent:s.score[1-s.me],winner,attempts:shotList.map(r=>({side:r.shooter===s.me?'player':'opponent',goal:r.outcome==='goal'}))}};
-    try{
-      const card=await globalThis.PointsResultShare.prepare(shareRun,user,location.origin);
-      if(room?.run_id!==s.run_id){card.dispose();return;}
-      shareCard=card;$('share-preview').src=card.imageUrl;$('share-download').href=card.imageUrl;$('share-link').value=card.data.url;$('share-result').disabled=false;
-    }catch{$('share-status').textContent='Result card unavailable. You can still share the game link.';}
-  }
   function summary(s){
-    $('result-heading').textContent=s.winner===null?'Duel ended':s.winner===s.me?'You won the duel!':`${s.players[s.winner].name} wins`;
+    $('result-heading').textContent=s.winner===null?'Duel ended':s.winner===s.me?'You won the duel!':`${playerName(s,s.winner)} wins`;
     const reason={resigned:'Forfeit',disconnect_forfeit:'Connection forfeit',inactivity:'Inactivity',time_limit:'Session expired',question_pool_exhausted:'No unused questions remain'}[s.reason];
     $('result-completion').textContent=`${s.score[s.me]} : ${s.score[1-s.me]}${reason?' · '+reason:''}`;
     const entries=[[`${s.stats[s.me].correct} / ${s.history.length}`,'Correct answers'],['Friendly','No XP or rating']];
     $('result-metrics').replaceChildren(...entries.map(([value,label])=>{const e=node('div',undefined,'metric');e.append(node('strong',value),node('span',label));return e;}));
     $('result-level').hidden=true;$('guest-benefits').hidden=true;$('another').hidden=false;$('another').textContent='New friend duel';
-    $('summary-account').textContent='View profile';$('result-review').hidden=true;
+    $('summary-account').textContent=user?'View profile':'Create account';$('summary-account').href=user?'/account':'/account?mode=register';$('result-review').hidden=true;
     $('summary').hidden=entered&&!finished;$('question-panel').hidden=!entered||finished;
-    prepareShare(s);
+    sharing.reset();
   }
   function render(s){
     if(room&&room.run_id===s.run_id&&s.server_now<room.server_now)return;
     room=s;offset=s.server_now-Date.now();
+    if(terminal(s)&&$('forfeit-dialog').open)$('forfeit-dialog').close();
     // Fetch at the shared opening instant, not at each tab's arbitrary polling
     // phase. The server still withholds question/answer data before that time.
     clearTimeout(openTimer);
     if(s.phase==='COUNTDOWN')openTimer=setTimeout(refresh,Math.max(20,s.round.opens_at-s.server_now+20));
     const key=[s.phase,s.version,s.round?.id,s.round?.own_option,busy].join(':');
     if(key===renderKey)return;renderKey=key;scoreboard(s);$('retry').hidden=true;
-    if(s.phase==='LOBBY'){lobby(s);return;}
+    if(s.phase==='LOBBY'){
+      // Reloading a ready lobby restores waiting, not a disabled Ready button.
+      if(s.players[s.me].ready&&!entered){entered=true;role=s.initial_shooter===s.me?'shooter':'keeper';stadium?.enter(role,{intro:false,maxDurationMs:0});}
+      lobby(s);return;
+    }
     $('selection').hidden=true;$('quiz-run').hidden=false;
     const done=terminal(s),active=s.phase==='ANSWERING',r=s.round;
     page.classList.toggle('shootout-active',!done);page.classList.toggle('shootout-finished',done);
-    $('run-category').textContent=s.players[1-s.me]?.name||'Friend Duel';
+    $('run-category').textContent=opponentName(s);
     $('run-position').textContent=r?(r.shooter===s.me?'Shooting':'Defending')+' · Round '+r.pair:'';
     $('run-xp').textContent='Friendly';$('question-title').textContent=s.question?.text||(done?'Duel ended':r?.shooter===s.me?'Get ready to shoot':'Get ready to save');
     $('timer').parentElement.hidden=!active&&s.phase!=='COUNTDOWN';$('choices').replaceChildren();
@@ -121,7 +123,7 @@
       if(r.outcome)b.classList.toggle('correct',option.id===s.question.correct);
       b.addEventListener('click',()=>answer(option.id));$('choices').append(b);
     }
-    let feedback=active&&r?.own_option!==null?'Answer locked. Waiting for your friend...':'';
+    let feedback=active&&r?.own_option!==null?`Answer locked. Waiting for ${opponentName(s)}...`:'';
     if(r?.outcome){
       const bothWrong=r.answers.every(a=>!a?.correct);
       feedback=r.outcome==='replay'?(bothWrong?'Neither answer was correct. Replay with a new question.':'Both correct, too close to call. Replay with a new question.'):(r.outcome==='goal'?'Goal. ':'Saved. ')+(s.question?.explanation||'');
@@ -152,17 +154,38 @@
     e.preventDefault();if(busy)return;busy=true;$('start').disabled=true;error();
     const difficulty=document.querySelector('input[name="difficulty"]:checked').value;
     if(startRequest?.difficulty!==difficulty)startRequest={difficulty,request_id:crypto.randomUUID()};
-    try{const s=await api('friends/rooms',startRequest);remember(s.code);busy=false;render(s);startRequest=null;}
+    try{
+      if(!await globalThis.PointsModeIntro.show('friend'))return;
+      const s=await api('friends/rooms',startRequest);remember(s.code);busy=false;render(s);startRequest=null;
+      if(inviteFriend&&user){await api('players/friends/'+encodeURIComponent(inviteFriend)+'/invite',{run_id:s.run_id});$('lobby-status').textContent='Invitation sent to '+inviteFriend+'. You can also share the link.';}
+    }
     catch(e){error(e.message);}finally{busy=false;$('start').disabled=false;}
   });
-  $('friend-join').addEventListener('click',()=>command('join'));
+  $('friend-join').addEventListener('click',async()=>{if(busy)return;$('friend-join').disabled=true;try{if(await globalThis.PointsModeIntro.show('friend'))await command('join');}finally{$('friend-join').disabled=false;}});
   $('friend-ready').addEventListener('click',async()=>{
     if(busy||introducing)return;introducing=true;entered=true;$('friend-ready').disabled=true;
+    const match=room.run_id;
     role=room.initial_shooter===room.me?'shooter':'keeper';lobby(room);
-    try{await stadium?.enter(role,{intro:true});introducing=false;await command('ready');}
+    try{await stadium?.enter(role,{intro:true});introducing=false;if(room?.run_id===match&&room.phase==='LOBBY')await command('ready');}
     catch(e){introducing=false;error(e.message);}
   });
-  for(const id of ['friend-leave','leave'])$(id).addEventListener('click',()=>command('leave'));
+  function requestForfeit(){
+    if(!room||terminal(room)||busy)return;
+    forfeitRun=room.run_id;
+    $('forfeit-description').textContent=room.players.length===2
+      ?`${opponentName(room)} will win the duel. No XP or rating is affected.${room.phase==='LOBBY'?'':' The match clock keeps running.'}`
+      :'This will close your invitation. No XP or rating is affected.';
+    $('forfeit-confirm').textContent=room.players.length===2?'Forfeit':'Close invitation';
+    $('forfeit-dialog').showModal();$('forfeit-cancel').focus();
+  }
+  for(const id of ['friend-leave','leave'])$(id).addEventListener('click',requestForfeit);
+  $('forfeit-cancel').addEventListener('click',()=>$('forfeit-dialog').close());
+  $('forfeit-dialog').addEventListener('close',()=>{forfeitRun=null;});
+  $('forfeit-confirm').addEventListener('click',()=>{
+    // A result arriving while the dialog is open invalidates its confirmation.
+    if(!room||terminal(room)||room.run_id!==forfeitRun||busy)return;
+    $('forfeit-dialog').close();command('leave');
+  });
   $('retry').addEventListener('click',refresh);
   $('invite-copy').addEventListener('click',async()=>{
     try{await navigator.clipboard.writeText($('invite-link').value);$('lobby-status').textContent='Invitation copied.';}
@@ -173,18 +196,8 @@
     try{await navigator.share({title:'ON THE DOT. | Friend Duel',text:'Join my penalty shootout.',url:$('invite-link').value});}catch(e){if(e.name!=='AbortError')error('Could not share. Copy the invitation link instead.');}
   });
   $('another').addEventListener('click',()=>{
-    presentation++;stadium?.leave();remember('');room=null;role=null;entered=finished=introducing=false;renderKey='';animated.clear();shareCard?.dispose();shareCard=null;
+    presentation++;stadium?.leave();remember('');room=null;role=null;entered=finished=introducing=false;renderKey='';animated.clear();sharing.reset();
     page.classList.remove('shootout-active','shootout-finished');$('shootout-board').hidden=true;$('quiz-run').hidden=true;$('selection').hidden=false;$('friend-lobby').hidden=true;$('quiz-start').hidden=false;error();
-  });
-  $('share-result').addEventListener('click',async()=>{
-    if(!shareCard)return;
-    try{if(await globalThis.PointsResultShare.share(shareCard,navigator)!=='fallback')return;}catch{}
-    $('share-options').hidden=false;$('share-dialog').showModal();
-  });
-  $('share-close').addEventListener('click',()=>$('share-dialog').close());
-  $('share-copy').addEventListener('click',async()=>{
-    try{await navigator.clipboard.writeText(shareCard.data.text+'\n'+shareCard.data.url);$('share-dialog-status').textContent='Result and link copied.';}
-    catch{$('share-link').select();}
   });
   setInterval(()=>{if(room&&!terminal(room)&&!document.hidden)refresh();},1000);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden&&room)refresh();});
@@ -197,9 +210,10 @@
     if(active&&remaining===0)for(const b of $('choices').children)b.disabled=true;
   },100);
   async function init(){
+    page.classList.toggle('friend-motion-off',globalThis.PointsPreferences?.get?.().animations===false||globalThis.PointsPreferences?.get?.().reduced_motion===true);
     $('start').textContent='Create invitation';$('quiz-rules').textContent='5 penalties each · 15 seconds · No XP or rating';$('availability').hidden=true;
-    try{user=await api('players/me');}catch(e){if(e.status===401){gate();return;}throw e;}
-    if(user.preferences)globalThis.PointsPreferences?.set(user.preferences);
+    try{user=await api('players/me');}catch(e){if(e.status!==401)throw e;}
+    if(user?.preferences){globalThis.PointsPreferences?.set(user.preferences);page.classList.toggle('friend-motion-off',user.preferences.animations===false||user.preferences.reduced_motion===true);}
     if(!code){const active=await api('friends/active');if(active.code)remember(active.code);}
     if(code){
       const invite=await api('friends/invites/'+encodeURIComponent(code));

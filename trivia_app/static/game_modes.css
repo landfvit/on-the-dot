@@ -16,3 +16,30 @@
 [data-mode="daily"] #result-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
 .ranking-tabs{flex-wrap:wrap}
 @media(max-width:600px){.game-mode-tabs{gap:8px 16px;margin-bottom:16px;font-size:14px}}
+
+/* Fixed two-line name lanes keep even long usernames inside the TV score. */
+#shootout-board[data-mode="friend"] .shootout-team{grid-template-columns:150px 22px auto}
+#shootout-board[data-mode="friend"] .shootout-team>span{font-size:12px;line-height:14px;overflow-wrap:anywhere;min-width:0}
+.friend-waiting{grid-column:1/-1;grid-row:1/-1;display:grid;place-items:center;min-height:96px}
+.friend-waiting img{width:48px;height:48px;filter:invert(1);opacity:.8;animation:friend-waiting-spin 2.4s linear infinite}
+@keyframes friend-waiting-spin{to{transform:rotate(360deg)}}
+.friend-motion-off .friend-waiting img{animation:none}
+#forfeit-dialog{width:min(440px,calc(100% - 24px))}
+#forfeit-description{font-size:14px;line-height:1.5;overflow-wrap:anywhere;margin:16px 0 20px}
+#forfeit-dialog .actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#forfeit-dialog button{padding:10px 12px;font-size:14px}
+#forfeit-dialog #forfeit-confirm{background:var(--coral,#ff6f61);border-color:var(--coral,#ff6f61);color:#222326;font-weight:700}
+@media(max-width:800px),(max-height:540px) and (max-width:1100px){
+  #shootout-board[data-mode="friend"] .shootout-team{grid-template-columns:120px 20px auto}
+  #shootout-board[data-mode="friend"] .shootout-team>span{font-size:10px;line-height:10px}
+}
+@media(prefers-reduced-motion:reduce){.friend-waiting img{animation:none}}
+/* Narrow landscape camera lanes stack each name above its kicks. */
+@media(max-height:540px) and (min-width:480px) and (max-width:1100px){
+  body.stadium-playing:not(.stadium-ending) #shootout-board[data-mode="friend"]{width:min(360px,calc(100% - var(--stadium-panel-width) - 20px))}
+  #shootout-board[data-mode="friend"] .shootout-team{grid-template-columns:20px minmax(0,1fr);grid-template-rows:20px 20px;gap:0 6px}
+  #shootout-board[data-mode="friend"] .shootout-team>span{grid-column:1/-1}
+  #shootout-board[data-mode="friend"] .shootout-kicks{gap:3px}
+  #shootout-board[data-mode="friend"] .shootout-kick{width:12px;height:12px;flex-basis:12px}
+  body.stadium-playing:not(.stadium-ending):has(#shootout-board[data-mode="friend"]) #stadium-framing{top:calc(var(--play-header-height) + 112px);height:auto}
+}

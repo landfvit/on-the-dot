@@ -9,7 +9,7 @@
   <section id="authentication" hidden>
     <form id="auth-form" class="account-form">
       <fieldset class="auth-options"><legend>Account</legend><label><input type="radio" name="auth-mode" value="login" checked> Sign in</label><label><input type="radio" name="auth-mode" value="register"> Create account</label></fieldset>
-      <p class="muted">Save XP, levels and streaks. Unlock Daily Challenge and private Friend Duels. Friend Duels award no XP or rating.</p>
+      <p class="muted">Save XP, levels and streaks. Unlock Daily Challenge and add friends. Friend Duels are open to everyone, without XP or rating.</p>
       <label id="login-field">Email or legacy username<input id="identifier" autocomplete="username" required minlength="3" maxlength="254"></label>
       <div id="registration-fields" class="account-fields" hidden>
         <label>Email<input id="email" type="email" autocomplete="email" required disabled maxlength="254"></label>
@@ -27,11 +27,16 @@
   </section>
   <section id="profile" hidden>
     <div class="profile-title"><div><h2 id="profile-name"></h2><p id="profile-bio"></p><p id="profile-team" class="muted"></p></div></div>
+    <nav id="profile-tabs" class="profile-tabs" aria-label="Profile sections" hidden><button type="button" data-profile-tab="overview" aria-pressed="true">Overview</button><button type="button" data-profile-tab="friends" aria-pressed="false">Friends <span id="friend-count"></span></button><button type="button" data-profile-tab="settings" aria-pressed="false">Settings</button></nav>
+    <div id="profile-stats">
     <div class="metrics" id="profile-metrics"></div>
-    <div class="metrics" id="profile-record"></div>
+    <details class="profile-record"><summary>Solo record</summary><div class="metrics" id="profile-record"></div></details>
     <label class="level-progress"><span id="level-label"></span><progress id="level-progress" max="100" value="0"></progress></label>
     <p id="daily-status" class="muted" hidden></p>
+    </div>
+    <button id="public-add-friend" type="button" hidden>Add friend</button><p id="public-friend-status" role="status"></p>
     <div id="own-profile" hidden>
+      <section data-profile-panel="overview">
       <a id="public-profile" href="/account">Public profile</a>
       <section class="account-form" aria-labelledby="team-heading">
         <h2 id="team-heading">Your team</h2><a class="team-rules-link" href="/how-to-play#teams">About teams</a><p id="team-change-note" class="muted" role="status"></p><button id="add-team" type="button" aria-expanded="false" aria-controls="team-edit" aria-describedby="team-change-note">Add team</button>
@@ -39,18 +44,27 @@
           <div class="actions"><button class="primary" id="save-team">Join team</button><button id="cancel-team" type="button">Cancel</button></div>
         </form>
       </section>
+      </section>
+      <section data-profile-panel="friends" hidden>
+        <form id="friend-add" class="friend-add"><label for="friend-username">Add friend by username</label><div><input id="friend-username" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_]+" autocomplete="off"><button class="primary">Send request</button></div></form>
+        <p id="friend-status" role="status"></p><div id="friend-list"></div>
+      </section>
+      <section data-profile-panel="settings" hidden>
+      <details><summary>Sign-in email</summary>
       <form id="email-edit" class="account-form">
         <h2>Sign-in email</h2>
         <label>Email<input id="account-email" type="email" autocomplete="email" required maxlength="254"></label>
         <label>Current password<input id="email-password" type="password" autocomplete="current-password" required maxlength="128"></label>
         <button type="submit">Save email</button>
       </form>
+      </details><details><summary>Public profile</summary>
       <form id="profile-edit" class="account-form">
         <h2>Public profile</h2>
         <label>Username<input id="profile-username" autocomplete="nickname" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_]+"></label>
         <label>Bio<textarea id="bio" rows="3" maxlength="160"></textarea></label>
         <div class="actions"><button class="primary">Save profile</button><button id="signout" type="button">Sign out</button></div>
       </form>
+      </details><details><summary>Password</summary>
       <form id="password-edit" class="account-form">
         <h2>Password</h2>
         <label>Current password<input id="current-password" type="password" autocomplete="current-password" required maxlength="128"></label>
@@ -58,17 +72,20 @@
         <label>Confirm new password<input id="confirm-password" type="password" autocomplete="new-password" required minlength="8" maxlength="128"></label>
         <button class="primary">Change password</button><p id="password-status" role="status"></p>
       </form>
+      </details><details><summary>Game preferences</summary>
       <form id="preferences-edit" class="account-form">
         <h2>Game preferences</h2>
         <label class="setting-toggle"><span>Animations</span><input id="setting-animations" type="checkbox" checked></label>
         <label class="setting-toggle"><span>Reduce motion</span><input id="setting-reduced-motion" type="checkbox"></label>
         <button class="primary">Save preferences</button><p id="preferences-status" role="status"></p>
       </form>
+      </details><details><summary>Delete account</summary>
       <section class="account-form account-danger" aria-labelledby="delete-heading">
         <h2 id="delete-heading">Delete account</h2>
         <p class="muted">Your email, password and public profile will be removed. Anonymous game records are retained. This cannot be undone.</p>
         <button id="delete-open" type="button">Delete account</button>
       </section>
+      </details></section>
     </div>
   </section>
 </main>
@@ -79,4 +96,4 @@
   <p id="delete-status" role="alert"></p><div class="actions"><button class="danger-button">Delete permanently</button><button id="delete-cancel" type="button">Cancel</button></div>
 </form></dialog>
 {% endblock %}
-{% block scripts %}<script src="/trivia-assets/account_settings.js?v=1" defer></script><script src="/trivia-assets/solo.js?v=18" defer></script>{% endblock %}
+{% block scripts %}<script src="/trivia-assets/account_settings.js?v=1" defer></script><script src="/trivia-assets/social.js?v=1" defer></script><script src="/trivia-assets/solo.js?v=19" defer></script>{% endblock %}

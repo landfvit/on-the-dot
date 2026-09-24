@@ -4,6 +4,17 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>{% block title %}ON THE DOT. Trivia{% endblock %}</title>
+    {% block social_meta %}
+    <meta property="og:title" content="ON THE DOT. | Football trivia">
+    <meta property="og:description" content="One question. One penalty. Play Solo, Daily Challenge or a Friend Duel.">
+    <meta property="og:url" content="{{ public_origin() }}/">
+    <meta property="og:image" content="{{ public_origin() }}/share/brand.png">
+    <meta property="og:image:alt" content="ON THE DOT. football trivia logo">
+    <meta name="twitter:image" content="{{ public_origin() }}/share/brand.png">
+    {% endblock %}
+    <meta property="og:type" content="website"><meta property="og:site_name" content="ON THE DOT.">
+    <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
+    <meta property="og:image:type" content="image/png"><meta name="twitter:card" content="summary_large_image">
     <link rel="icon" type="image/png" sizes="64x64" href="/trivia-assets/brand/favicon.png?v=4">
     <link rel="icon" type="image/svg+xml" sizes="any" href="/trivia-assets/brand/favicon.svg?v=4">
     <link rel="apple-touch-icon" sizes="180x180" href="/trivia-assets/brand/icon-180.png?v=4">
@@ -14,6 +25,7 @@
     {% block final_styles %}{% endblock %}
     {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/public_ui.css?v=5"><script src="/trivia-assets/public_ui.js?v=1" defer></script>{% endif %}
     {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/audio.css?v=1"><script src="/trivia-assets/audio.js?v=2" defer></script>{% endif %}
+    {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/social.css?v=1">{% endif %}
 </head>
 <body>
     <header class="points-header">
@@ -40,17 +52,23 @@
     <dialog id="menu-drawer" class="shell-drawer" aria-labelledby="menu-title">
       <div class="drawer-heading"><h2 id="menu-title">ON THE DOT<span>.</span></h2><button class="icon-button" data-close-dialog aria-label="Close menu" title="Close"><img src="/trivia-assets/icons/x.svg" alt=""></button></div>
       <nav aria-label="Game menu">
+        <a href="/">Home <img src="/trivia-assets/icons/arrow-right.svg" alt=""></a>
         <a href="/penalties">Play penalties <img src="/trivia-assets/icons/arrow-right.svg" alt=""></a>
+        <a href="/daily">Daily Challenge <img src="/trivia-assets/icons/football.svg" alt=""></a>
+        <a href="/friends">Friend Duel <img src="/trivia-assets/icons/football.svg" alt=""></a>
         <a href="/leaderboard">Leaderboard <img src="/trivia-assets/icons/trophy.svg" alt=""></a>
         <a href="/history">Your history <img src="/trivia-assets/icons/history.svg" alt=""></a>
         <a href="/account">Your profile <img src="/trivia-assets/icons/user-round.svg" alt=""></a>
         <a href="/how-to-play">How to play <img src="/trivia-assets/icons/circle-help.svg" alt=""></a>
       </nav>
+      <div class="shell-extra"><button type="button" data-back><img class="back-arrow" src="/trivia-assets/icons/arrow-right.svg" alt="">Back</button><button type="button" data-share-game><img src="/trivia-assets/icons/share-2.svg" alt="">Share game</button></div>
       <section class="sound-settings" aria-label="Sound settings">
         <div class="sound-setting-row"><span>Sound effects</span><button class="icon-button" type="button" data-sound-toggle aria-label="Mute sound" title="Mute sound" aria-pressed="true"><img src="/trivia-assets/icons/volume-2.svg" alt=""></button></div>
         <div class="sound-volume"><label for="sound-volume">Volume</label><input id="sound-volume" data-sound-volume type="range" min="0" max="100" step="5" value="50"><output for="sound-volume" data-sound-level>50%</output></div>
       </section>
     </dialog>
+    <nav class="page-return" aria-label="Return navigation"><button type="button" data-back><img class="back-arrow" src="/trivia-assets/icons/arrow-right.svg" alt="">Back</button><a href="/">Home</a><button type="button" data-share-game><img src="/trivia-assets/icons/share-2.svg" alt="">Share game</button></nav>
+    <dialog id="game-share-dialog" class="shell-drawer" aria-labelledby="game-share-title"><div class="drawer-heading"><h2 id="game-share-title">Share ON THE DOT.</h2><button class="icon-button" data-close-dialog aria-label="Close sharing"><img src="/trivia-assets/icons/x.svg" alt=""></button></div><a href="{{ public_origin() }}/"><img class="game-share-preview" src="/share/brand.png" alt="ON THE DOT. football trivia" width="1200" height="630"></a><input id="game-share-link" aria-label="Game link" readonly value="{{ public_origin() }}/"><button type="button" id="game-share-copy">Copy link</button><p id="game-share-status" role="status"></p></dialog>
     {% endif %}
     {% block content %}{% endblock %}
     {% if not private_navigation and active_page in ('penalties','leaderboard') %}
@@ -59,6 +77,6 @@
     {% endif %}
     {% if not private_navigation %}<footer class="site-footer">{{ public_metadata.season_label }}</footer>{% endif %}
     {% block scripts %}{% endblock %}
-    {% if not private_navigation %}<script src="/trivia-assets/shell.js?v=2" defer></script>{% endif %}
+    {% if not private_navigation %}<script src="/trivia-assets/shell.js?v=3" defer></script>{% endif %}
 </body>
 </html>

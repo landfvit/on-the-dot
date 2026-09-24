@@ -28,6 +28,7 @@ mdurl==0.1.2
 narwhals==2.26.0
 numpy==2.5.3
 pandas==3.0.5
+Pillow==12.3.0
 psycopg==3.3.5
 psycopg-binary==3.3.5
 pydantic==2.13.5

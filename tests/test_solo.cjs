@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 const script=fs.readFileSync(require('node:path').join(__dirname,'../trivia_app/static/solo.js'),'utf8');
-const resultShare=require('../trivia_app/static/result_share.js');
+const shareScript=fs.readFileSync(require('node:path').join(__dirname,'../trivia_app/static/result_share.js'),'utf8');
 
 function setup(pageType='solo',withScene=false,stadium=undefined){
   const nodes=new Map(),requests=[],timers=[],stored=new Map(),shots=[],copied=[],sounds=[],radio={value:pageType==='account'?'login':'easy'};
@@ -24,11 +24,10 @@ function setup(pageType='solo',withScene=false,stadium=undefined){
   const document={getElementById:get,createElement:element,querySelector:s=>s==='.solo-page'?page:radio,
     querySelectorAll:s=>s.includes('auth-mode')?[get('login-mode'),get('register-mode')]:[get('easy'),get('medium'),get('hard')]};
   const location={href:'http://localhost/penalties',origin:'http://localhost',pathname:'/penalties'};
-  vm.runInNewContext(script,{document,location,console,Date,encodeURIComponent,URLSearchParams,navigator:{clipboard:{writeText:async text=>copied.push(text)}},
+  vm.runInNewContext(shareScript+'\n'+script,{document,location,console,Date,encodeURIComponent,URLSearchParams,navigator:{clipboard:{writeText:async text=>copied.push(text)}},
     PenaltyScene:withScene?{shot:outcome=>shots.push(outcome),reset(){}}:undefined,
     PointsStadium:stadium,
     PointsAudio:{play:name=>sounds.push(name)},
-    PointsResultShare:{...resultShare,prepare:async(run,user,origin)=>({data:resultShare.snapshot(run,user,origin),file:{name:'on-the-dot-result.png'},imageUrl:'blob:result',dispose(){}})},
     history:{replaceState(_state,_title,path){location.href=location.origin+path;location.search='';}},
     crypto:{randomUUID:()=>`request-${requests.length}`},setInterval(fn,ms){timers.push({fn,ms});},
     localStorage:{getItem:k=>stored.get(k),setItem:(k,v)=>stored.set(k,v),removeItem:k=>stored.delete(k)},
@@ -225,14 +224,16 @@ test('maximum level and trial summaries do not invent next-level rewards',async(
   assert.equal(trial.get('result-level').hidden,true);
 });
 
-test('sharing offers a card and copies only the score and public link when native files are unavailable',async()=>{
+test('sharing publishes only on click and copies only the rich result URL',async()=>{
   const s=setup();await boot(s,true,run({phase:'FINISHED',correct:7,total_xp:70}));
-  await s.get('share-result').emit('click');
+  assert(!s.requests.some(r=>r.url==='/api/shares/results'));
+  const click=s.get('share-result').emit('click');
+  reply(s.requests.at(-1),{title:'Result',url:'https://onthedot.gg/s/token',image_url:'https://onthedot.gg/s/token/image.png'});await click;
   assert.equal(s.get('share-options').hidden,false);
-  assert.equal(s.get('share-download').download,'on-the-dot-result.png');
+  assert.equal(s.get('share-card-link').href,'https://onthedot.gg/s/token');
   await s.get('share-copy').emit('click');
-  assert.equal(s.copied[0],'ON THE DOT. · Easy penalties\n7/10 correct · 70 XP\nhttp://localhost/penalties');
-  assert.equal(s.get('share-dialog-status').textContent,'Result and link copied.');
+  assert.equal(s.copied[0],'https://onthedot.gg/s/token');
+  assert.equal(s.get('share-dialog-status').textContent,'Result link copied.');
   assert.equal(s.get('share-dialog').open,true);
 });
 
@@ -361,7 +362,9 @@ test('deciding shot completes before stadium outro and results do not replay on 
   outro.resolve();await flush();
   assert.deepEqual(s.sounds,['win']);
   assert.equal(s.get('result-metrics').children[0].children[0].textContent,'6 / 6');
-  await s.get('share-result').emit('click');await s.get('share-copy').emit('click');assert.match(s.copied[0],/3 : 0 · 6\/6 correct/);
+  const sharing=s.get('share-result').emit('click');
+  reply(s.requests.at(-1),{title:'3 : 0',url:'https://onthedot.gg/s/win',image_url:'https://onthedot.gg/s/win/image.png'});await sharing;
+  await s.get('share-copy').emit('click');assert.equal(s.copied[0],'https://onthedot.gg/s/win');
   s.get('retry').emit('click');await flush();reply(s.requests.at(-1),done);await flush();
   assert.deepEqual(calls,['shot','outro']);
   assert.deepEqual(s.sounds,['win']);

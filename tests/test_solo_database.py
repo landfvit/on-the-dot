@@ -37,7 +37,7 @@ class SoloDatabaseTests(unittest.TestCase):
                 mock=patch(target,return_value=original);mock.start();self.addCleanup(mock.stop)
             conn.execute(sql.SQL('CREATE SCHEMA {}').format(sql.Identifier(self.schema)))
             conn.execute(sql.SQL('SET search_path TO {},public').format(sql.Identifier(self.schema)))
-            for name in ['037_player_progress','038_solo_answer_guards','039_email_trials_xp','040_weekly_question_history','042_solo_answer_duration','043_solo_shootout','044_solo_community','045_account_settings','046_team_membership','047_daily_friends']:
+            for name in ['037_player_progress','038_solo_answer_guards','039_email_trials_xp','040_weekly_question_history','042_solo_answer_duration','043_solo_shootout','044_solo_community','045_account_settings','046_team_membership','047_daily_friends','048_social_play']:
                 if name=='039_email_trials_xp':
                     conn.execute('INSERT INTO game_accounts(account_id,username,password_hash) VALUES(%s,%s,%s)',
                                  (uuid4(),'legacy_player',password_hash('legacy-password-1234')))
@@ -51,9 +51,9 @@ class SoloDatabaseTests(unittest.TestCase):
                 conn.execute(sql.SQL('SET search_path TO {},public').format(sql.Identifier(self.schema)))
                 yield conn
         self.connection=isolated
-        for module in ['api.player_accounts','api.solo_routes','api.solo_difficulty','api.game_community']:
+        for module in ['api.player_accounts','api.solo_routes','api.solo_difficulty','api.game_community','api.social_routes','api.result_shares','trivia_app.main']:
             p=patch(module+'.get_connection',isolated);p.start();self.addCleanup(p.stop)
-        for module in ['api.player_accounts','api.solo_routes']:
+        for module in ['api.player_accounts','api.solo_routes','api.social_routes','api.result_shares']:
             p=patch(module+'.rate_limit');p.start();self.addCleanup(p.stop)
         self.client=TestClient(app)
         response=self.client.post('/api/players/register',json={'username':'test_player','email':'player@example.com','password':'test-only-password-1234'})

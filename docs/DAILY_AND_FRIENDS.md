@@ -32,7 +32,9 @@ this additive schema while retaining all new records for a later redeployment.
 
 ## Friend Duel
 
-- Two registered accounts, opaque invitation token, no ranked matchmaking.
+- Two players, registered or guest, opaque invitation token, no ranked matchmaking.
+  Guests use a private HttpOnly session cookie. Display names are You/Friend,
+  never the generated guest account username. Daily still requires registration.
 - No XP, bonus, rating, streak activity or Solo statistics. Database trigger
   rejects Friend Duel XP, not just the UI.
 - Both participants explicitly join/ready, then share a server opening timestamp.

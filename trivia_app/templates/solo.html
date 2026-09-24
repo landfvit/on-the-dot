@@ -2,22 +2,22 @@
 {% set mode = game_mode|default('solo') %}
 {% set mode_title = 'Daily Challenge' if mode == 'daily' else 'Friend Duel' if mode == 'friend' else 'Penalties' %}
 {% block title %}{{ mode_title }} · ON THE DOT.{% endblock %}
-{% block final_styles %}<link rel="stylesheet" href="/trivia-assets/solo_mobile.css?v=2"><link rel="stylesheet" href="/trivia-assets/solo_results.css?v=1"><link rel="stylesheet" href="/trivia-assets/game_modes.css?v=1">{% endblock %}
+{% block final_styles %}<link rel="stylesheet" href="/trivia-assets/solo_mobile.css?v=2"><link rel="stylesheet" href="/trivia-assets/solo_results.css?v=1"><link rel="stylesheet" href="/trivia-assets/game_modes.css?v=2">{% endblock %}
 {% block styles %}<link rel="stylesheet" href="/trivia-assets/penalties.css?v=2"><link rel="stylesheet" href="/trivia-assets/solo.css?v=4"><link rel="stylesheet" href="/trivia-assets/stadium.css?v=4"><link rel="stylesheet" href="/trivia-assets/shootout.css?v=4">{% endblock %}
 {% block content %}
 {% include 'stadium.html' %}
-<section id="shootout-board" aria-label="Penalty shootout score" hidden>
-  <div class="shootout-team"><span>You</span><strong id="score-player">0</strong><div id="kicks-player" class="shootout-kicks"></div></div>
-  <div class="shootout-team"><span>Opponent</span><strong id="score-opponent">0</strong><div id="kicks-opponent" class="shootout-kicks"></div></div>
+<section id="shootout-board" data-mode="{{ mode }}" aria-label="Penalty shootout score" hidden>
+  <div class="shootout-team"><span id="name-player">You</span><strong id="score-player">0</strong><div id="kicks-player" class="shootout-kicks"></div></div>
+  <div class="shootout-team"><span id="name-opponent">Opponent</span><strong id="score-opponent">0</strong><div id="kicks-opponent" class="shootout-kicks"></div></div>
   <small id="shootout-round"></small>
 </section>
 <main class="solo-page solo-penalties" data-page="{{ 'friend' if mode == 'friend' else 'solo' }}" data-mode="{{ mode }}" data-invite="{{ invite_code|default('') }}">
-  <header class="solo-heading"><h1>{{ mode_title }}</h1><a class="game-rules-link" href="/how-to-play"><img src="/trivia-assets/icons/circle-help.svg" alt="">How to play</a></header>
+  <header class="solo-heading"><h1>{{ mode_title }}</h1><button type="button" class="game-rules-link" data-mode-help><img src="/trivia-assets/icons/circle-help.svg" alt="">How to play</button></header>
   <div id="notice" role="status" aria-live="polite"></div><div id="error" role="alert" hidden></div>
   <div class="solo-penalty-layout"><div class="solo-questions">
   <section id="selection" aria-label="Choose a quiz">
     <nav class="game-mode-tabs" aria-label="Game mode"><a href="/penalties" {% if mode == 'solo' %}aria-current="page"{% endif %}>Solo</a><a href="/daily" {% if mode == 'daily' %}aria-current="page"{% endif %}>Daily Challenge</a><a href="/friends" {% if mode == 'friend' %}aria-current="page"{% endif %}>Friend Duel</a></nav>
-    <section id="mode-auth" hidden><h2>Play with an account</h2><p>Unlock Daily Challenge and private Friend Duels. Save Solo and Daily XP, earn levels and build your streak.</p><div class="actions"><a id="mode-signin" class="primary-link" href="/account">Sign in</a><a id="mode-register" class="primary-link" href="/account?mode=register">Create account</a></div></section>
+    <section id="mode-auth" hidden><h2>Play with an account</h2><p>Unlock Daily Challenge, save XP and build your streak. Add friends and invite them from your profile.</p><div class="actions"><a id="mode-signin" class="primary-link" href="/account">Sign in</a><a id="mode-register" class="primary-link" href="/account?mode=register">Create account</a></div></section>
     <form id="quiz-start" class="quiz-selection">
       <fieldset class="difficulty-options" {% if mode == 'daily' %}hidden{% endif %}><legend>Difficulty</legend>
         <label><input type="radio" name="difficulty" value="easy" checked><span>Easy <small id="easy-rate">10 XP / answer</small><small id="easy-perfect">Win: 2x XP</small></span></label>
@@ -39,16 +39,16 @@
     <h2 id="question-title" tabindex="-1"></h2>
     <div id="choices" class="solo-choices" role="group" aria-labelledby="question-title"></div>
     <div class="feedback-slot"><p id="feedback" role="status" aria-live="polite"></p><button id="feedback-expand" type="button" aria-label="Read full explanation" title="Read full explanation" hidden><img src="/trivia-assets/icons/arrow-right.svg" alt=""></button></div>
-    <div class="actions"><button id="next" class="primary" hidden>Next shot</button><button id="leave">End shootout</button><button id="retry" hidden>Reconnect</button></div>
+    <div class="actions"><button id="next" class="primary" hidden>Next shot</button><button id="leave" {% if mode == 'friend' %}aria-haspopup="dialog"{% endif %}>{{ 'Forfeit' if mode == 'friend' else 'End shootout' }}</button><button id="retry" hidden>Reconnect</button></div>
     </div>
     {% with ad_slot='gameplay-bottom', ad_class='ad-gameplay' %}{% include 'ad_slot.html' %}{% endwith %}
     <section id="summary" hidden aria-labelledby="result-heading">
       <div class="result-heading-row"><div class="result-heading-copy"><h2 id="result-heading" tabindex="-1"></h2><p id="result-completion" class="muted"></p></div><button id="share-result" class="icon-button" type="button" aria-label="Share with friends" title="Share with friends" disabled><img src="/trivia-assets/icons/share-2.svg" alt=""><span>Share with friends</span></button></div>
       <div class="metrics" id="result-metrics"></div>
       <div id="result-level" hidden><strong id="result-level-label"></strong><progress id="result-level-progress" aria-label="Level progress"></progress><p id="result-level-remaining"></p></div>
-      <div class="actions result-actions"><button id="another" class="primary" hidden>New shootout</button><a id="summary-account" class="primary-link" href="/account">View profile</a><a class="primary-link" href="/leaderboard">Leaderboard</a></div>
+      <div class="actions result-actions"><button id="another" class="primary" hidden>New shootout</button><a id="summary-account" class="primary-link" href="/account">View profile</a><a class="primary-link" href="/leaderboard">Leaderboard</a><a class="primary-link" href="/">Home</a></div>
       <section id="guest-benefits" class="guest-benefits" aria-labelledby="guest-heading" hidden>
-        <div><h3 id="guest-heading">Make it count</h3><p>Save XP, levels and streaks. Unlock Daily Challenge and Friend Duels. Guest progress stays separate.</p></div>
+        <div><h3 id="guest-heading">Make it count</h3><p>Save XP, levels and streaks. Unlock Daily Challenge and add friends. Guest progress stays separate.</p></div>
         <a class="primary-link" href="/account?mode=register">Create account</a>
       </section>
       {% with ad_slot='shootout-results' %}{% include 'ad_slot.html' %}{% endwith %}
@@ -61,6 +61,19 @@
     <div id="solo-attempts" aria-label="Your penalties"></div>
   </section></div>
 </main>
+<dialog id="mode-intro" class="result-dialog" aria-labelledby="mode-intro-title">
+  <h2 id="mode-intro-title"></h2>
+  <div class="mode-intro-scenes"><img src="/trivia-assets/guide/shooter.png" alt="Shooting a penalty"><img src="/trivia-assets/guide/keeper.png" alt="Defending a penalty"></div>
+  <ul id="mode-intro-rules"></ul>
+  <form method="dialog" class="actions"><button value="cancel">Back</button><button class="primary" value="play">Let's play</button></form>
+</dialog>
+{% if mode == 'friend' %}
+<dialog id="forfeit-dialog" class="result-dialog" aria-labelledby="forfeit-heading" aria-describedby="forfeit-description">
+  <h2 id="forfeit-heading">Forfeit duel?</h2>
+  <p id="forfeit-description"></p>
+  <div class="actions"><button id="forfeit-cancel" type="button" autofocus>Keep playing</button><button id="forfeit-confirm" type="button">Forfeit</button></div>
+</dialog>
+{% endif %}
 <dialog id="feedback-dialog" aria-labelledby="feedback-heading">
   <div class="drawer-heading"><h2 id="feedback-heading">Answer explanation</h2><button id="feedback-close" class="icon-button" type="button" aria-label="Close explanation"><img src="/trivia-assets/icons/x.svg" alt=""></button></div>
   <p id="feedback-full"></p>
@@ -73,11 +86,11 @@
 <dialog id="share-dialog" class="result-dialog" aria-labelledby="share-heading">
   <div class="drawer-heading"><h2 id="share-heading">Share with friends</h2><button id="share-close" class="icon-button" type="button" aria-label="Close sharing"><img src="/trivia-assets/icons/x.svg" alt=""></button></div>
   <div id="share-options" hidden>
-    <img id="share-preview" alt="Your shootout result card" width="1200" height="630">
-    <div class="actions"><a id="share-download" class="primary-link" download="on-the-dot-result.png"><img src="/trivia-assets/icons/download.svg" alt="">Download card</a><button id="share-copy" type="button"><img src="/trivia-assets/icons/copy.svg" alt="">Copy link</button></div>
+    <a id="share-card-link" aria-label="Open shared result"><img id="share-preview" alt="Your shootout result card" width="1200" height="630"></a>
+    <div class="actions"><button id="share-native" class="primary" type="button"><img src="/trivia-assets/icons/share-2.svg" alt="">Share link</button><button id="share-copy" type="button"><img src="/trivia-assets/icons/copy.svg" alt="">Copy link</button></div>
     <input id="share-link" aria-label="Game link" readonly>
     <p id="share-dialog-status" role="status"></p>
   </div>
 </dialog>
 {% endblock %}
-{% block scripts %}<script src="/trivia-assets/penalty_shots.js?v=1" defer></script><script src="/trivia-assets/stadium_intro.js?v=12" defer></script><script src="/trivia-assets/penalty_scene.js?v=6" defer></script><script src="/trivia-assets/result_share.js?v=2" defer></script><script src="/trivia-assets/{{ 'friends.js?v=1' if mode == 'friend' else 'solo.js?v=18' }}" defer></script><script src="/trivia-assets/solo_mobile.js?v=1" defer></script>{% endblock %}
+{% block scripts %}<script src="/trivia-assets/penalty_shots.js?v=1" defer></script><script src="/trivia-assets/stadium_intro.js?v=12" defer></script><script src="/trivia-assets/penalty_scene.js?v=6" defer></script><script src="/trivia-assets/result_share.js?v=3" defer></script><script src="/trivia-assets/mode_intro.js?v=1" defer></script><script src="/trivia-assets/{{ 'friends.js?v=3' if mode == 'friend' else 'solo.js?v=19' }}" defer></script><script src="/trivia-assets/solo_mobile.js?v=1" defer></script>{% endblock %}

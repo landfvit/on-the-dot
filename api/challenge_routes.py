@@ -1,15 +1,16 @@
-"""Registered-only daily challenges and private, unrated friend invitations."""
+"""Registered Daily Challenges and guest-capable, unrated Friend Duels."""
 from copy import deepcopy
 from datetime import datetime,time,timedelta,timezone
 import secrets
 from typing import Literal
 from uuid import UUID,uuid4
 
-from fastapi import APIRouter,Depends,HTTPException,Request
+from fastapi import APIRouter,Depends,HTTPException,Request,Response
 from psycopg.types.json import Jsonb
 
 from api.database import get_connection
-from api.player_accounts import account,profile
+from api.player_accounts import account,profile,COOKIE as ACCOUNT_COOKIE
+from api.solo_trials import trial_player
 from api.penalty_routes import now_ms,rate_limit
 from api.solo_routes import active_releases,Answer,Next
 from api.solo_history import week_window
@@ -225,8 +226,17 @@ def daily_leave(run_id:UUID,request:Request):return daily_action(run_id,request,
 
 
 def friend_public(row,user,now):
-    return {**game.penalty.view(row['state'],str(user['account_id']),now),'code':row['invite'],
-            'run_id':str(row['run_id']),'difficulty':row['state']['difficulty'],'xp_saved':False}
+    result={**game.penalty.view(row['state'],str(user['account_id']),now),'code':row['invite'],
+            'run_id':str(row['run_id']),'difficulty':row['state']['difficulty'],'xp_saved':False,'is_guest':user['is_guest']}
+    for shown,frozen in zip(result['players'],row['state']['players']):shown['is_guest']=frozen.get('is_guest',False)
+    return result
+
+
+def friend_identity(conn,request,*,response=None,create=False,lock=False):
+    # Guests get the same opaque, HttpOnly browser identity used by Solo. Never
+    # expose its generated trial username or turn it into a registered profile.
+    if request.cookies.get(ACCOUNT_COOKIE):return account(conn,request,lock=lock)
+    return trial_player(conn,request,response=response,create=create,lock=lock)
 
 
 def replenish(conn,s,ids,now):
@@ -238,16 +248,17 @@ def replenish(conn,s,ids,now):
 
 
 @router.post('/api/friends/rooms',dependencies=[Depends(same_origin)],status_code=201)
-def friend_create(body:FriendStart,request:Request):
+def friend_create(body:FriendStart,request:Request,response:Response):
     rate_limit(request,'friend-create',10)
     with get_connection() as conn:
-        user=account(conn,request,lock=True);ident=user['account_id'];now=now_ms(conn)
+        user=friend_identity(conn,request,response=response,create=True,lock=True);ident=user['account_id'];now=now_ms(conn)
         row=conn.execute('SELECT * FROM game_mode_runs WHERE owner_id=%s AND start_request_id=%s',(ident,body.request_id)).fetchone()
         if row:
             if row['mode']!='friend' or row['state']['difficulty']!=body.difficulty:raise HTTPException(409,'Request ID already used')
             return friend_public(row,user,now)
         ensure_free(conn,ident)
-        s=game.friend_create(str(ident),user['username'],body.difficulty,now)
+        s=game.friend_create(str(ident),'Friend' if user['is_guest'] else user['username'],body.difficulty,now)
+        s['players'][0]['is_guest']=user['is_guest']
         s['first']=s['shooter']=secrets.randbelow(2)
         row=conn.execute('''INSERT INTO game_mode_runs(run_id,mode,owner_id,start_request_id,invite,state)
             VALUES(%s,'friend',%s,%s,%s,%s) RETURNING *''',(uuid4(),ident,body.request_id,secrets.token_urlsafe(32),Jsonb(s))).fetchone()
@@ -258,7 +269,8 @@ def friend_create(body:FriendStart,request:Request):
 @router.get('/api/friends/active')
 def friend_active(request:Request):
     with get_connection() as conn:
-        user=account(conn,request)
+        user=friend_identity(conn,request)
+        if not user:return {'code':None}
         row=conn.execute("""SELECT r.invite FROM game_mode_runs r JOIN game_mode_members m USING(run_id)
             WHERE m.account_id=%s AND m.active AND r.mode='friend'""",(user['account_id'],)).fetchone()
         return {'code':row['invite'] if row else None}
@@ -267,19 +279,21 @@ def friend_active(request:Request):
 @router.get('/api/friends/invites/{code}')
 def friend_invite(code:str,request:Request):
     with get_connection() as conn:
-        user=account(conn,request)
+        user=friend_identity(conn,request)
         row=conn.execute("SELECT * FROM game_mode_runs WHERE invite=%s AND mode='friend'",(code,)).fetchone()
         if not row:raise HTTPException(404,'Invitation not found')
-        member=conn.execute('SELECT 1 FROM game_mode_members WHERE run_id=%s AND account_id=%s',(row['run_id'],user['account_id'])).fetchone()
+        member=user and conn.execute('SELECT 1 FROM game_mode_members WHERE run_id=%s AND account_id=%s',(row['run_id'],user['account_id'])).fetchone()
         now=now_ms(conn);s=row['state']
         return {'member':bool(member),'host':s['players'][0]['name'],'difficulty':s['difficulty'],
                 'joinable':not member and s['phase']=='LOBBY' and len(s['players'])==1 and now-s['created_at']<s['rules']['max_match_ms']}
 
 
-def friend_action(code,request,command='view',body=None):
+def friend_action(code,request,command='view',body=None,response=None):
     failure=None
     with get_connection() as conn:
-        user=account(conn,request);ident=user['account_id'];pid=str(ident)
+        user=friend_identity(conn,request,response=response,create=command=='join')
+        if not user:raise HTTPException(401,'Join this invitation first')
+        ident=user['account_id'];pid=str(ident)
         row=conn.execute("SELECT * FROM game_mode_runs WHERE invite=%s AND mode='friend' FOR UPDATE",(code,)).fetchone()
         if not row:raise HTTPException(404,'Friend Duel not found')
         s=row['state'];member=any(p['id']==pid for p in s['players'])
@@ -288,12 +302,13 @@ def friend_action(code,request,command='view',body=None):
         # Solo/Daily only lock their own account, so cross-mode starts serialize.
         ids=sorted({UUID(p['id']) for p in s['players']}|{ident})
         conn.execute('SELECT account_id FROM game_accounts WHERE account_id=ANY(%s) ORDER BY account_id FOR UPDATE',(ids,)).fetchall()
-        account(conn,request)
+        if not user['is_guest']:account(conn,request)
         now=now_ms(conn);mark_seen(conn,row,now);game.friend_tick(s,now)
         try:
             if command=='join' and not member:
                 ensure_free(conn,ident)
-                game.penalty.join(s,pid,user['username'],now)
+                game.penalty.join(s,pid,'Friend' if user['is_guest'] else user['username'],now)
+                s['players'][-1]['is_guest']=user['is_guest']
                 conn.execute('INSERT INTO game_mode_members(run_id,account_id,seat) VALUES(%s,%s,1)',(row['run_id'],ident))
             if s['phase'] not in game.TERMINAL:
                 player=next(p for p in s['players'] if p['id']==pid)
@@ -323,9 +338,9 @@ def friend_get(code:str,request:Request):return friend_action(code,request)
 
 
 @router.post('/api/friends/rooms/{code}/join',dependencies=[Depends(same_origin)])
-def friend_join(code:str,request:Request):
+def friend_join(code:str,request:Request,response:Response):
     rate_limit(request,'friend-join',20)
-    return friend_action(code,request,'join')
+    return friend_action(code,request,'join',response=response)
 
 
 @router.post('/api/friends/rooms/{code}/ready',dependencies=[Depends(same_origin)])

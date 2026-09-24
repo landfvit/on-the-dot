@@ -15,6 +15,7 @@ const profile={username:'long_username_for_test',email:'example@example.com',bio
   await page.route('**/api/**',async route=>{
    const url=new URL(route.request().url()),path=url.pathname;let data,status=200;
    if(path==='/api/players/me')data={...profile,team_change:{can_change:!locked,next_change_at:locked?new Date(Date.now()+72*3600000).toISOString():null}};
+   else if(path==='/api/players/friends')data={friends:[]};
    else if(path==='/api/players/settings')data={password_reset_available:false};
    else if(path==='/api/players/teams')data={teams:[club,{team_id:40,name:'Liverpool'}]};
    else if(path==='/api/solo/catalog'){
@@ -41,6 +42,7 @@ const profile={username:'long_username_for_test',email:'example@example.com',bio
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
    await page.screenshot({path:`${output}/selection-${width}.png`,fullPage:true});
    await page.locator('input[name=difficulty][value=hard]').check();await page.locator('#start').click();
+   if(await page.locator('#mode-intro').isVisible())await page.locator('#mode-intro button[value=play]').click();
    await page.waitForFunction(()=>document.getElementById('availability').textContent.startsWith('No new shootout'));
    assert.equal(starts.at(-1).category,'ALL');assert.equal(starts.at(-1).topic,'ALL');assert.equal(starts.at(-1).difficulty,'hard');
    assert(await page.locator('#start').isDisabled());assert(!/\d/.test(await page.locator('#availability').textContent()));

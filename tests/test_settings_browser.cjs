@@ -17,6 +17,7 @@ const initial={username:'matchday_player',email:'player@example.com',bio:'Footba
    else if(path==='/api/players/me'&&method==='PATCH'){Object.assign(profile,body);data=profile;}
    else if(path==='/api/players/me'&&method==='DELETE'){assert.equal(body.confirmation,'DELETE');signedIn=false;data={deleted:true};}
    else if(path==='/api/players/settings')data={password_reset_available:true};
+   else if(path==='/api/players/friends')data={friends:[]};
    else if(path==='/api/players/password'){assert.equal(body.current_password,'current-password');data={changed:true};}
    else if(path==='/api/players/preferences'){profile.preferences=body;data=body;}
    else if(path==='/api/players/teams')data={teams:metadata.clubs};
@@ -38,15 +39,19 @@ const initial={username:'matchday_player',email:'player@example.com',bio:'Footba
    await page.waitForFunction(()=>[...document.querySelectorAll('#team-options img')].every(i=>i.complete&&i.naturalWidth>0));
    await page.getByRole('radio',{name:'Arsenal',exact:true}).check();await page.locator('#save-team').click();
    await page.waitForFunction(()=>document.querySelector('#profile-team img')?.alt==='Arsenal');
+   await page.locator('[data-profile-tab=settings]').click();await page.locator('summary').filter({hasText:/^Public profile$/}).click();
    await page.locator('#profile-username').fill('updated_player');await page.locator('#profile-edit button[type=submit], #profile-edit button.primary').click();
    await page.waitForFunction(()=>document.querySelector('#profile-name').textContent==='updated_player');
+   await page.locator('summary').filter({hasText:/^Password$/}).click();
    await page.locator('#current-password').fill('current-password');
    const toggle=page.locator('#current-password').locator('..').getByRole('button');await toggle.click();assert.equal(await page.locator('#current-password').getAttribute('type'),'text');await toggle.click();
    await page.locator('#new-password').fill('new-password');await page.locator('#confirm-password').fill('new-password');
    await page.locator('#password-edit').getByRole('button',{name:'Change password',exact:true}).click();await page.waitForFunction(()=>document.querySelector('#password-status').textContent.includes('Password changed'));
+   await page.locator('summary').filter({hasText:/^Game preferences$/}).click();
    await page.locator('#setting-animations').uncheck();await page.locator('#setting-reduced-motion').check();await page.locator('#preferences-edit button').click();
    await page.waitForFunction(()=>document.querySelector('#preferences-status').textContent==='Preferences saved.');
    assert.equal(await page.evaluate(()=>PointsPreferences.get().animations),false);
+   await page.locator('summary').filter({hasText:/^Delete account$/}).click();
    await page.locator('#delete-open').click();assert(await page.locator('#delete-dialog').isVisible());await page.locator('#delete-cancel').click();
    await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:`${output}/account-${width}.png`,fullPage:true});
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
@@ -64,7 +69,7 @@ const initial={username:'matchday_player',email:'player@example.com',bio:'Footba
   assert.equal(await page.locator('.site-footer').textContent(),'PL Seasons 16/17 - 25/26');
   await page.screenshot({path:`${output}/selection-ads.png`,fullPage:true});
   await page.goto(origin+'/penalties');assert.equal(await page.locator('[data-ad-slot]:visible').count(),0);
-  signedIn=true;await page.goto(origin+'/account');await page.locator('#delete-open').click();await page.locator('#delete-password').fill('current-password');await page.locator('#delete-confirmation').fill('DELETE');
+  signedIn=true;await page.goto(origin+'/account');await page.locator('[data-profile-tab=settings]').click();await page.locator('summary').filter({hasText:/^Delete account$/}).click();await page.locator('#delete-open').click();await page.locator('#delete-password').fill('current-password');await page.locator('#delete-confirmation').fill('DELETE');
   await page.locator('#delete-account .danger-button').click();await page.waitForURL('**/penalties');assert(!signedIn);
   assert.deepEqual(errors,[]);console.log('PASS recovery, token privacy, ad placements, seasons and deletion');
  }finally{await browser.close();}

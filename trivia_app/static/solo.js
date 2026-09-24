@@ -35,6 +35,7 @@
     $('level-progress').value=p.next_level_xp===null?1:p.total_xp-p.level_xp;
     $('daily-status').textContent='';$('daily-status').hidden=true;
     if(own){teamChangeAt=p.team_change?.next_change_at||null;teamChangeStatus();$('bio').value=p.bio;$('profile-username').value=p.username;$('account-email').value=p.email||'';$('public-profile').href='/u/'+encodeURIComponent(p.username);globalThis.PointsAccountSettings?.setProfile(p);}
+    globalThis.PointsFriends?.profile(p,own);
   }
   async function accountPage(){
     const params=new URLSearchParams(location.search||''),next=params.get('next');
@@ -98,7 +99,8 @@
     const stadium=globalThis.PointsStadium;
     let stadiumRun=null,stadiumWaiting=false,presentation=0,presented='';
     const resultShare=globalThis.PointsResultShare;
-    let shareCard=null,shareVersion=0,reviewPosition=0;
+    let reviewPosition=0;
+    const sharing=resultShare?.bind?.(()=>run?{run_id:run.run_id,mode:daily?'daily':'solo'}:null);
     // Detail views are separate dialogs, so long shootouts never grow the
     // result card. Pagination is presentation-only and uses server review data.
     function reviewAnswer(position){
@@ -115,29 +117,9 @@
       $('review-previous').disabled=reviewPosition===0;
       $('review-next').disabled=reviewPosition>=answers.length-1;
     }
-    function shareFallback(){
-      $('share-options').hidden=false;
-      if(!$('share-dialog').open)$('share-dialog').showModal();
-    }
     function clearShare(){
-      shareVersion++;shareCard?.dispose();shareCard=null;
-      $('share-result').disabled=true;$('share-options').hidden=true;
-      $('share-preview').removeAttribute('src');$('share-download').removeAttribute('href');
-      $('share-status').textContent='';
-      $('share-dialog-status').textContent='';
-      if($('share-dialog').open)$('share-dialog').close();
+      sharing?.reset();
       if($('review-dialog').open)$('review-dialog').close();
-    }
-    async function prepareShare(){
-      clearShare();const own=shareVersion;
-      if(!resultShare)return;
-      try{
-        const card=await resultShare.prepare(run,user,location.origin);
-        if(own!==shareVersion){card.dispose();return;}
-        shareCard=card;$('share-preview').src=card.imageUrl;
-        $('share-download').href=card.imageUrl;$('share-download').download=card.file.name;
-        $('share-link').value=card.data.url;$('share-result').disabled=false;
-      }catch{if(own===shareVersion)$('share-status').textContent='Could not prepare the result card. Refresh to retry.';}
     }
     async function shootoutView(){
       const key=`${run.run_id}:${run.position}:${run.phase}`;
@@ -293,7 +275,7 @@
       $('leave').hidden=done;$('another').hidden=!done;$('summary').hidden=!done;
       $('another').textContent='New shootout';$('guest-benefits').hidden=!done||!run.is_trial;
       if(done){
-        prepareShare();
+        clearShare();
         $('share-status').textContent='';
         const total=run.shootout?run.review.length:run.rules.questions;
         $('result-heading').textContent=run.shootout?.winner?(run.shootout.winner==='player'?'You won the shootout!':'Opponent wins'):run.perfect?'Perfect shootout!':run.phase==='ABANDONED'?'Shootout ended':'Shootout complete';
@@ -350,31 +332,13 @@
     $('review-previous').addEventListener('click',()=>reviewAnswer(reviewPosition-1));
     $('review-next').addEventListener('click',()=>reviewAnswer(reviewPosition+1));
     $('review-close').addEventListener('click',()=>$('review-dialog').close());
-    $('share-close').addEventListener('click',()=>$('share-dialog').close());
-    $('share-result').addEventListener('click',async()=>{
-      if(!shareCard)return;
-      const card=shareCard;const own=shareVersion;$('share-result').disabled=true;$('share-status').textContent='';
-      try{
-        // The PNG is already prepared: native share retains click activation.
-        const outcome=await resultShare.share(card,navigator);
-        if(own!==shareVersion)return;
-        if(outcome==='fallback')shareFallback();
-        else if(outcome==='shared')$('share-status').textContent='Share completed.';
-      }catch{if(own===shareVersion){shareFallback();$('share-dialog-status').textContent='The card and link are ready to share.';}}
-      finally{if(own===shareVersion)$('share-result').disabled=false;}
-    });
-    $('share-copy').addEventListener('click',async()=>{
-      if(!shareCard)return;const own=shareVersion;
-      try{await navigator.clipboard.writeText(shareCard.data.text+'\n'+shareCard.data.url);if(own===shareVersion)$('share-dialog-status').textContent='Result and link copied.';}
-      catch{if(own===shareVersion){$('share-link').focus();$('share-link').select();$('share-dialog-status').textContent='Copy unavailable. The link is selected.';}}
-    });
     $('another').addEventListener('click',async()=>{presentation++;presented='';stadium?.leave();stadiumRun=null;stadiumWaiting=false;storage(null);clearShare();run=null;pending=null;startRequest=null;rendered='';if(location.search)history.replaceState(null,'',location.pathname);page.classList.toggle('shootout-active',false);page.classList.toggle('shootout-finished',false);pitch();$('quiz-run').hidden=true;$('selection').hidden=false;error('');try{await loadCatalog();}catch(e){error(e.message);}});
     document.querySelectorAll('input[name="difficulty"]').forEach(r=>r.addEventListener('change',selection));
     $('quiz-start').addEventListener('submit',async e=>{
       e.preventDefault();if(busy||!catalogReady||(counts[difficulty()]||0)<minimum||daily&&wonToday)return;busy=true;selection();error('');
       const category='ALL',topic='ALL',level=difficulty();
       if(!startRequest||startRequest.category!==category||startRequest.topic!==topic||startRequest.difficulty!==level)startRequest={category,topic,difficulty:level,request_id:crypto.randomUUID()};
-      try{const next=await api(base+'/runs',daily?{request_id:startRequest.request_id}:startRequest);busy=false;render(next);startRequest=null;}catch(e){error(e.message);if(e.status===409){try{await loadCatalog();}catch(refreshError){error(refreshError.message);}}}finally{busy=false;selection();}
+      try{if(globalThis.PointsModeIntro&&!await globalThis.PointsModeIntro.show(daily?'daily':'solo'))return;const next=await api(base+'/runs',daily?{request_id:startRequest.request_id}:startRequest);busy=false;render(next);startRequest=null;}catch(e){error(e.message);if(e.status===409){try{await loadCatalog();}catch(refreshError){error(refreshError.message);}}}finally{busy=false;selection();}
     });
     setInterval(()=>{
       if(!run)return;

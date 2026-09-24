@@ -74,7 +74,23 @@ test('team ranking uses returned totals and badges, never averages them again',a
   assert.equal(row.className,'own-rank');assert.equal(row.children[2].textContent,'62.5%');
   assert.equal(row.children[1].children[0].tag,'span');assert.equal(row.children[1].children[1].alt,team.name);
   assert.equal(s.get('rank-name').textContent,'Team');assert.equal(s.get('team-ranking-note').hidden,false);
-  assert.equal(s.get('team-level-choice').hidden,false);assert.equal(s.get('participant-count').textContent,'1 team');
+  assert.equal(s.get('participant-count').textContent,'1 team');
+});
+
+test('player levels use server values, disable periods and survive board changes',async()=>{
+  const s=setup();s.metric.value='level';s.get('level').handlers.change();
+  assert.match(s.requests.at(-1).url,/period=all&metric=level&board=players/);
+  for(const tab of ['today','week','all'])assert.equal(s.get(tab).disabled,true);
+  reply(s.requests.at(-1),{...board,board:'players',metric:'level',period:'all',since:null});await flush();
+  assert.equal(s.get('rank-value').textContent,'Levels');
+  assert.equal(s.get('ranking-rows').children[0].children[2].textContent,'2');
+  assert.equal(s.get('ranking-self').children[1].textContent,'2 Levels');
+  s.board.value='teams';s.get('teams').handlers.change();
+  assert.match(s.requests.at(-1).url,/period=all&metric=level&board=teams/);
+  s.board.value='players';s.get('players').handlers.change();
+  assert.match(s.requests.at(-1).url,/period=all&metric=level&board=players/);
+  s.metric.value='xp';s.get('xp').handlers.change();
+  for(const tab of ['today','week','all'])assert.equal(s.get(tab).disabled,false);
 });
 
 test('current streak ignores the period filter and shows days',async()=>{

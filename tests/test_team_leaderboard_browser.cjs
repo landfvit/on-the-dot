@@ -47,23 +47,31 @@ const profile={username:'long_username_for_test',email:'example@example.com',bio
    await page.locator('input[name=difficulty][value=medium]').check();assert(await page.locator('#start').isEnabled());
    await page.goto(origin+'/leaderboard');await page.waitForSelector('#ranking-table:not([hidden])');
    assert.equal(rankRequests.at(-1).metric,'xp');assert.equal(rankRequests.at(-1).board,'players');
-   assert.equal(await page.locator('#team-level-choice').isVisible(),false);
+   assert(await page.locator('#level-choice').isVisible());
    for(const board of ['players','teams']){
     await page.locator(`input[name=board][value=${board}]`).check();
-    for(const metric of board==='teams'?['xp','streak','wins','win_rate','level']:['xp','streak','wins','win_rate']){
+    for(const metric of ['xp','streak','wins','win_rate','level']){
      await page.locator(`input[name=metric][value=${metric}]`).check();
      await page.waitForFunction(metric=>document.getElementById('ranking-table').dataset.metric===metric&&!document.getElementById('ranking-table').hidden,metric);
      assert.equal(await page.locator('#ranking-rows tr:first-child td').count(),3);
      assert.equal(rankRequests.at(-1).board,board);
-     if(['level','streak'].includes(metric))assert.equal(rankRequests.at(-1).period,'all');
+     if(['level','streak'].includes(metric)){
+      assert.equal(rankRequests.at(-1).period,'all');
+      assert.equal(await page.locator('input[name=period]:disabled').count(),3);
+     }
+     if(metric==='level'){
+      assert.equal(await page.locator('#ranking-rows tr:first-child td:last-child').textContent(),'23');
+      assert.equal(await page.locator('#rank-value').textContent(),'Levels');
+     }
      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
      const overflow=await page.locator('#ranking-table').evaluate(e=>e.scrollWidth>e.clientWidth+1);assert(!overflow);
     }
     await page.screenshot({path:`${output}/${board}-${width}.png`,fullPage:true});
    }
    await page.locator('input[name=board][value=players]').check();
-   await page.waitForFunction(()=>document.getElementById('ranking-table').dataset.metric==='xp'&&!document.getElementById('ranking-table').hidden);
-   assert(await page.locator('input[name=metric][value=xp]').isChecked());
+   await page.waitForFunction(()=>document.getElementById('rank-name').textContent==='Player'&&document.getElementById('ranking-table').dataset.metric==='level'&&!document.getElementById('ranking-table').hidden);
+   assert(await page.locator('input[name=metric][value=level]').isChecked());
+   assert.equal(rankRequests.at(-1).board,'players');
    console.log(`PASS ${width}: difficulty-only selection, mixed payload, all ranking metrics, no overflow`);
   }
   locked=true;await page.goto(origin+'/account');await page.waitForSelector('#own-profile:not([hidden])');

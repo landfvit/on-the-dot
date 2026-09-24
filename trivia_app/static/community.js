@@ -67,7 +67,6 @@
     try {
       const currentOnly=['level','streak'].includes(metric());
       if(ranking){
-        $('team-level-choice').hidden=board()!=='teams';
         document.querySelectorAll('input[name="period"]').forEach(input=>{input.disabled=currentOnly;if(currentOnly)input.checked=input.value==='all';});
       }
       const response=await fetch(`/api/community/${ranking?'leaderboard?period='+(currentOnly?'all':period())+'&metric='+metric()+'&board='+board():'history?'}&offset=${offset}&limit=${size}`,{signal:controller.signal});
@@ -83,7 +82,6 @@
   document.querySelectorAll('input[name="period"]').forEach(input=>input.addEventListener('change',()=>{offset=0;load();}));
   document.querySelectorAll('input[name="metric"]').forEach(input=>input.addEventListener('change',()=>{offset=0;load();}));
   document.querySelectorAll('input[name="board"]').forEach(input=>input.addEventListener('change',()=>{
-    if(board()==='players'&&metric()==='level')document.querySelector('input[name="metric"][value="xp"]').checked=true;
     offset=0;load();
   }));
   $('previous-page').addEventListener('click',()=>{offset=Math.max(0,offset-size);load();});

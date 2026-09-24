@@ -2,7 +2,7 @@
 .solo-heading .game-rules-link { display:inline-flex; align-items:center; gap:8px; min-height:44px; font-size:13px; white-space:nowrap; }
 .game-rules-link img { width:18px; height:18px; filter:invert(1); }
 .team-rules-link { font-size:13px; color:var(--muted); }
-/* Keep the supplied square artwork intact. The game already hides its heading
+/* The game already hides its heading
  * while playing, so this logo never takes space from the question controls. */
 .brand-heading { display:grid; grid-template-columns:144px minmax(0,1fr); gap:12px 24px; }
 .brand-heading .home-logo { display:block; grid-column:1; grid-row:1 / span 2; width:144px; height:144px; object-fit:contain; }

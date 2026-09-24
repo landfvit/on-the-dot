@@ -1,4 +1,4 @@
-/* Local visual checks. Original PNGs stay intact; the browser scales them. */
+/* Local visual checks for the transparent wordmark and rounded white tab icons. */
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs');
 const origin=process.env.MOBILE_TEST_URL||'http://127.0.0.1:8013';
 assert(['localhost','127.0.0.1'].includes(new URL(origin).hostname));
@@ -20,11 +20,28 @@ const output='/tmp/on-the-dot-brand';fs.mkdirSync(output,{recursive:true});
    await page.setViewportSize({width,height});
    for(const path of ['/','/penalties']){
     await page.goto(origin+path);
-    await page.waitForFunction(()=>document.querySelector('.home-logo')?.complete&&document.querySelector('.home-logo').naturalWidth===2000);
+    await page.waitForFunction(()=>document.querySelector('.home-logo')?.complete&&document.querySelector('.home-logo').naturalWidth===432);
     if(path==='/penalties')await page.waitForFunction(()=>!document.getElementById('start').disabled);
     const logo=await page.locator('.home-logo').boundingBox(),heading=await page.locator('.brand-heading h1').boundingBox(),action=await page.locator('.brand-heading > a').boundingBox();
     assert.equal(logo.width,logo.height);assert(logo.width>=96);assert(logo.y+logo.height<height);
     assert(logo.x+logo.width<=heading.x);assert(heading.y+heading.height<=action.y+1);
+    const logoStyle=await page.locator('.home-logo').evaluate(e=>({radius:getComputedStyle(e).borderRadius,background:getComputedStyle(e).backgroundColor}));
+    assert.equal(logoStyle.radius,'0px');assert.equal(logoStyle.background,'rgba(0, 0, 0, 0)');
+    const wordmark=await page.locator('.home-logo').evaluate(e=>{
+     const canvas=document.createElement('canvas');canvas.width=canvas.height=96;
+     const ctx=canvas.getContext('2d');ctx.drawImage(e,0,0,96,96);
+     const data=ctx.getImageData(0,0,96,96).data;let transparent=0,green=0,black=0;
+     for(let i=0;i<data.length;i+=4){
+      if(data[i+3]===0)transparent++;
+      if(data[i+3]>240&&data[i+1]>100&&data[i+1]>data[i]*2)green++;
+      if(data[i+3]>240&&data[i]<40&&data[i+1]<40&&data[i+2]<40)black++;
+     }
+     return {cornerAlpha:data[3],transparent,green,black};
+    });
+    assert.equal(wordmark.cornerAlpha,0,'Wordmark background must be transparent');
+    assert(wordmark.transparent>96*96*.3,'Background and gaps must have genuine alpha');
+    assert(wordmark.green>96*96*.2,'Green discs must remain visible');
+    assert(wordmark.black>96*96*.03,'Black lettering must remain opaque');
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     const favicons=await page.evaluate(async()=>{
      const results=[];
@@ -32,12 +49,16 @@ const output='/tmp/on-the-dot-brand';fs.mkdirSync(output,{recursive:true});
       const img=new Image();img.src=icon.href;await img.decode();
       const canvas=document.createElement('canvas');canvas.width=canvas.height=size;
       const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,size,size);
-      const data=ctx.getImageData(0,0,size,size).data;let green=0,left=size,right=-1,top=size,bottom=-1;
+      const data=ctx.getImageData(0,0,size,size).data;let green=0,white=0,dark=0,left=size,right=-1,top=size,bottom=-1;
+      for(let i=0;i<data.length;i+=4)if(data[i+3]>240){
+       if(data[i]>240&&data[i+1]>240&&data[i+2]>240)white++;
+       if(data[i]<80&&data[i+1]<80&&data[i+2]<80)dark++;
+      }
       for(let i=0;i<data.length;i+=4)if(data[i+1]>100&&data[i+1]>data[i]*2&&data[i+1]>data[i+2]*1.2){
        green++;const x=(i/4)%size,y=Math.floor(i/4/size);
        left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);
       }
-      results.push({src:icon.getAttribute('href'),green,size,left,right,top,bottom});
+      results.push({src:icon.getAttribute('href'),green,size,left,right,top,bottom,white,dark,cornerAlpha:data[3]});
      }
      return results;
     });
@@ -46,10 +67,13 @@ const output='/tmp/on-the-dot-brand';fs.mkdirSync(output,{recursive:true});
      assert(f.src.startsWith('/trivia-assets/brand/favicon.'));
      assert(f.green>f.size*f.size*.55,'Logo should fill most of the tab icon');
      assert(f.left<=1&&f.right>=f.size-2&&f.top<=2&&f.bottom>=f.size-3,JSON.stringify(f));
+     assert(f.white>f.size*f.size*.1,'Favicon needs a white background: '+JSON.stringify(f));
+     assert.equal(f.dark,0,'No black background remains');
+     assert(f.cornerAlpha<160,'Rounded corners must be transparent: '+JSON.stringify(f));
     }
     await page.screenshot({path:`${output}/${path==='/'?'home':'penalties'}-${width}.png`});
    }
-   console.log(`PASS ${width}: original wordmark, compact heading, loaded and nonblank favicon`);
+   console.log(`PASS ${width}: transparent wordmark, rounded white favicon and compact heading`);
   }
   const response=await page.request.get(origin+'/favicon.ico');assert(response.ok());assert.equal(response.headers()['content-type'],'image/png');
   assert.deepEqual(errors,[]);

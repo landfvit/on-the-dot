@@ -13,7 +13,7 @@
     <label><input type="radio" name="metric" value="streak"><span>Streak</span></label>
     <label><input type="radio" name="metric" value="wins"><span>Wins</span></label>
     <label><input type="radio" name="metric" value="win_rate"><span>Win rate</span></label>
-    <label id="team-level-choice" hidden><input type="radio" name="metric" value="level"><span>Levels</span></label>
+    <label id="level-choice"><input type="radio" name="metric" value="level"><span>Levels</span></label>
   </fieldset>
   <fieldset class="period-tabs"><legend class="sr-only">Leaderboard period</legend>
     <label><input type="radio" name="period" value="today"><span>Today</span></label>
@@ -37,4 +37,4 @@
   {% if active_page == 'leaderboard' %}{% with ad_slot='leaderboard-bottom' %}{% include 'ad_slot.html' %}{% endwith %}{% endif %}
 </main>
 {% endblock %}
-{% block scripts %}<script src="/trivia-assets/community.js?v=6" defer></script>{% endblock %}
+{% block scripts %}<script src="/trivia-assets/community.js?v=7" defer></script>{% endblock %}

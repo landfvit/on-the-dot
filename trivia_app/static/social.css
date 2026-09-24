@@ -1,11 +1,22 @@
+/* Navigation is always visible above the page, with no drawer on mobile.
+ * Keep gameplay's existing display:none rule on .points-header authoritative. */
+.public-header { flex-wrap:wrap; gap:16px 28px; }
+.public-header .top-navigation { display:flex; flex:1; justify-content:flex-end; gap:4px 16px; margin:0; }
+.public-header .top-navigation a { display:flex; align-items:center; justify-content:center; min-height:44px; padding:8px 0; border-bottom:2px solid transparent; line-height:1.25; text-align:center; }
+.public-header .top-navigation a[aria-current] { border-color:var(--accent); color:var(--text); }
 /* Shared navigation never occupies the fixed in-game or final-result grid. */
 .page-return { max-width:1120px; margin:12px auto 0; padding:0 24px; display:flex; align-items:center; gap:12px; }
-.page-return button,.shell-extra button { min-height:44px; display:inline-flex; align-items:center; justify-content:center; gap:8px; background:transparent; color:var(--text); border:0; font:inherit; cursor:pointer; }
+.page-return button { min-height:44px; display:inline-flex; align-items:center; justify-content:center; gap:8px; background:transparent; color:var(--text); border:0; font:inherit; cursor:pointer; }
 .page-return a { color:var(--muted); padding:12px 0; }
 .page-return [data-share-game] { margin-left:auto; }
-.page-return img,.shell-extra img { width:18px; height:18px; filter:invert(1); }
+.page-return img { width:18px; height:18px; filter:invert(1); }
 .back-arrow { transform:rotate(180deg); }
-.shell-extra { display:flex; justify-content:space-between; border-top:1px solid var(--border); margin-top:12px; }
+.header-sound { position:relative; flex:none; }
+.header-sound summary { list-style:none; cursor:pointer; width:44px; height:44px; }
+.header-sound summary::-webkit-details-marker { display:none; }
+.header-sound .sound-settings { position:absolute; z-index:20; top:calc(100% + 6px); right:0; width:256px; max-width:calc(100vw - 32px); padding:16px; margin:0; background:var(--surface); border:1px solid var(--border); border-radius:6px; box-shadow:0 8px 24px #0004; }
+.shell-dialog { width:min(560px,calc(100% - 24px)); max-height:calc(100svh - 24px); padding:20px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); }
+.shell-dialog::backdrop { background:#191a1ecc; backdrop-filter:blur(4px); }
 body:is(.stadium-playing,.stadium-ending):has(.solo-penalties) .page-return,body:has(.shootout-finished) .page-return { display:none; }
 .game-share-preview { width:100%; height:auto; border-radius:6px; }
 #game-share-link { width:100%; margin:12px 0; min-height:44px; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:8px; }
@@ -49,12 +60,19 @@ body:is(.stadium-playing,.stadium-ending):has(.solo-penalties) .page-return,body
 .public-score strong { font-size:44px; }
 .public-result > img { display:block; width:100%; height:auto; margin:24px 0; border-radius:8px; }
 .public-result .primary-link { display:inline-flex; justify-content:center; padding:12px 24px; }
+@media(max-width:1100px) {
+  .public-header { flex-wrap:wrap; }
+  .public-header .top-navigation { display:grid; flex-basis:100%; grid-template-columns:repeat(4,minmax(0,1fr)); gap:0 12px; }
+  .public-header .top-navigation a { min-width:0; padding:8px 2px; }
+}
 @media(max-width:800px), (max-height:540px) and (max-width:1100px) {
   #summary .result-actions { grid-template-columns:repeat(3,minmax(0,1fr)); }
   #summary .result-actions > * { font-size:12px; padding:8px 4px; }
   .page-return { padding:0 16px; margin-top:4px; font-size:13px; }
 }
 @media(max-width:480px) {
+  .public-header .top-navigation { grid-template-columns:repeat(auto-fit,minmax(80px,1fr)); gap:0 8px; }
+  .public-header .top-navigation a { font-size:12px; }
   .friend-row { align-items:flex-start; flex-direction:column; gap:8px; }
   .friend-row .actions { justify-content:flex-start; }
   .mode-intro-scenes img { height:80px; }

@@ -27,7 +27,7 @@ const output='/tmp/on-the-dot-guide';fs.mkdirSync(output,{recursive:true});
    await page.screenshot({path:`${output}/guide-${width}.png`,fullPage:true});
    await page.locator('.guide-jump a[href="#teams"]').click();assert(page.url().endsWith('#teams'));
    assert(await page.locator('#teams').isVisible());
-   await page.locator('#menu-open').click();await page.locator('#menu-drawer a[href="/how-to-play"]').click();
+   await page.locator('.top-navigation a[href="/how-to-play"]').click();
    assert(new URL(page.url()).pathname==='/how-to-play');
    console.log(`PASS guide ${width}: images, keyboard examples, team explanation and no overflow`);
   }
@@ -39,6 +39,7 @@ const output='/tmp/on-the-dot-guide';fs.mkdirSync(output,{recursive:true});
    if(url==='/api/players/me')return route.fulfill({json:{username:'example_player',email:'example@example.com',bio:'',club:null,
     level:1,total_xp:0,level_xp:0,next_level_xp:200,streak:{current:0},stats:{wins:0,losses:0,played:0,win_rate:null},preferences:{animations:true,reduced_motion:false}}});
    if(url==='/api/players/settings')return route.fulfill({json:{password_reset_available:false}});
+   if(url==='/api/players/friends')return route.fulfill({json:{friends:[],incoming:[],outgoing:[]}});
    throw Error('Unexpected API '+url);
   });
   await page.goto(origin+'/account');await page.locator('.team-rules-link').click();await page.waitForURL('**/how-to-play#teams');

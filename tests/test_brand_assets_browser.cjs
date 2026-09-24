@@ -26,8 +26,8 @@ const output='/tmp/on-the-dot-brand';fs.mkdirSync(output,{recursive:true});
     const brand=page.getByRole('link',{name:'ON THE DOT. home',exact:true});
     assert.equal(await brand.getAttribute('href'),'/');
     assert.equal((await brand.textContent()).trim(),'','Header must use the artwork, not a second text wordmark');
-    const menu=await page.locator('#menu-open').boundingBox(),brandBox=await brand.boundingBox();
-    assert(menu.x+menu.width<brandBox.x);assert(brandBox.x+brandBox.width<=width-16);
+    const brandBox=await brand.boundingBox();
+    assert(brandBox.x>=16);assert(brandBox.x+brandBox.width<=width-16);
     assert(brandBox.height>=44,'Keep the home link touch target');
     const words=await page.locator('.brand-word').evaluateAll(es=>es.map(e=>{
      const r=e.getBoundingClientRect();
@@ -76,8 +76,8 @@ const output='/tmp/on-the-dot-brand';fs.mkdirSync(output,{recursive:true});
       assert(green>64*64*.4);assert(black>30,'Every circle must include a visible glyph');
      }
     }
-    await page.locator('#menu-open').click();assert(await page.locator('#menu-drawer').isVisible());
-    await page.getByRole('button',{name:'Close menu',exact:true}).click();
+    assert.equal(await page.locator('#menu-open,#menu-drawer').count(),0);
+    assert(await page.locator('.top-navigation').isVisible());
     if(path==='/'){
     const logo=await page.locator('.home-logo').boundingBox(),heading=await page.locator('.brand-heading h1').boundingBox(),action=await page.locator('.brand-heading > a').boundingBox();
     assert.equal(logo.width,logo.height);assert(logo.width>=96);assert(logo.y+logo.height<height);

@@ -22,7 +22,7 @@ and reward rules are not modified.
   while the profile is visible. No email or push notifications are sent.
 - Link duels also work without accounts, using existing guest session cookies.
 - First-use rules are remembered per mode in localStorage. The dialog opens
-  before creating/joining a run. How to play can reopen it.
+  before creating/joining a run. How to play opens the full rulebook page.
 - Forfeit requires a second confirmation; closing the dialog does not forfeit.
 
 ## Sharing

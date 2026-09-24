@@ -6,8 +6,8 @@ body { font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 .points-header nav a[aria-current] { color:var(--text); border-color:var(--accent); }
 .points-brand { font-size:28px; font-weight:900; }
 .icon-button { display:inline-grid; place-items:center; width:44px; height:44px; min-width:44px; padding:11px; background:var(--surface); border:1px solid var(--border); border-radius:50%; cursor:pointer; }
-.icon-button img, .primary-link img, .shell-drawer nav img { width:20px; height:20px; }
-.icon-button img,.shell-drawer nav img,#share-result img { filter:invert(1); }
+.icon-button img, .primary-link img { width:20px; height:20px; }
+.icon-button img,#share-result img { filter:invert(1); }
 .coral-button img,.primary-link img { filter:none; }
 .coral-button { background:var(--accent); border-color:var(--accent); }
 .icon-button:hover { box-shadow:0 3px 12px #1b1d2515; }
@@ -59,15 +59,9 @@ progress::-webkit-progress-value { background:var(--accent); }
 progress::-moz-progress-bar { background:var(--accent); }
 .primary-link { display:inline-flex; align-items:center; justify-content:center; gap:16px; min-height:44px; padding:12px 20px; border-radius:6px; background:var(--accent); color:var(--on-accent); text-decoration:none; font-weight:750; }
 .primary-link:hover { background:var(--accent-hover); }
-.shell-drawer { margin:0; padding:28px; width:min(390px,100%); max-width:100%; height:100dvh; max-height:100dvh; border:0; border-right:1px solid var(--border); background:var(--bg); color:var(--text); }
-.shell-drawer::backdrop { background:#03090ca6; backdrop-filter:blur(3px); }
 .drawer-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:32px; }
 .drawer-heading h2 { font-size:24px; margin:0; font-weight:850; }
 .drawer-heading h2 span { color:var(--accent); }
-.shell-drawer nav { display:grid; }
-.shell-drawer nav a { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:22px 0; border-bottom:1px solid var(--border); text-decoration:none; font-size:17px; font-weight:650; }
-.shell-drawer nav a span { font-size:11px; color:var(--muted); font-weight:400; }
-.shell-drawer nav a:hover { color:var(--accent); }
 .community-page { max-width:820px; margin:16px auto 80px; padding:0 24px; }
 .section-label { font-size:11px; font-weight:700; color:var(--muted); margin-bottom:12px; }
 .community-heading h1 { font-size:48px; line-height:1.1; font-weight:850; margin:0 0 30px; }
@@ -129,8 +123,4 @@ progress::-moz-progress-bar { background:var(--accent); }
 @media(max-width:700px) {
   .ranking-table table { min-width:0; }
   .ranking-table th:last-child { width:90px; }
-}
-@media(prefers-reduced-motion:no-preference) {
-  .shell-drawer[open] { animation:drawer-in .18s ease-out; }
-  @keyframes drawer-in { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
 }

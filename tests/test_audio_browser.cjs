@@ -38,14 +38,15 @@ function wav(samples){
    await route.fulfill({status,json:data===run?{...data,server_now:Date.now()}:data});
   });
   await page.goto(origin+'/penalties');assert.equal(await page.evaluate(()=>PointsAudio.inspect().state),'locked');
-  await page.locator('#menu-open').click();await page.waitForFunction(()=>PointsAudio.inspect().state==='running');
+  await page.locator('.header-sound > summary').click();await page.waitForFunction(()=>PointsAudio.inspect().state==='running');
   await page.locator('#sound-volume').fill('25');assert.equal(await page.evaluate(()=>PointsAudio.getSettings().volume),.25);
-  await page.locator('#menu-drawer [data-sound-toggle]').click();assert.equal(await page.evaluate(()=>PointsAudio.getSettings().enabled),false);
+  await page.locator('.header-sound [data-sound-toggle]').click();assert.equal(await page.evaluate(()=>PointsAudio.getSettings().enabled),false);
   await page.reload();assert.equal(await page.evaluate(()=>PointsAudio.getSettings().enabled),false);assert.equal(await page.evaluate(()=>PointsAudio.getSettings().volume),.25);
-  await page.locator('#menu-open').click();await page.locator('#menu-drawer [data-sound-toggle]').click();await page.waitForFunction(()=>PointsAudio.inspect().state==='running');
-  await page.screenshot({path:output+'/sound-menu.png'});await page.locator('#menu-drawer [data-close-dialog]').click();
+  await page.locator('.header-sound > summary').click();await page.locator('.header-sound [data-sound-toggle]').click();await page.waitForFunction(()=>PointsAudio.inspect().state==='running');
+  await page.screenshot({path:output+'/sound-settings.png'});await page.keyboard.press('Escape');
   await page.evaluate(()=>{window.soundCues=[];const play=PointsAudio.play;PointsAudio.play=name=>{const played=play(name);soundCues.push({name,played,time:performance.now(),caught:PointsStadium.inspect().caught});return played;};});
   await page.setViewportSize({width:320,height:568});await page.locator('#start').click();
+  await page.locator('#mode-intro button[value=play]').click();
   await page.waitForSelector('#stadium-skip:not([hidden])');
   const header=await page.locator('#stadium-controls').boundingBox();
   for(const control of await page.locator('#stadium-controls button:visible').all()){

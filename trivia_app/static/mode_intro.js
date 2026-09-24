@@ -20,6 +20,5 @@
       dialog.addEventListener('close',()=>{const accepted=dialog.returnValue==='play';if(accepted)try{localStorage.setItem(key,'1');}catch{}pending=null;resolve(accepted);},{once:true});
     });return pending;
   }
-  document.querySelector('[data-mode-help]')?.addEventListener('click',()=>show(document.querySelector('[data-mode]').dataset.mode,true));
   globalThis.PointsModeIntro={show};
 })();

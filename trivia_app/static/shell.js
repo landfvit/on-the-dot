@@ -2,11 +2,13 @@
 (function(){
   'use strict';
   const $=id=>document.getElementById(id);
-  for(const dialog of document.querySelectorAll('.shell-drawer')) {
+  for(const dialog of document.querySelectorAll('.shell-dialog')) {
     dialog.querySelector('[data-close-dialog]').addEventListener('click',()=>dialog.close());
     dialog.addEventListener('click',event=>{if(event.target===dialog){const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close();}});
   }
-  $('menu-open').addEventListener('click',()=>$('menu-drawer').showModal());
+  const sound=document.querySelector('.header-sound');
+  document.addEventListener('click',event=>{if(sound?.open&&!sound.contains(event.target))sound.open=false;});
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&sound?.open){sound.open=false;sound.querySelector('summary').focus();}});
   // Only go back inside this site. A directly opened invite/result goes home.
   let previous=null;
   try{
@@ -20,7 +22,7 @@
   for(const button of document.querySelectorAll('[data-share-game]'))button.addEventListener('click',async()=>{
     const url=$('game-share-link').value;
     try{if(navigator.share){await navigator.share({title:'ON THE DOT. | Football trivia',url});return;}}catch(e){if(e.name==='AbortError')return;}
-    if($('menu-drawer').open)$('menu-drawer').close();$('game-share-dialog').showModal();
+    $('game-share-dialog').showModal();
   });
   $('game-share-copy').addEventListener('click',async()=>{
     try{await navigator.clipboard.writeText($('game-share-link').value);$('game-share-status').textContent='Game link copied.';}

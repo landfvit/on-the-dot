@@ -34,6 +34,6 @@ class HomePageTests(unittest.TestCase):
 
     def test_new_assets_are_public_without_exposing_editor_files(self):
         client=TestClient(app)
-        for name in ('home.css','home.js','redesign.css','stadium_crowd.js','crowd_reaction.js','brand/logo.svg'):
+        for name in ('home.css','home.js','redesign.css','theme.js','dark_mode.css','crowd_reaction.js','brand/logo.svg','icons/sun.svg','icons/moon.svg'):
             self.assertEqual(client.get('/trivia-assets/'+name).status_code,200,name)
         self.assertNotEqual(client.get('/trivia-assets/writer.js').status_code,200)

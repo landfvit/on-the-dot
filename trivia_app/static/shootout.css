@@ -5,7 +5,9 @@ body:not(.stadium-playing) #shootout-board { display:none; }
 .shootout-team strong { font-size:18px; text-align:center; font-variant-numeric:tabular-nums; }
 .shootout-kicks { display:flex; gap:7px; }
 .shootout-kick { display:block; width:19px; height:19px; flex:0 0 19px; color:#f2f4ec; }
-.shootout-kick.goal,.shootout-kick.miss { background:currentColor; mask:url('/trivia-assets/icons/football.svg') center/contain no-repeat; }
+.shootout-kick.goal,.shootout-kick.miss { background:#fff url('/trivia-assets/icons/football.svg?v=2') center/contain no-repeat; border-radius:50%; }
+/* Multiply recolors white panels only; the ink outline stays black on misses. */
+.shootout-kick.miss { background-color:#ff6f61; background-blend-mode:multiply; }
 .shootout-kick.miss { color:var(--coral); }
 .shootout-kick.pending { border:1px solid var(--muted); border-radius:50%; opacity:.45; }
 #shootout-round { display:block; color:var(--muted); font-size:11px; margin-top:5px; }

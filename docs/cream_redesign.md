@@ -11,19 +11,19 @@ deadlines, rewards and friend-duel rules remain authoritative and unchanged.
 - `solo_mobile.css` and `solo_results.css` still own the timed mobile layout.
   Do not add panel padding in the theme without rerunning the mobile tests.
 - `stadium_config.js`: green pitch, WHITE markings, goal/line thickness, jersey
-  colors, blur strength and supporter density. Crowd shirt palettes are separate
-  from the foreground player jerseys.
-- `stadium_v6_world.js`: opaque stepped terraces and player meshes.
-- `stadium_crowd.js`: instanced low-poly supporters. Twelve rows at spacing 1.25
-  create 3,772 people using ten mesh draw calls. `crowd.animate` is false: poses
-  change after a resolved shot, but the crowd does not jump or wave continuously.
-  There are no stand banners or visible end labels.
-- `crowd_reaction.js`: maps authoritative goal/save/miss to fixed physical
-  supporter seats. Both Duel clients see the same stand celebrate. A replay is
-  neutral; reset clears the previous reaction.
-- `stadium_scene.js`: crowd uses the foreground render layer, architecture uses
-  the blurred background layer. Shot timing includes a short result hold, still
-  below the Duel review interval.
+  colors and background blur. There are no spectator meshes or stand banners.
+- `stadium_v6_world.js`: opaque terraces, players and turf bounded by the inner
+  terrace footprint. `setTheme()` only recolors architecture, never pitch paint.
+- `crowd_reaction.js`: maps authoritative goal/save/miss to viewer reactions.
+  Audio follows the actual result, not whether a Duel answer was correct.
+- `stadium_scene.js`: architecture stays blurred during play and comes into
+  focus on the overhead outro. Shot timing includes a short result hold.
+- `audio.js`: generated stereo audience ambience, cheers and groans. No remote
+  audio files. `crowdVoice` amplitudes control audience loudness; the existing
+  master volume/mute still applies. Ambience stops on exit, mute or hidden tabs.
+- `theme.js` applies device/saved appearance before first paint. `dark_mode.css`
+  overrides semantic colors. Use `onthedot.theme` in localStorage to inspect the
+  explicit choice; absent means follow the device. Both toolbars toggle it.
 
 ## Assets
 
@@ -45,8 +45,11 @@ fixture; stop it with Ctrl-C to remove its temporary schema.
 - `test_navigation_browser.cjs`: header links, help/back/share/sound controls.
 - `test_mobile_layout.cjs`: stationary question/answer/Next layout, results,
   network recovery and real WebGL pixels across ten viewports.
-- `test_crowd_browser.cjs`: dense colored crowd, white pitch markings, both
-  viewers' reactions, saves, moving shots and overhead outro at mobile/desktop.
+- `test_crowd_browser.cjs`: audio-only audience, white markings in both themes,
+  viewer reactions, saves and bounded overhead stadium at mobile/desktop.
+- `test_theme_browser.cjs`: dark pages, icon pixels, preference persistence,
+  system default, keyboard/cross-tab changes and unavailable localStorage.
+- `test_audio_browser.cjs`: actual PCM output, shot timing, mute and lifecycle.
 - `test_challenge_browser.cjs`: actual fixture-backed Daily and two-client Duel.
 - `test_crowd_reaction.cjs`, `test_stadium_fade.cjs`, `test_stadium_motion.cjs`:
   pure reaction/geometry contracts and ball/keeper physics.

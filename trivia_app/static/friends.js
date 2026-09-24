@@ -51,7 +51,7 @@
       // Occupy the existing answer slot: the loader never pushes controls down.
       if(!$('choices').querySelector('.friend-waiting')){
         const waiting=node('div',undefined,'friend-waiting'),ball=node('img');
-        waiting.setAttribute('aria-hidden','true');ball.src='/trivia-assets/icons/football.svg';ball.alt='';waiting.append(ball);$('choices').replaceChildren(waiting);
+        waiting.setAttribute('aria-hidden','true');ball.src='/trivia-assets/icons/football.svg?v=2';ball.alt='';waiting.append(ball);$('choices').replaceChildren(waiting);
       }
       $('feedback').textContent='The duel starts when both players are ready.';
       $('run-category').textContent=playerName(s,s.me);$('run-position').textContent=s.players[s.me].ready?'Ready':'Getting ready';$('run-xp').textContent='Friendly';
@@ -98,7 +98,6 @@
   function render(s){
     if(room&&room.run_id===s.run_id&&s.server_now<room.server_now)return;
     room=s;offset=s.server_now-Date.now();
-    stadium?.supporters?.({viewerSeat:s.me,names:[0,1].map(seat=>s.players[seat]?.is_guest||!s.players[seat]?(seat===0?'Home end':'Away end'):s.players[seat].name)});
     if(terminal(s)&&$('forfeit-dialog').open)$('forfeit-dialog').close();
     // Fetch at the shared opening instant, not at each tab's arbitrary polling
     // phase. The server still withholds question/answer data before that time.

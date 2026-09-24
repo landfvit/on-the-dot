@@ -66,6 +66,15 @@ function fits(g){assert.deepEqual(g.overflow,[],JSON.stringify(g));assert(!g.bod
       await page.waitForFunction(()=>window.PointsStadium?.inspect().active&&!window.PointsStadium.inspect().entering);
       await page.waitForTimeout(250);
       const before=await geometry(page);fits(before);
+      if(width===390&&height===664){
+        await page.locator('#stadium-controls [data-theme-toggle]').click();
+        assert.equal(await page.evaluate(()=>PointsStadium.inspect().theme),'dark');
+        assert.equal(await page.evaluate(()=>PointsStadium.inspect().markingsColor),0xffffff);
+        stable(before,await geometry(page));
+        await page.screenshot({path:`${artifacts}/dark-live-game.png`});
+        await page.locator('#stadium-controls [data-theme-toggle]').click();
+        assert.equal(await page.evaluate(()=>PointsStadium.inspect().theme),'light');
+      }
       await page.locator('#choices button').first().click();
       await page.waitForFunction(()=>!document.getElementById('next').hidden&&!document.getElementById('next').disabled);
       await page.waitForTimeout(150);

@@ -6,7 +6,8 @@
     const key='onthedot.audio',Audio=window.AudioContext||window.webkitAudioContext;
     const voices=new Set(),lastPlayed=new Map();
     const clamp=value=>Math.max(0,Math.min(1,value));
-    let context=null,master=null,noise=null,settings=readSettings();
+    let context=null,master=null,noise=null,settings=readSettings(),crowdActive=false,ambience=null;
+    const crowdBuffers=new Map();
     function readSettings(){
         try{const value=JSON.parse(localStorage.getItem(key)||'{}');return {enabled:value?.enabled!==false,
             volume:Number.isFinite(value?.volume)?clamp(value.volume):.5};}catch{return {enabled:true,volume:.5};}
@@ -19,6 +20,7 @@
         const audible=settings.enabled&&settings.volume>0;
         if(master)master.gain.setTargetAtTime(audible?settings.volume*.65:0,context.currentTime,.015);
         if(!audible)stop();
+        else startAmbience();
         for(const button of document.querySelectorAll('[data-sound-toggle]')){
             button.disabled=!Audio;button.setAttribute('aria-pressed',String(audible));
             const label=Audio?(audible?'Mute sound':'Enable sound'):'Sound unavailable';
@@ -44,6 +46,7 @@
                 const data=noise.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=Math.random()*2-1;
             }
             if(context.state!=='running')await context.resume();
+            startAmbience();
             return context.state==='running'&&!document.hidden;
         }catch{return false;}
     }
@@ -66,14 +69,65 @@
         const filter=context.createBiquadFilter();filter.type=type;filter.frequency.value=frequency;filter.Q.value=.7;
         voice(source,start,duration,amplitude,filter);
     }
+    // Locally synthesized audience: many detuned voices, diffuse noise and
+    // scattered applause. Cache low-rate stereo PCM once per audio context;
+    // it needs no download or per-frame work while the game is running.
+    function crowdBuffer(kind){
+        if(crowdBuffers.has(kind))return crowdBuffers.get(kind);
+        const rate=24000,duration=kind==='ambience'?4:kind==='cheer'?2.8:1.9;
+        const buffer=context.createBuffer(2,Math.ceil(rate*duration),rate);
+        for(let channel=0;channel<2;channel++){
+            const data=buffer.getChannelData(channel),phases=Array.from({length:8},(_,i)=>i*1.7+channel);
+            let seed=713+channel*111,low=0,clap=0;
+            const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
+            for(let i=0;i<data.length;i++){
+                const t=i/rate,p=t/duration,n=random()*2-1;
+                low=.88*low+.12*n;
+                let voices=0;
+                for(let v=0;v<phases.length;v++){
+                    const pitch=(115+v*19+channel*3)*(kind==='groan'?1-.28*p:1+.08*Math.sin(p*Math.PI));
+                    phases[v]+=2*Math.PI*pitch/rate;
+                    const a=phases[v],variation=.55+.45*Math.sin(t*(2+v*.23)+v)**2;
+                    voices+=variation*(Math.sin(a)+.45*Math.sin(a*2)+.25*Math.sin(a*5));
+                }
+                if(kind==='cheer'&&random()<22/rate)clap=.6+random()*.4;
+                clap*=.992;
+                const fade=Math.min(1,t/.18,(duration-t)/.55);
+                // Ambience loops through a quiet seam. Reactions rise quickly
+                // and decay naturally, leaving the question/click sounds clear.
+                data[i]=fade*(voices*(kind==='ambience'?.008:.028)+low*.6+n*(kind==='cheer'?.12:.05)+n*clap*.42);
+            }
+        }
+        crowdBuffers.set(kind,buffer);return buffer;
+    }
+    function crowdVoice(kind,amplitude,loop=false){
+        const source=context.createBufferSource(),gain=context.createGain();
+        source.buffer=crowdBuffer(kind);source.loop=loop;gain.gain.value=amplitude;
+        source.connect(gain);gain.connect(master);
+        let cleaned=false;
+        const item={source,crowd:true,clean(){if(cleaned)return;cleaned=true;voices.delete(item);source.disconnect();gain.disconnect();if(ambience===item)ambience=null;}};
+        voices.add(item);source.onended=item.clean;source.start(context.currentTime);
+        if(!loop)source.stop(context.currentTime+source.buffer.duration+.01);
+        return item;
+    }
+    function startAmbience(){
+        if(!crowdActive||ambience||!settings.enabled||!settings.volume||document.hidden||context?.state!=='running')return;
+        try{crowdBuffer('cheer');crowdBuffer('groan');ambience=crowdVoice('ambience',.20,true);}catch{/* Audio never blocks gameplay. */}
+    }
+    function setCrowdActive(active){
+        crowdActive=Boolean(active);
+        if(crowdActive)startAmbience();
+        else for(const item of [...voices])if(item.crowd){try{item.source.stop();}catch{}item.clean();}
+    }
     function play(name){
-        if(!['click','kick','catch','net','win','loss'].includes(name)||!settings.enabled||!settings.volume||document.hidden||context?.state!=='running')return false;
+        if(!['click','kick','catch','net','win','loss','crowd-cheer','crowd-groan'].includes(name)||!settings.enabled||!settings.volume||document.hidden||context?.state!=='running')return false;
         const now=context.currentTime;
         if(voices.size>=24||now-(lastPlayed.get(name)??-Infinity)<(name==='click'?.045:.025))return false;
         lastPlayed.set(name,now);
         try{
             // The kick combines a short leather snap and a falling low thump.
-            if(name==='kick'){tone(now,155,48,.15,.65);air(now,.045,.38,1400,'bandpass');}
+            if(name.startsWith('crowd-'))crowdVoice(name.slice(6),name==='crowd-cheer'?.90:.75);
+            else if(name==='kick'){tone(now,155,48,.15,.65);air(now,.045,.38,1400,'bandpass');}
             else if(name==='catch'){air(now,.12,.5,1300);tone(now,105,52,.09,.22);}
             else if(name==='net')air(now,.19,.13,2400);
             else if(name==='click')tone(now,1250,720,.028,.07);
@@ -107,9 +161,9 @@
         slider.addEventListener('change',()=>play('click'));
     }
     document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();context?.suspend().catch(()=>{});}});
-    window.addEventListener('pagehide',()=>{stop();context?.close().catch(()=>{});context=null;master=null;noise=null;});
+    window.addEventListener('pagehide',()=>{crowdActive=false;stop();context?.close().catch(()=>{});context=null;master=null;noise=null;crowdBuffers.clear();});
     window.addEventListener('storage',event=>{if(event.key===key){settings=readSettings();sync();}});
-    window.PointsAudio={play,stop,setEnabled,setVolume,getSettings:()=>({...settings}),
-        inspect:()=>({supported:Boolean(Audio),state:context?.state||'locked',activeVoices:voices.size})};
+    window.PointsAudio={play,stop,setEnabled,setVolume,setCrowdActive,getSettings:()=>({...settings}),
+        inspect:()=>({supported:Boolean(Audio),state:context?.state||'locked',activeVoices:voices.size,crowdActive,ambiencePlaying:Boolean(ambience)})};
     sync();
 })();

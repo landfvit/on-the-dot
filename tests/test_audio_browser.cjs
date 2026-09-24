@@ -55,26 +55,28 @@ function wav(samples){
   await page.screenshot({path:output+'/intro-320.png'});await page.locator('#stadium-skip').click();
   await page.locator('#next').click();await page.waitForSelector('#choices button:not([disabled])');await page.locator('#choices button').first().click();
   await page.waitForFunction(()=>!document.getElementById('next').disabled);
-  assert.deepEqual(await page.evaluate(()=>soundCues.map(c=>c.name)),['kick','net']);
+  assert.deepEqual(await page.evaluate(()=>soundCues.map(c=>c.name)),['kick','net','crowd-cheer']);
+  assert(await page.evaluate(()=>PointsAudio.inspect().ambiencePlaying));
   await page.locator('#next').click();await page.waitForSelector('#choices button:not([disabled])');await page.locator('#choices button').first().click();
   await page.waitForFunction(()=>!document.getElementById('next').disabled);
-  const cues=await page.evaluate(()=>soundCues);assert.deepEqual(cues.map(c=>c.name),['kick','net','kick','catch']);
-  assert(cues.every(c=>c.played));assert(cues.at(-1).caught);assert(cues[3].time-cues[2].time>300);
+  const cues=await page.evaluate(()=>soundCues);assert.deepEqual(cues.map(c=>c.name),['kick','net','crowd-cheer','kick','catch','crowd-cheer']);
+  assert(cues.every(c=>c.played));assert(cues.at(-1).caught);assert(cues[4].time-cues[3].time>300);
   await page.locator('#stadium-controls [data-sound-toggle]').click();
   assert.equal(await page.evaluate(()=>PointsAudio.inspect().activeVoices),0);assert.equal(await page.evaluate(()=>PointsAudio.play('win')),false);
   await page.locator('#stadium-controls [data-sound-toggle]').click();await page.locator('#leave').click();
   await page.waitForFunction(()=>soundCues.some(c=>c.name==='loss'&&c.played));
   assert.equal(await page.evaluate(()=>soundCues.filter(c=>c.name==='loss').length),1);
   await page.reload();assert.equal(await page.evaluate(()=>PointsAudio.inspect().state),'locked');assert(await page.locator('#summary').isVisible());
+  assert.equal(await page.evaluate(()=>PointsAudio.inspect().ambiencePlaying),false);
   assert.deepEqual(errors,[]);console.log('PASS mobile mute/volume, persistence, kick/catch timing, result cue and silent history');
 
   // Render the production sound recipes to actual samples without using a
   // speaker or allowing the output device to affect a deterministic check.
-  for(const name of ['click','kick','catch','net','win','loss']){
+  for(const name of ['click','kick','catch','net','win','loss','crowd-cheer','crowd-groan']){
    const sample=await browser.newPage();await sample.setContent('<button>Unlock</button>');
    await sample.evaluate(()=>{
     window.AudioContext=class{
-     constructor(){const ctx=new OfflineAudioContext(1,57600,48000);window.renderAudio=()=>ctx.startRendering();this.sampleRate=ctx.sampleRate;this.currentTime=0;this.state='suspended';this.destination=ctx.destination;
+     constructor(){const ctx=new OfflineAudioContext(1,153600,48000);window.renderAudio=()=>ctx.startRendering();this.sampleRate=ctx.sampleRate;this.currentTime=0;this.state='suspended';this.destination=ctx.destination;
       for(const method of ['createGain','createDynamicsCompressor','createBuffer','createBufferSource','createBiquadFilter','createOscillator'])this[method]=ctx[method].bind(ctx);}
      async resume(){this.state='running';}async suspend(){this.state='suspended';}async close(){this.state='closed';}
     };

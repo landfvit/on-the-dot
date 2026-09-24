@@ -3,8 +3,7 @@
  * Tento modul neobsahuje demo UI, vyber vysledku ani herni casomiru.
  */
 import * as THREE from './vendor/three/three.module.min.js';
-import {V6_WORLD as CONFIG} from './stadium_config.js?v=12';
-import {createCrowd} from './stadium_crowd.js?v=1';
+import {V6_WORLD as CONFIG} from './stadium_config.js?v=13';
 
 export function createStadiumWorld(scene) {
   const v=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
@@ -189,21 +188,14 @@ export function createStadiumWorld(scene) {
           #include <colorspace_fragment>
         }`,
     });
-    // Čtyři nepřekrývající se obdélníky tvoří trávník s otvorem pod tunelem.
-    // Uvnitř chodby tedy nemůže proskočit trojúhelník zelené podlahy.
-    const groundPositions = [];
-    function groundRect(x1, z1, x2, z2) {
-      groundPositions.push(x1,0,z1, x1,0,z2, x2,0,z2,
-                           x1,0,z1, x2,0,z2, x2,0,z1);
-    }
-    const hw = CONFIG.tunnel.halfWidth;
-    groundRect(-120,-90,-hw,90);
-    groundRect(hw,-90,120,90);
-    groundRect(-hw,-90,hw,CONFIG.tunnel.startZ);
-    groundRect(-hw,CONFIG.tunnel.endZ,hw,90);
-    const groundGeometry = new THREE.BufferGeometry();
-    groundGeometry.setAttribute('position',new THREE.Float32BufferAttribute(groundPositions,3));
-    groundGeometry.computeVertexNormals();
+    // Turf ends at the INNER terrace footprint, including its rounded corners.
+    // It cannot protrude beyond the stadium during the overhead outro, and it
+    // stops at the tunnel mouth rather than passing underneath the corridor.
+    const footprint=ring(59,40,8,0),shape=new THREE.Shape();
+    footprint.forEach(([x,,z],i)=>i?shape.lineTo(x,-z):shape.moveTo(x,-z));
+    shape.closePath();
+    const groundGeometry = new THREE.ShapeGeometry(shape);
+    groundGeometry.rotateX(-Math.PI/2);
     const grass = new THREE.Mesh(groundGeometry, turfMaterial);
     grass.position.y = CONFIG.ground.turfY;
     grass.userData.tunnelCutout = true;
@@ -332,7 +324,6 @@ export function createStadiumWorld(scene) {
     }
     points.push([-4.7,y,hz]); return points;
   }
-  let crowd;
   function buildStands() {
     activeGroup=environment;
     const rows=[];
@@ -375,7 +366,6 @@ export function createStadiumWorld(scene) {
       const p=outer[i]; line([[p[0],0,p[2]],p],CONFIG.colors.outline,0.45);
     }
     // Bez stožárů a reflektorových ramp; zůstávají pouze nízké obrysy tribun.
-    crowd=createCrowd(environment,rows);
   }
   function buildTunnel() {
     const {halfWidth: hw, height: h, startZ: front, endZ: back} = CONFIG.tunnel;
@@ -626,9 +616,20 @@ export function createStadiumWorld(scene) {
     ballShadow.material.opacity=.58/(1+ball.position.y*2);
     keeperShadow.position.set(keeper.pivot.position.x,.007,keeper.pivot.position.z);
   }
-  return {ball,background:environment,pitch,keeperRig:rig(keeper),strikerRig:rig(shooter),setFocus,rippleNet,shadows,crowd,
-    dispose:()=>{textures.forEach(t=>t.dispose());crowd.dispose();},
+  let theme='light';
+  // Only architecture changes with the UI theme. Never recolor the pitch,
+  // painted white markings, football, gloves or player jerseys.
+  function setTheme(value){
+    theme=value==='dark'?'dark':'light';
+    const palette=new Map([[CONFIG.colors.stands,0x272b28],[CONFIG.colors.tunnel,0x333831],[CONFIG.colors.outline,0xb0b5a9]]);
+    environment.traverse(o=>{for(const m of [].concat(o.material||[]))if(m.color){
+      const day=m.userData.dayColor??m.color.getHex();m.userData.dayColor=day;
+      m.color.setHex(theme==='dark'?(palette.get(day)??day):day);
+    }});
+  }
+  return {ball,background:environment,pitch,keeperRig:rig(keeper),strikerRig:rig(shooter),setFocus,rippleNet,shadows,setTheme,
+    dispose:()=>{textures.forEach(t=>t.dispose());},
     inspect:()=>({focus:fadeUniform.value,environmentVisible:environment.visible,
       standsSolid:fadeUniform.value===0&&fills.visible&&fills.children.every(o=>o.material.opacity===1&&o.material.depthWrite),
-      panels:ball.userData.panels,crowd:crowd.inspect(),reference:'v6'})};
+      panels:ball.userData.panels,theme,markingsColor:markingMaterial.color.getHex(),reference:'v6'})};
 }

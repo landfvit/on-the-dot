@@ -8,11 +8,6 @@ export const V6_WORLD = {
   outlineOnly: false, // Plne tribuny zakryvaji zadni konstrukci i behem rozostreni.
   pitchMarkings: { width: 0.22, elevation: 0.012, centreSpotRadius: 0.30 }, // Football markings stay white; structure outlines are black.
   structure: { lineRadius:.035, postRadius:.075, netOpacity:.62 }, // Black stadium outlines and goal-frame thickness in metres.
-  crowd: {
-    rows:[1,2,3,4,5,6,7,8,9,10,11,12], spacing:1.25, scale:.80,
-    animate:false, jumpHeight:.30, jumpPeriod:.72, reactionSeconds:3.2,
-    shirts:[[0x88b04b,0x92a8d1,0xf6f3eb,0x457653],[0xff6f61,0x6f2c91,0xf7cac9,0x92a8d1]],
-  }, // Fewer rows / larger spacing reduces supporters without changing their logic.
   ground: { turfY: -0.025, tunnelFloorY: 0 },
   tunnel: {
     halfWidth: 4.25, height: 5.4, startZ: 40, endZ: 80,
@@ -61,9 +56,9 @@ export const STADIUM = {
     keeperHoldMs: 800, // Cas navic pro zretelne ukazani mice v rukavicich.
     // Contiguous samples (radius=1) prevent comb-like copies of bright seat
     // edges. Increase downsample for a softer background, not sample spacing.
-    backgroundBlur: { downsample:2, radius:.6 }, // Soft architecture, but the stepped terraces must remain recognisable.
+    backgroundBlur: { downsample:6, radius:1 }, // Contiguous taps: soft stands without repeated line artifacts.
     shotMs: V6_WORLD.penalty.shotDuration * 1000,
-    crowdHoldMs:1000, // Let both stands visibly react after the ball reaches the net/gloves.
+    resultHoldMs:1000, // Brief pause after contact for the save/net sound and audience reaction.
     maxPixelRatio: V6_WORLD.maxPixelRatio,
     pitch: {length: 105, width: 68},
     goal: {width: 7.32, height: 2.44},

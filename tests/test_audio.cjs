@@ -10,7 +10,7 @@ function setup({stored=null,supported=true,broken=false}={}){
   async resume(){this.state='running';}async suspend(){this.state='suspended';}async close(){this.state='closed';}
   createGain(){return {...node(),gain:param()};}
   createDynamicsCompressor(){return {...node(),threshold:param(),knee:param(),ratio:param(),attack:param(),release:param()};}
-  createBuffer(_channels,length){return {getChannelData:()=>new Float32Array(length)};}
+  createBuffer(channels,length,rate){const data=Array.from({length:channels},()=>new Float32Array(length));return {duration:length/rate,getChannelData:c=>data[c]};}
   createBiquadFilter(){return {...node(),frequency:param(),Q:param()};}
   source(){const n={...node(),starts:[],stops:[],start(t){this.starts.push(t);},stop(t){this.stops.push(t);}};sources.push(n);return n;}
   createBufferSource(){return this.source();}createOscillator(){const source=this.source();source.frequency=param();return source;}
@@ -35,10 +35,10 @@ test('touch release and trusted clicks can unlock audio independently',async()=>
  }
 });
 test('every requested cue has a bounded local recipe and ended voices disconnect',async()=>{
- for(const name of ['click','kick','catch','net','win','loss']){
+ for(const name of ['click','kick','catch','net','win','loss','crowd-cheer','crowd-groan']){
   const s=setup();s.emit('keydown',{isTrusted:true});await flush();
   assert.equal(s.audio.play(name),true,name);assert(s.audio.inspect().activeVoices>0);
-  for(const source of s.sources){assert(source.starts[0]>=10);assert(source.stops[0]<11.1);source.onended?.();}
+  for(const source of s.sources){assert(source.starts[0]>=10);assert(source.stops[0]<13);source.onended?.();}
   assert.equal(s.audio.inspect().activeVoices,0);
  }
 });
@@ -79,4 +79,17 @@ test('missing audio support, constructor failure and malformed storage never blo
   const s=setup(options);s.emit('pointerdown',{isTrusted:true});await flush();assert.doesNotThrow(()=>s.audio.play('catch'));
   assert.equal(s.audio.play('not-a-cue'),false);
  }
+});
+
+test('stadium ambience respects gesture, mute, hiding, navigation and repeated renders',async()=>{
+ const s=setup();s.audio.setCrowdActive(true);assert.equal(s.sources.length,0);
+ s.emit('pointerup',{isTrusted:true});await flush();
+ assert(s.audio.inspect().ambiencePlaying);assert.equal(s.sources.length,1);assert(s.sources[0].loop);
+ s.audio.setCrowdActive(true);assert.equal(s.sources.length,1);
+ s.audio.setEnabled(false);assert.equal(s.audio.inspect().activeVoices,0);
+ s.audio.setEnabled(true);assert(s.audio.inspect().ambiencePlaying);
+ s.audio.play('crowd-cheer');s.doc.hidden=true;s.emit('visibilitychange');assert.equal(s.audio.inspect().activeVoices,0);
+ s.doc.hidden=false;s.emit('visibilitychange');assert(!s.audio.inspect().ambiencePlaying);
+ s.emit('keydown',{isTrusted:true});await flush();assert(s.audio.inspect().ambiencePlaying);
+ s.audio.setCrowdActive(false);assert(!s.audio.inspect().ambiencePlaying);assert.equal(s.audio.inspect().activeVoices,0);
 });

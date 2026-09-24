@@ -12,7 +12,7 @@ button,a,input,textarea,select { -webkit-tap-highlight-color:transparent; }
 .public-header .top-navigation a { position:relative; padding:10px; width:46px; height:46px; min-height:46px; border:2px solid transparent; border-radius:50%; }
 .public-header .top-navigation a[aria-current],.public-header .top-navigation a:first-child { border-color:var(--ink); }
 .public-header .top-navigation img { width:24px; height:24px; filter:none; }
-.public-header .top-navigation a:first-child img { filter:brightness(0); }
+.public-header .top-navigation a:first-child img { filter:none; }
 .public-header .top-navigation a:hover { background:var(--surface-raised); }
 .public-header .top-navigation a::after { content:attr(data-label); position:absolute; top:calc(100% + 8px); left:50%; transform:translateX(-50%); font-size:11px; font-weight:600; white-space:nowrap; opacity:0; pointer-events:none; }
 .public-header .top-navigation a:is(:hover,:focus-visible)::after { opacity:1; }
@@ -68,8 +68,8 @@ button,a,input,textarea,select { -webkit-tap-highlight-color:transparent; }
 #shootout-board { border:2px solid var(--ink); background:var(--paper); }
 .shootout-kick.goal { color:var(--ink); }
 .shootout-kick.miss { color:var(--coral); }
-.shootout-kick.pending { border:2px solid var(--ink); opacity:.3; }
-.friend-waiting img { filter:brightness(0); opacity:1; }
+.shootout-kick.pending { border:2px solid var(--ink); opacity:1; }
+.friend-waiting img { filter:none; opacity:1; }
 #forfeit-dialog #forfeit-confirm { background:var(--ink); color:var(--paper); border-color:var(--ink); }
 /* Do not add padding/height here: that would shift the fixed mobile answer grid. */
 .stadium-playing:not(.stadium-ending) .solo-questions { border-color:var(--ink); }

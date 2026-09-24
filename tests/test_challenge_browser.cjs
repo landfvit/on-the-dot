@@ -74,10 +74,7 @@ const origin='http://127.0.0.1:8015',out='/tmp/on-the-dot-challenges';fs.mkdirSy
     await a.waitForFunction(()=>/Goal|Saved|Replay/.test(document.getElementById('feedback').textContent));
     await b.waitForFunction(()=>/Goal|Saved|Replay/.test(document.getElementById('feedback').textContent));
     for(const p of [a,b])await p.waitForFunction(()=>PointsStadium.inspect().lastOutcome!==null);
-    const homeCrowd=await a.evaluate(()=>PointsStadium.inspect().crowd),awayCrowd=await b.evaluate(()=>PointsStadium.inspect().crowd);
-    assert.equal(homeCrowd.viewerSeat,0);assert.equal(awayCrowd.viewerSeat,1);
-    assert.deepEqual(homeCrowd.labels,[hostName,guestName]);assert.deepEqual(awayCrowd.labels,homeCrowd.labels);
-    assert.deepEqual(homeCrowd.moods,awayCrowd.moods,'Real Duel clients must cheer the same physical end');
+    for(const p of [a,b])assert.equal(await p.evaluate(()=>PointsStadium.inspect().markingsColor),0xffffff);
     const before=await host.request.get(origin+'/api/players/me');const xp=(await before.json()).total_xp;
     await a.locator('#leave').click();await a.locator('#forfeit-cancel').click();assert.equal(forfeits,0);
     assert.equal(await a.locator('#summary').isVisible(),false);

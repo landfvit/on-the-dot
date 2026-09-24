@@ -10,13 +10,13 @@
     const motionToggle=$('motion-toggle');
     if(motionToggle){motionToggle.disabled=reduced.matches;motionToggle.checked=!reduced.matches&&globalThis.PointsPreferences?.get().animations!==false;}
     let engine = null, modules = null, version = 0, available = true, active = false, entering = false;
-    let config = null, restoreFocus = null, lastShot = null, supporterContext = {};
+    let config = null, restoreFocus = null, lastShot = null;
     const motion = () => !reduced.matches && $('motion-toggle')?.checked !== false && globalThis.PointsPreferences?.get().reduced_motion!==true;
 
     // Lokalne hostovana Three.js: zadne CDN requesty ani sledovani uzivatele.
     // Pri chybe se ukaze upozorneni. Zadny 2D renderer se uz nenacita.
     function load() {
-        if (!modules) modules = Promise.all([import('./stadium_scene.js?v=14'), import('./stadium_config.js?v=12')]);
+        if (!modules) modules = Promise.all([import('./stadium_scene.js?v=15'), import('./stadium_config.js?v=13')]);
         return modules;
     }
     async function prepare() { try { await load(); } catch { /* Chybu zobrazime az pri vstupu do hry. */ } }
@@ -34,6 +34,7 @@
     }
     function skip() { engine?.skip(); complete(); }
     function hide() {
+        globalThis.PointsAudio?.setCrowdActive?.(false);
         version++;active=false;entering=false;engine?.suspend();complete();
         document.body.classList.remove('stadium-playing','stadium-ending');$('stadium-layer').hidden=true;
         $('stadium-controls').hidden=true;$('stadium-outcome').hidden=true;
@@ -54,8 +55,8 @@
             document.body.classList.remove('stadium-ending');
             $('stadium-layer').hidden=false;
             if(!engine)engine=module.createStadium($('stadium-layer'),$('stadium-framing'),fallback,reveal);
-            engine.supporters(supporterContext);
             active=true;document.body.classList.add('stadium-playing');$('stadium-controls').hidden=false;
+            globalThis.PointsAudio?.setCrowdActive?.(true);
             $('stadium-unavailable').hidden=true;
             $('stadium-role').textContent=role==='keeper'?'Goalkeeper':'Penalty taker';
             $('stadium-outcome').hidden=true;
@@ -93,6 +94,7 @@
         await engine.finish(motion()?config.outroMs:0,amount=>document.body.style.setProperty('--stadium-result',String(amount)));
         if(own!==version)return;
         panels(false);$('stadium-layer').hidden=true;$('stadium-controls').hidden=true;active=false;
+        globalThis.PointsAudio?.setCrowdActive?.(false);
     }
     function reset() { lastShot=null;if(active){engine?.reset();$('stadium-outcome').hidden=true;} }
     // Skore a hodiny jen zrcadlime z herniho controlleru. V 3D tak zustanou
@@ -101,7 +103,6 @@
         if(score!==undefined)$('stadium-score').textContent=score;
         if(clock!==undefined)$('stadium-clock').textContent=clock;
     }
-    function supporters(context){supporterContext=context;engine?.supporters(context);}
     $('stadium-skip').addEventListener('click',skip);
     $('motion-toggle')?.addEventListener('change',()=>{if(!motion()){skip();reset();}});
     window.addEventListener('points-preferences',()=>{
@@ -115,7 +116,7 @@
     window.addEventListener('keydown',event=>{if(event.key==='Escape'&&entering)skip();});
     window.addEventListener('pagehide',()=>{leave();engine?.dispose();engine=null;});
     // inspect() je pouze diagnostika kamery pro vizualni testy, ne herni stav.
-    window.PointsStadium={prepare,enter,skip,leave,shot,reset,hud,finish,supporters,
+    window.PointsStadium={prepare,enter,skip,leave,shot,reset,hud,finish,
         inspect:()=>({active,entering,...engine?.inspect()})};
     prepare();
 })();

@@ -4,7 +4,7 @@
  */
 :root {
   color-scheme:light;
-  --paper:#f6f3eb; --ink:#111111; --line-width:3px;
+  --paper:#f6f3eb; --ink:#111111; --logo-ink:#f6f3eb; --line-width:3px;
   --brand-green:#88b04b; --brand-coral:#a52c27; --brand-purple:#111111; --brand-pink:#a52c27; --brand-blue:#111111;
   --bg:var(--paper); --surface:var(--paper); --surface-raised:#ebe7de; --text:var(--ink); --muted:#615f58; --border:var(--ink);
   --accent:var(--ink); --accent-hover:#30302d; --coral:var(--brand-coral); --highlight:var(--ink);
@@ -24,9 +24,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .brand-word { display:flex; align-items:flex-end; flex:none; gap:var(--letter-gap); height:var(--wordmark-height); }
 .brand-letter,.brand-dot { display:block; flex:none; width:var(--wordmark-height); height:var(--wordmark-height); }
 .brand-wordmark circle { fill:var(--brand-green); }
-.brand-glyph { fill:none; stroke:var(--paper); stroke-width:var(--glyph-weight); stroke-linecap:round; stroke-linejoin:round; }
+.brand-glyph { fill:none; stroke:var(--logo-ink); stroke-width:var(--glyph-weight); stroke-linecap:round; stroke-linejoin:round; }
 .brand-dot { width:calc(var(--wordmark-height) * .32); height:calc(var(--wordmark-height) * .32); }
-.brand-dot path { fill:var(--paper); }
+.brand-dot path { fill:var(--logo-ink); }
 @media(max-width:700px) { .brand-wordmark { --wordmark-height:24px; --letter-gap:1.5px; --word-gap:6px; } }
 .points-period { color:var(--accent); }
 .points-header nav a,.points-signout { color:var(--muted); }

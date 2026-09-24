@@ -55,7 +55,7 @@ class TriviaAssets(StaticFiles):
 app.mount('/assets', TriviaAssets(directory=ROOT / 'web' / 'static'), name='assets')
 app.mount('/trivia-assets', TriviaAssets(directory=ROOT / 'trivia_app' / 'static',
     public_files=('app.css','penalties.css','penalty_scene.js','solo.css','solo.js',
-                  'stadium.css','stadium_intro.js','stadium_scene.js','stadium_config.js','stadium_v6_world.js','stadium_motion.js','stadium_crowd.js','crowd_reaction.js','penalty_shots.js','points_theme.css','redesign.css','home.css','home.js',
+                  'stadium.css','stadium_intro.js','stadium_scene.js','stadium_config.js','stadium_v6_world.js','stadium_motion.js','crowd_reaction.js','penalty_shots.js','points_theme.css','redesign.css','home.css','home.js','theme.js','dark_mode.css','icons/sun.svg','icons/moon.svg',
                   'community.css','community.js','shell.js','shootout.css','result_share.js','solo_mobile.css','solo_mobile.js','solo_results.css','friends.js','game_modes.css',
                   'account_settings.css','account_settings.js','public_ui.css','public_ui.js','social.css','social.js','mode_intro.js',
                   'audio.css','audio.js','icons/volume-2.svg','icons/volume-x.svg',

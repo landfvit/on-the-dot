@@ -1,13 +1,13 @@
 /* Broadcast score: fixed ball dimensions prevent layout jumps after each kick. */
-#shootout-board { position:fixed; z-index:5; left:24px; top:90px; padding:10px 14px; background:#101c20e8; color:var(--text); border-radius:4px; opacity:var(--stadium-reveal,1); pointer-events:none; }
+#shootout-board { position:fixed; z-index:5; left:24px; top:90px; padding:10px 14px; background:var(--surface); color:var(--text); border-radius:4px; opacity:var(--stadium-reveal,1); pointer-events:none; }
 body:not(.stadium-playing) #shootout-board { display:none; }
 .shootout-team { display:grid; grid-template-columns:76px 22px auto; gap:10px; align-items:center; min-height:30px; font-size:13px; }
 .shootout-team strong { font-size:18px; text-align:center; font-variant-numeric:tabular-nums; }
 .shootout-kicks { display:flex; gap:7px; }
 .shootout-kick { display:block; width:19px; height:19px; flex:0 0 19px; color:#f2f4ec; }
 .shootout-kick.goal,.shootout-kick.miss { background:currentColor; mask:url('/trivia-assets/icons/football.svg') center/contain no-repeat; }
-.shootout-kick.miss { color:#f17373; }
-.shootout-kick.pending { border:1px solid #79918d; border-radius:50%; opacity:.45; }
+.shootout-kick.miss { color:var(--coral); }
+.shootout-kick.pending { border:1px solid var(--muted); border-radius:50%; opacity:.45; }
 #shootout-round { display:block; color:var(--muted); font-size:11px; margin-top:5px; }
 body.stadium-playing:has(#shootout-board:not([hidden])) #stadium-framing { top:200px; }
 body.stadium-playing:has(#shootout-board:not([hidden])) #stadium-outcome { display:none; }

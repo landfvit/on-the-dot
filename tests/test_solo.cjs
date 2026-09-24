@@ -16,7 +16,7 @@ function setup(pageType='solo',withScene=false,stadium=undefined){
       addEventListener(name,fn){this.handlers[name]=fn;},emit(name){return this.handlers[name]?.({preventDefault(){},target:this});},focus(){},
       querySelector(){return get('save');},
       setAttribute(name,value){this[name]=value;},
-      removeAttribute(name){delete this[name];},select(){},
+      removeAttribute(name){delete this[name];},select(){},showModal(){this.open=true;},close(){this.open=false;},
     };
   }
   const get=id=>{if(!nodes.has(id))nodes.set(id,element(['category','topic'].includes(id)?'select':'div'));return nodes.get(id);};
@@ -145,11 +145,11 @@ test('completed quiz displays server-calculated rewards and streak outcome',asyn
   const s=setup();await boot(s,true,run({phase:'FINISHED',position:10,perfect:true,streak_eligible:true,total_xp:900,base_xp:300,bonus_xp:600,multiplier:3,correct:10}));
   assert.equal(s.get('result-heading').textContent,'Perfect shootout!');
   assert.deepEqual(s.get('result-metrics').children.map(n=>n.children[0].textContent),['10 / 10','900','600','3x']);
-  assert.equal(s.get('streak-result').textContent,'');assert.equal(s.get('streak-result').hidden,true);assert.equal(s.get('leave').hidden,true);
+  assert.equal(s.get('leave').hidden,true);
 });
 test('timeout results do not promise a daily streak',async()=>{
   const s=setup();await boot(s,true,run({phase:'FINISHED',position:10,streak_eligible:false,total_xp:90,base_xp:90}));
-  assert.equal(s.get('streak-result').hidden,true);assert.equal(s.get('streak-result').textContent,'');
+  assert.doesNotMatch(s.get('result-completion').textContent,/streak/i);
 });
 test('review retains explanations but never renders source or authority labels',async()=>{
   const s=setup();
@@ -163,6 +163,29 @@ test('review retains explanations but never renders source or authority labels',
   assert.equal(item.children[1].textContent,'Correct · United finished first with 80 points.');
   assert.doesNotMatch(s.get('feedback').textContent,/source|author|database|https:/i);
 });
+test('result review paginates server answers and closes before a new shootout',async()=>{
+  const s=setup();await boot(s,true,run({phase:'FINISHED',review:[
+    {text:'First question?',option_id:null,explanation:'First explanation.'},
+    {text:'Second question?',option_id:'a',is_correct:true,explanation:'Second explanation.'},
+  ]}));
+  s.get('result-review').emit('click');
+  assert.equal(s.get('review-dialog').open,true);
+  assert.equal(s.get('review-previous').disabled,true);
+  s.get('review-next').emit('click');
+  assert.equal(s.get('review').children.length,1);
+  assert.equal(s.get('review').children[0].children[0].textContent,'Second question?');
+  assert.equal(s.get('review-position').textContent,'2 / 2');
+  assert.equal(s.get('review-next').disabled,true);
+  s.get('review-previous').emit('click');assert.equal(s.get('review-position').textContent,'1 / 2');
+  const restarting=s.get('another').emit('click');await flush();reply(s.requests.at(-1),catalog);await restarting;
+  assert.equal(s.get('review-dialog').open,false);
+});
+test('empty ended game has no review navigation to invented answers',async()=>{
+  const s=setup();await boot(s,true,run({phase:'ABANDONED',review:[]}));
+  assert.equal(s.get('result-review').disabled,true);
+  assert.equal(s.get('review').children.length,0);
+  assert.equal(s.get('review-next').disabled,true);
+});
 test('network recovery restores answer controls without changing the deadline',async()=>{
   const s=setup(),active=run({phase:'ANSWERING',position:1,deadline:Date.now()+10000,question:{text:'Question?',options:[{id:'0',text:'A'}]}});
   await boot(s,true,active);s.timers.find(t=>t.ms===1000).fn();await flush();reply(s.requests[3],{detail:'Offline'},503);await flush();
@@ -175,7 +198,6 @@ test('completed guest game offers registration without blocking another game',as
   const s=setup();await boot(s,false,run({phase:'FINISHED',position:10,is_trial:true,total_xp:100,base_xp:100,perfect:true}));
   assert.equal(s.get('another').textContent,'New shootout');assert.equal(s.get('guest-benefits').hidden,false);
   assert.match(s.get('result-metrics').children[1].children[1].textContent,/not saved/);
-  assert.equal(s.get('streak-result').textContent,'Trial XP is not saved.');
   const restarting=s.get('another').emit('click');await flush();reply(s.requests.at(-1),catalog);await restarting;
   assert.equal(s.location.href,'http://localhost/penalties');assert.equal(s.get('selection').hidden,false);
 });
@@ -210,7 +232,8 @@ test('sharing offers a card and copies only the score and public link when nativ
   assert.equal(s.get('share-download').download,'on-the-dot-result.png');
   await s.get('share-copy').emit('click');
   assert.equal(s.copied[0],'ON THE DOT. · Easy penalties\n7/10 correct · 70 XP\nhttp://localhost/penalties');
-  assert.equal(s.get('share-status').textContent,'Result and link copied.');
+  assert.equal(s.get('share-dialog-status').textContent,'Result and link copied.');
+  assert.equal(s.get('share-dialog').open,true);
 });
 
 test('returning from leaderboard never resurrects an ended game from local storage',async()=>{

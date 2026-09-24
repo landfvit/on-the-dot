@@ -23,7 +23,7 @@ class StadiumAssetsTests(unittest.TestCase):
 
     def test_only_explicitly_allowed_game_assets_are_public(self):
         client = TestClient(app)
-        for filename in ('stadium.css', 'stadium_intro.js', 'stadium_scene.js', 'stadium_config.js', 'stadium_v6_world.js', 'stadium_motion.js', 'points_theme.css', 'penalty_shots.js', 'result_share.js', 'icons/copy.svg', 'icons/download.svg',
+        for filename in ('stadium.css', 'stadium_intro.js', 'stadium_scene.js', 'stadium_config.js', 'stadium_v6_world.js', 'stadium_motion.js', 'points_theme.css', 'penalty_shots.js', 'result_share.js', 'solo_results.css', 'icons/copy.svg', 'icons/download.svg',
                          'vendor/three/three.module.min.js', 'vendor/three/three.core.min.js', 'vendor/three/LICENSE'):
             with self.subTest(filename=filename):
                 self.assertEqual(client.get('/trivia-assets/' + filename).status_code, 200)

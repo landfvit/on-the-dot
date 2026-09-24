@@ -4,8 +4,8 @@
  * Vzhled men v stadium_config.js; rozlozeni HTML prekryvu v stadium.css.
  */
 import * as THREE from './vendor/three/three.module.min.js';
-import {STADIUM as C} from './stadium_config.js?v=10';
-import {createStadiumWorld} from './stadium_v6_world.js?v=9';
+import {STADIUM as C} from './stadium_config.js?v=11';
+import {createStadiumWorld} from './stadium_v6_world.js?v=10';
 import {ballistic,bounceHeight} from './stadium_motion.js';
 
 export function createStadium(host, framing, onFailure, onReveal = () => {}) {

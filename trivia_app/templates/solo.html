@@ -1,7 +1,7 @@
 {% extends 'trivia_base.html' %}
 {% block title %}Penalties · ON THE DOT.{% endblock %}
-{% block final_styles %}<link rel="stylesheet" href="/trivia-assets/solo_mobile.css?v=1">{% endblock %}
-{% block styles %}<link rel="stylesheet" href="/trivia-assets/penalties.css?v=2"><link rel="stylesheet" href="/trivia-assets/solo.css?v=4"><link rel="stylesheet" href="/trivia-assets/stadium.css?v=4"><link rel="stylesheet" href="/trivia-assets/shootout.css?v=3">{% endblock %}
+{% block final_styles %}<link rel="stylesheet" href="/trivia-assets/solo_mobile.css?v=2"><link rel="stylesheet" href="/trivia-assets/solo_results.css?v=1">{% endblock %}
+{% block styles %}<link rel="stylesheet" href="/trivia-assets/penalties.css?v=2"><link rel="stylesheet" href="/trivia-assets/solo.css?v=4"><link rel="stylesheet" href="/trivia-assets/stadium.css?v=4"><link rel="stylesheet" href="/trivia-assets/shootout.css?v=4">{% endblock %}
 {% block content %}
 {% include 'stadium.html' %}
 <section id="shootout-board" aria-label="Penalty shootout score" hidden>
@@ -37,25 +37,17 @@
     </div>
     {% with ad_slot='gameplay-bottom', ad_class='ad-gameplay' %}{% include 'ad_slot.html' %}{% endwith %}
     <section id="summary" hidden aria-labelledby="result-heading">
-      <div class="result-heading-row"><h2 id="result-heading" tabindex="-1"></h2><button id="share-result" class="icon-button" type="button" aria-label="Share with friends" title="Share with friends" disabled><img src="/trivia-assets/icons/share-2.svg" alt=""><span>Share with friends</span></button></div>
-      <p id="result-completion" class="muted"></p>
+      <div class="result-heading-row"><div class="result-heading-copy"><h2 id="result-heading" tabindex="-1"></h2><p id="result-completion" class="muted"></p></div><button id="share-result" class="icon-button" type="button" aria-label="Share with friends" title="Share with friends" disabled><img src="/trivia-assets/icons/share-2.svg" alt=""><span>Share with friends</span></button></div>
       <div class="metrics" id="result-metrics"></div>
       <div id="result-level" hidden><strong id="result-level-label"></strong><progress id="result-level-progress" aria-label="Level progress"></progress><p id="result-level-remaining"></p></div>
-      <p id="streak-result"></p>
       <div class="actions result-actions"><button id="another" class="primary" hidden>New shootout</button><a id="summary-account" class="primary-link" href="/account">View profile</a><a class="primary-link" href="/leaderboard">Leaderboard</a></div>
       <section id="guest-benefits" class="guest-benefits" aria-labelledby="guest-heading" hidden>
-        <h3 id="guest-heading">Make every shootout count</h3>
-        <p>Create a free account to save XP, earn levels, build your daily streak and join the leaderboard with your club. Guest games stay separate from your account.</p>
-        <a class="primary-link" href="/account?mode=register">Create free account</a>
+        <div><h3 id="guest-heading">Make it count</h3><p>Save XP, levels and streaks. Guest games stay separate.</p></div>
+        <a class="primary-link" href="/account?mode=register">Create account</a>
       </section>
       {% with ad_slot='shootout-results' %}{% include 'ad_slot.html' %}{% endwith %}
       <p id="share-status" role="status"></p>
-      <div id="share-options" hidden>
-        <img id="share-preview" alt="Your shootout result card" width="1200" height="630">
-        <div class="actions"><a id="share-download" class="primary-link" download="on-the-dot-result.png"><img src="/trivia-assets/icons/download.svg" alt="">Download card</a><button id="share-copy" type="button"><img src="/trivia-assets/icons/copy.svg" alt="">Copy link</button></div>
-        <input id="share-link" aria-label="Game link" readonly>
-      </div>
-      <details id="result-review"><summary>Review answers</summary><div id="review"></div></details>
+      <button id="result-review" type="button" aria-haspopup="dialog">Review answers</button>
     </section>
   </section>
   </div><section class="solo-pitch" aria-label="Penalty pitch">
@@ -67,5 +59,19 @@
   <div class="drawer-heading"><h2 id="feedback-heading">Answer explanation</h2><button id="feedback-close" class="icon-button" type="button" aria-label="Close explanation"><img src="/trivia-assets/icons/x.svg" alt=""></button></div>
   <p id="feedback-full"></p>
 </dialog>
+<dialog id="review-dialog" class="result-dialog" aria-labelledby="review-heading">
+  <div class="drawer-heading"><h2 id="review-heading">Review answers</h2><button id="review-close" class="icon-button" type="button" aria-label="Close review"><img src="/trivia-assets/icons/x.svg" alt=""></button></div>
+  <div id="review" aria-live="polite"></div>
+  <nav class="review-pagination" aria-label="Answer review"><button id="review-previous" class="icon-button" type="button" aria-label="Previous answer" title="Previous answer"><img src="/trivia-assets/icons/arrow-right.svg" alt=""></button><span id="review-position"></span><button id="review-next" class="icon-button" type="button" aria-label="Next answer" title="Next answer"><img src="/trivia-assets/icons/arrow-right.svg" alt=""></button></nav>
+</dialog>
+<dialog id="share-dialog" class="result-dialog" aria-labelledby="share-heading">
+  <div class="drawer-heading"><h2 id="share-heading">Share with friends</h2><button id="share-close" class="icon-button" type="button" aria-label="Close sharing"><img src="/trivia-assets/icons/x.svg" alt=""></button></div>
+  <div id="share-options" hidden>
+    <img id="share-preview" alt="Your shootout result card" width="1200" height="630">
+    <div class="actions"><a id="share-download" class="primary-link" download="on-the-dot-result.png"><img src="/trivia-assets/icons/download.svg" alt="">Download card</a><button id="share-copy" type="button"><img src="/trivia-assets/icons/copy.svg" alt="">Copy link</button></div>
+    <input id="share-link" aria-label="Game link" readonly>
+    <p id="share-dialog-status" role="status"></p>
+  </div>
+</dialog>
 {% endblock %}
-{% block scripts %}<script src="/trivia-assets/penalty_shots.js?v=1" defer></script><script src="/trivia-assets/stadium_intro.js?v=11" defer></script><script src="/trivia-assets/penalty_scene.js?v=6" defer></script><script src="/trivia-assets/result_share.js?v=1" defer></script><script src="/trivia-assets/solo.js?v=16" defer></script><script src="/trivia-assets/solo_mobile.js?v=1" defer></script>{% endblock %}
+{% block scripts %}<script src="/trivia-assets/penalty_shots.js?v=1" defer></script><script src="/trivia-assets/stadium_intro.js?v=12" defer></script><script src="/trivia-assets/penalty_scene.js?v=6" defer></script><script src="/trivia-assets/result_share.js?v=2" defer></script><script src="/trivia-assets/solo.js?v=17" defer></script><script src="/trivia-assets/solo_mobile.js?v=1" defer></script>{% endblock %}

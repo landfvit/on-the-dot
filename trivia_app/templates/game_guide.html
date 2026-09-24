@@ -1,6 +1,6 @@
 {% extends 'trivia_base.html' %}
 {% block title %}How to play · ON THE DOT.{% endblock %}
-{% block styles %}<link rel="stylesheet" href="/trivia-assets/shootout.css?v=3"><link rel="stylesheet" href="/trivia-assets/game_guide.css?v=1">{% endblock %}
+{% block styles %}<link rel="stylesheet" href="/trivia-assets/shootout.css?v=4"><link rel="stylesheet" href="/trivia-assets/game_guide.css?v=1">{% endblock %}
 {% block content %}
 <main class="game-guide">
   <header class="guide-heading brand-heading"><img class="home-logo" src="/trivia-assets/brand/logo.png?v=1" width="2000" height="2000" alt="ON THE DOT." fetchpriority="high"><h1>How to play</h1><a class="primary-link" href="/penalties">Play penalties <img src="/trivia-assets/icons/arrow-right.svg" alt=""></a></header>
@@ -10,10 +10,10 @@
   <section id="shootout" class="guide-section" aria-labelledby="shootout-title">
     <div class="guide-section-heading"><h2 id="shootout-title">Shoot. Save. Repeat.</h2><span class="guide-timer">{{ rules.answer_ms // 1000 }} seconds / answer</span></div>
     <div class="guide-roles">
-      <figure><img class="guide-scene" src="/trivia-assets/guide/shooter.png" width="900" height="600" alt="The game's penalty spot, football and goalkeeper facing your shot.">
+      <figure><img class="guide-scene" src="/trivia-assets/guide/shooter.png?v=2" width="900" height="600" alt="The game's penalty spot, football and goalkeeper facing your shot.">
         <figcaption><h3>Your kick</h3><p><strong>Correct answer: goal.</strong><br>Wrong answer: saved. Time runs out: missed.</p></figcaption>
       </figure>
-      <figure><img class="guide-scene" src="/trivia-assets/guide/keeper.png" width="900" height="600" alt="The game's goalkeeper holding the ball after saving a penalty.">
+      <figure><img class="guide-scene" src="/trivia-assets/guide/keeper.png?v=2" width="900" height="600" alt="The game's goalkeeper holding the ball after saving a penalty.">
         <figcaption><h3>Your save</h3><p><strong>Correct answer: save.</strong><br>A wrong answer or timeout gives the opponent a goal.</p></figcaption>
       </figure>
     </div>

@@ -1,4 +1,4 @@
-/* ON THE DOT. public shell: stadium teal, coral kit and citrus accents.
+/* ON THE DOT. public shell: shared brand tokens live in points_theme.css.
  * The stadium remains full-bleed; these rules never reposition its camera. */
 body { font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
 .points-header { max-width:1240px; margin:auto; border:0; background:transparent; padding:24px 32px; gap:24px; }
@@ -23,7 +23,7 @@ body { font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 .difficulty-options legend { position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; }
 .difficulty-options label { border:0; border-right:1px solid var(--border); border-radius:0; padding:20px 16px; }
 .difficulty-options label:last-child { border-right:0; }
-.difficulty-options label:has(:checked) { box-shadow:inset 0 -3px var(--highlight); }
+.difficulty-options label:has(:checked) { box-shadow:inset 0 -3px var(--difficulty-color); }
 .difficulty-options input { accent-color:var(--text); }
 .difficulty-options label>span { font-size:18px; font-weight:750; }
 .difficulty-options small { font-weight:400; font-size:12px; }
@@ -57,7 +57,7 @@ body { font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
 progress::-webkit-progress-bar { background:var(--border); }
 progress::-webkit-progress-value { background:var(--accent); }
 progress::-moz-progress-bar { background:var(--accent); }
-.primary-link { display:inline-flex; align-items:center; justify-content:center; gap:16px; min-height:44px; padding:12px 20px; border-radius:6px; background:var(--accent); color:var(--ink); text-decoration:none; font-weight:750; }
+.primary-link { display:inline-flex; align-items:center; justify-content:center; gap:16px; min-height:44px; padding:12px 20px; border-radius:6px; background:var(--accent); color:var(--on-accent); text-decoration:none; font-weight:750; }
 .primary-link:hover { background:var(--accent-hover); }
 .shell-drawer { margin:0; padding:28px; width:min(390px,100%); max-width:100%; height:100dvh; max-height:100dvh; border:0; border-right:1px solid var(--border); background:var(--bg); color:var(--text); }
 .shell-drawer::backdrop { background:#03090ca6; backdrop-filter:blur(3px); }

@@ -16,7 +16,7 @@
     // Lokalne hostovana Three.js: zadne CDN requesty ani sledovani uzivatele.
     // Pri chybe se ukaze upozorneni. Zadny 2D renderer se uz nenacita.
     function load() {
-        if (!modules) modules = Promise.all([import('./stadium_scene.js?v=12'), import('./stadium_config.js?v=10')]);
+        if (!modules) modules = Promise.all([import('./stadium_scene.js?v=13'), import('./stadium_config.js?v=11')]);
         return modules;
     }
     async function prepare() { try { await load(); } catch { /* Chybu zobrazime az pri vstupu do hry. */ } }

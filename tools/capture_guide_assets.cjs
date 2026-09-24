@@ -10,9 +10,9 @@ const output=path.resolve(__dirname,'../trivia_app/static/guide');fs.mkdirSync(o
  const browser=await chromium.launch({channel:'chrome',headless:true,args:['--enable-unsafe-swiftshader','--use-angle=swiftshader']});
  try{
   const page=await browser.newPage({viewport:{width:900,height:600},deviceScaleFactor:1});
-  await page.route('**/guide-capture',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><html><head><style>html,body{margin:0;background:#091316}#scene,#frame{position:fixed;inset:0}#frame{pointer-events:none}canvas{display:block}</style></head><body><div id="scene"></div><div id="frame"></div></body></html>'}));
+  await page.route('**/guide-capture',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><html><head><style>html,body{margin:0;background:#222326}#scene,#frame{position:fixed;inset:0}#frame{pointer-events:none}canvas{display:block}</style></head><body><div id="scene"></div><div id="frame"></div></body></html>'}));
   await page.goto(origin+'/guide-capture');await page.addScriptTag({url:origin+'/trivia-assets/penalty_shots.js'});
-  await page.evaluate(async()=>{const {createStadium}=await import('/trivia-assets/stadium_scene.js?v=12');window.sceneFailure=false;
+  await page.evaluate(async()=>{const {createStadium}=await import('/trivia-assets/stadium_scene.js?v=13');window.sceneFailure=false;
    window.guideScene=createStadium(document.getElementById('scene'),document.getElementById('frame'),()=>{window.sceneFailure=true;});});
   for(const role of ['shooter','keeper']){
    await page.evaluate(async role=>{

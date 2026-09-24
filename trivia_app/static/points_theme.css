@@ -1,8 +1,15 @@
-/* ON THE DOT.: barvy navazuji na V6_WORLD.colors v stadium_config.js.
- * Rozlozeni/ovladani zustava v puvodnich CSS; zde upravuj barvy a typografii.
- * Accent = hlavni akce, coral = chybna odpoved, muted = sekundarni informace.
+/* Supplied brand palette. Keep these five swatches unchanged; neutral surfaces
+ * and tinted states provide readable contrast without recoloring the logos.
+ * The renderer and exported share card mirror these tokens in their configs.
  */
-:root { color-scheme:dark; --bg:#091316; --surface:#101c20; --surface-raised:#1b3031; --text:#e6eee4; --muted:#a9bbb4; --accent:#7ed69d; --accent-hover:#a2e5b8; --border:#355052; --coral:#ed7b89; --highlight:#c6ef8e; --ink:#101c20; --selection:#243c32; color:var(--text); background:var(--bg); }
+:root {
+  color-scheme:dark;
+  --brand-coral:#ff6f61; --brand-purple:#6f2c91; --brand-green:#88b04b; --brand-pink:#f7cac9; --brand-blue:#92a8d1;
+  --bg:#222326; --surface:#2b2d32; --surface-raised:#34363b; --text:#f7f6f2; --muted:#bcbfc8; --border:#54565f;
+  --accent:var(--brand-green); --accent-hover:#a2c571; --coral:var(--brand-coral); --highlight:var(--brand-blue); --ink:#191a1e;
+  --selection:#34412c; --error-surface:#492f30; --on-accent:#191a1e;
+  color:var(--text); background:var(--bg);
+}
 body,body:has(.penalty-page),body.stadium-playing { background:var(--bg); color:var(--text); }
 body { letter-spacing:0; }
 a { color:var(--text); text-underline-offset:4px; }
@@ -13,24 +20,28 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .points-header nav a,.points-signout { color:var(--muted); }
 .points-header nav a[aria-current] { color:var(--accent); border-color:var(--accent); }
 .solo-page,.penalty-page,.quiz-page { --ink:var(--text); --green:var(--accent); --line:var(--border); --bad:var(--coral); color:var(--text); }
-.penalty-page { --muted:#a9bbb4; }
 body :is(.solo-page,.penalty-page,.trivia-page,.bank-page) :focus-visible { outline-color:var(--accent); }
 .solo-heading h1,.penalty-heading h1 { font-weight:550; font-size:30px; }
 .solo-page h2,.penalty-page h2 { font-weight:550; }
 .solo-page button,.penalty-page button,.quiz-page button,.points-signout { background:var(--surface); border-color:var(--border); color:var(--text); border-radius:6px; }
-.solo-page button:hover:not(:disabled),.penalty-page button:hover:not(:disabled),.quiz-page button:hover:not(:disabled) { background:var(--surface-raised); border-color:#789b99; }
-.solo-page .primary,.penalty-page button.primary,.quiz-page .primary { background:var(--accent); border-color:var(--accent); color:#191c21; }
+.solo-page button:hover:not(:disabled),.penalty-page button:hover:not(:disabled),.quiz-page button:hover:not(:disabled) { background:var(--surface-raised); border-color:var(--highlight); }
+.solo-page .primary,.penalty-page button.primary,.quiz-page .primary { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
 .solo-page .primary:hover:not(:disabled),.penalty-page button.primary:hover:not(:disabled) { background:var(--accent-hover); border-color:var(--accent-hover); }
 .solo-page input:not([type=radio]):not([type=checkbox]),.solo-page select,.solo-page textarea,.penalty-page .field input,.penalty-page .field select,.studio-login input,.quiz-game input { background:var(--surface); color:var(--text); border-color:var(--border); border-radius:6px; }
 input[type=radio],input[type=checkbox],progress { accent-color:var(--accent); }
 .muted,.difficulty-options small,.metric span,.scoreboard small,.question-meta,#rules-note,#feedback,.quiz-tile p { color:var(--muted); }
 #notice { color:var(--muted); }
 #notice:empty,#feedback:empty { display:none; }
-#error { background:#382822; color:#ffb39c; border-radius:6px; }
+#error { background:var(--error-surface); color:var(--brand-pink); border-radius:6px; }
 #error:empty { display:none; }
-.difficulty-options label { background:var(--surface); border-color:var(--border); border-radius:6px; }
-.difficulty-options label:has(:checked) { border-color:var(--highlight); background:var(--selection); }
-.difficulty-options small[id$="-perfect"] { display:block; color:var(--highlight); }
+.difficulty-options label { --difficulty-color:var(--brand-green); background:var(--surface); border-color:var(--border); border-radius:6px; }
+.difficulty-options label:has([value=medium]) { --difficulty-color:var(--brand-blue); }
+.difficulty-options label:has([value=hard]) { --difficulty-color:var(--brand-pink); }
+.difficulty-options label:has(:checked) { border-color:var(--difficulty-color); background:var(--selection); }
+.difficulty-options label:has([value=medium]:checked) { background:#323c50; }
+.difficulty-options label:has([value=hard]:checked) { background:var(--brand-purple); }
+.difficulty-options small[id$="-perfect"] { display:block; color:var(--difficulty-color); }
+.difficulty-options label:has([value=hard]:checked) small { color:var(--text); }
 .run-meta,.metrics,.review-item,.assessment,.scoreboard,#result-stats,.quiz-game header,.quiz-review { border-color:var(--border); }
 .metric strong { color:var(--text); }
 .quiz-tile { background:var(--surface); border-color:var(--border); }
@@ -46,28 +57,28 @@ input[type=radio],input[type=checkbox],progress { accent-color:var(--accent); }
 .timer-track { background:var(--border); height:3px; }
 .timer-track div { background:var(--accent); }
 .solo-choices button,.penalty-answers button { font-weight:500; line-height:1.45; }
-.penalty-answers button span { background:var(--highlight); color:var(--ink); }
-.solo-choices .correct,.penalty-answers button.correct { border-color:var(--highlight); background:var(--selection); color:#e3f8c6; opacity:1; }
-.solo-choices .incorrect,.penalty-answers button.wrong { border-color:var(--coral); background:#382822; color:#ffb39c; opacity:1; }
+.penalty-answers button span { background:var(--highlight); color:var(--on-accent); }
+.solo-choices .correct,.penalty-answers button.correct { border-color:var(--accent); background:var(--selection); color:var(--text); opacity:1; }
+.solo-choices .incorrect,.penalty-answers button.wrong { border-color:var(--coral); background:var(--error-surface); color:var(--brand-pink); opacity:1; }
 .solo-choices .chosen,.penalty-answers button.chosen { outline:none; box-shadow:none; border-width:1px; }
-.solo-choices .chosen.correct,.penalty-answers button.chosen.correct { border-color:transparent; background:#31513e; color:#e3f8c6; }
-.solo-choices .chosen.incorrect,.penalty-answers button.chosen.wrong { border-color:transparent; background:#483036; color:#ffd5d8; }
+.solo-choices .chosen.correct,.penalty-answers button.chosen.correct { border-color:transparent; background:var(--accent); color:var(--on-accent); }
+.solo-choices .chosen.incorrect,.penalty-answers button.chosen.wrong { border-color:transparent; background:var(--coral); color:var(--on-accent); }
 .solo-attempt,#attempts span { border-color:var(--border); color:var(--muted); }
-.solo-attempt.goal,#attempts .goal { color:#122013; background:var(--accent); border-color:var(--accent); }
-.solo-attempt.save,.solo-attempt.miss,#attempts .save,#attempts .miss { color:#ffb39c; background:#382822; border-color:#704b3e; }
+.solo-attempt.goal,#attempts .goal { color:var(--on-accent); background:var(--accent); border-color:var(--accent); }
+.solo-attempt.save,.solo-attempt.miss,#attempts .save,#attempts .miss { color:var(--on-accent); background:var(--coral); border-color:var(--coral); }
 .swatch:has(:checked) { outline-color:var(--accent); }
 /* Studio a knihovna pouzivaji stejne barvy, ale PONECHAVAJI zdrojova metadata. */
 .trivia-page,.bank-page { color:var(--text); }
 :is(.trivia-page,.bank-page) :is(button,select,textarea,input:not([type=checkbox]):not([type=radio])) { background:var(--surface); color:var(--text); border-color:var(--border); }
-:is(.trivia-page,.bank-page) button:hover:enabled { background:var(--surface-raised); border-color:#789b99; }
-.trivia-page .trivia-primary,.bank-page .primary,.trivia-page .trivia-primary:hover:enabled { background:var(--accent); color:#122013; border-color:var(--accent); }
+:is(.trivia-page,.bank-page) button:hover:enabled { background:var(--surface-raised); border-color:var(--highlight); }
+.trivia-page .trivia-primary,.bank-page .primary,.trivia-page .trivia-primary:hover:enabled { background:var(--accent); color:var(--on-accent); border-color:var(--accent); }
 .trivia-tabs button[aria-pressed=true] { color:var(--accent); border-color:var(--accent); }
 .trivia-dataset,.trivia-dataset strong,.trivia-controls label,.trivia-answer-test label,.trivia-provenance,.trivia-state,#trivia-status,.bank-meta,.bank-counts span,.bank-question header,.bank-answer dt,#bank-model { color:var(--muted); }
 .trivia-eyebrow,.bank-eyebrow,.bank-status { color:var(--accent); }
 .bank-status.conflict,#bank-error,#trivia-status.error { color:var(--coral); }
 .trivia-tabs,.trivia-controls,.trivia-metrics,.bank-counts,.bank-authoring,.bank-question,.bank-neighbor,.bank-draft { border-color:var(--border); }
 /* Fullscreen herni plocha: volny stadion vlevo, klidny souvisly pas otazek. */
-#stadium-layer { background:radial-gradient(ellipse at 40% 38%,#2d4543 0%,#1c302f 34%,#111f22 68%,#0b1619 100%); }
+#stadium-layer { background:var(--bg); }
 #stadium-controls { color:var(--text); background:var(--bg); border-bottom:1px solid var(--border); }
 #stadium-controls strong { font-size:23px; font-weight:700; }
 #stadium-role { color:var(--muted); }
@@ -75,9 +86,9 @@ input[type=radio],input[type=checkbox],progress { accent-color:var(--accent); }
 #stadium-controls button { color:var(--text); background:var(--surface); border:1px solid var(--border); border-radius:6px; font-size:12px; }
 #stadium-controls button:hover { border-color:var(--accent); }
 #stadium-controls button:focus-visible { outline-color:var(--accent); }
-#stadium-outcome { background:var(--accent); color:#122013; font-size:18px; border-radius:4px; }
-.stadium-playing .solo-questions,.stadium-playing .question-column { background:#101c20fa; border-left:1px solid var(--border); }
-.stadium-playing .solo-score,.stadium-playing .scoreboard { background:transparent; color:#edf4ee; }
+#stadium-outcome { background:var(--accent); color:var(--on-accent); font-size:18px; border-radius:4px; }
+.stadium-playing .solo-questions,.stadium-playing .question-column { background:var(--surface); border-left:1px solid var(--border); }
+.stadium-playing .solo-score,.stadium-playing .scoreboard { background:transparent; color:var(--text); }
 .stadium-playing .scoreboard small { color:var(--muted); }
 .stadium-playing .run-meta { color:var(--muted); }
 .stadium-playing .solo-questions h2,.stadium-playing .question-column h2 { font-size:26px; font-weight:550; line-height:1.35; }

@@ -94,12 +94,35 @@
     const stadium=globalThis.PointsStadium;
     let stadiumRun=null,stadiumWaiting=false,presentation=0,presented='';
     const resultShare=globalThis.PointsResultShare;
-    let shareCard=null,shareVersion=0;
+    let shareCard=null,shareVersion=0,reviewPosition=0;
+    // Detail views are separate dialogs, so long shootouts never grow the
+    // result card. Pagination is presentation-only and uses server review data.
+    function reviewAnswer(position){
+      const answers=run?.review||[];
+      reviewPosition=Math.max(0,Math.min(position,answers.length-1));
+      const answer=answers[reviewPosition];
+      $('review').replaceChildren();
+      if(answer){
+        const block=node('article',undefined,'review-item');
+        block.append(node('h3',answer.text),node('p',`${answer.option_id===null?'Timed out':answer.is_correct?'Correct':'Incorrect'} · ${answer.explanation}`));
+        $('review').append(block);
+      }
+      $('review-position').textContent=answers.length?`${reviewPosition+1} / ${answers.length}`:'No answers';
+      $('review-previous').disabled=reviewPosition===0;
+      $('review-next').disabled=reviewPosition>=answers.length-1;
+    }
+    function shareFallback(){
+      $('share-options').hidden=false;
+      if(!$('share-dialog').open)$('share-dialog').showModal();
+    }
     function clearShare(){
       shareVersion++;shareCard?.dispose();shareCard=null;
       $('share-result').disabled=true;$('share-options').hidden=true;
       $('share-preview').removeAttribute('src');$('share-download').removeAttribute('href');
       $('share-status').textContent='';
+      $('share-dialog-status').textContent='';
+      if($('share-dialog').open)$('share-dialog').close();
+      if($('review-dialog').open)$('review-dialog').close();
     }
     async function prepareShare(){
       clearShare();const own=shareVersion;
@@ -273,18 +296,14 @@
           $('result-level-progress').value=max?1:p.total_xp-p.level_xp;
           $('result-level-remaining').textContent=max?'Maximum level':`${Math.max(0,p.next_level_xp-p.total_xp)} XP to level ${p.level+1}`;
         }
-        $('streak-result').textContent=run.is_trial?'Trial XP is not saved.':'';
-        $('streak-result').hidden=!run.is_trial;
         $('summary-account').textContent=run.is_trial?'Sign in':'View profile';$('summary-account').href='/account';
-        $('review').replaceChildren(...run.review.map((a,i)=>{
-          const block=node('article',undefined,'review-item');block.append(node('h3',`${i+1}. ${a.text}`),node('p',`${a.option_id===null?'Timed out':a.is_correct?'Correct':'Incorrect'} · ${a.explanation}`));
-          return block;
-        }));
+        $('result-review').disabled=run.review.length===0;
+        reviewAnswer(0);
         currentUser().then(p=>{if(p)user=p;}).catch(()=>{});
       }
       if(active)$('question-title').focus({preventScroll:true});
       stadiumView();
-      if(done&&!stadiumWaiting)$('result-heading').focus();
+      if(done&&!stadiumWaiting)$('result-heading').focus({preventScroll:true});
     }
     async function refresh(){
       if(!run||polling)return;polling=true;
@@ -307,6 +326,11 @@
     $('next').addEventListener('click',()=>command('next',{previous:run.position}));
     $('leave').addEventListener('click',()=>command('leave',{}));
     $('retry').addEventListener('click',()=>{rendered='';refresh();});
+    $('result-review').addEventListener('click',()=>{reviewAnswer(0);$('review-dialog').showModal();});
+    $('review-previous').addEventListener('click',()=>reviewAnswer(reviewPosition-1));
+    $('review-next').addEventListener('click',()=>reviewAnswer(reviewPosition+1));
+    $('review-close').addEventListener('click',()=>$('review-dialog').close());
+    $('share-close').addEventListener('click',()=>$('share-dialog').close());
     $('share-result').addEventListener('click',async()=>{
       if(!shareCard)return;
       const card=shareCard;const own=shareVersion;$('share-result').disabled=true;$('share-status').textContent='';
@@ -314,15 +338,15 @@
         // The PNG is already prepared: native share retains click activation.
         const outcome=await resultShare.share(card,navigator);
         if(own!==shareVersion)return;
-        if(outcome==='fallback')$('share-options').hidden=false;
+        if(outcome==='fallback')shareFallback();
         else if(outcome==='shared')$('share-status').textContent='Share completed.';
-      }catch{if(own===shareVersion){$('share-options').hidden=false;$('share-status').textContent='Sharing unavailable. The card and link are ready.';}}
+      }catch{if(own===shareVersion){shareFallback();$('share-dialog-status').textContent='The card and link are ready to share.';}}
       finally{if(own===shareVersion)$('share-result').disabled=false;}
     });
     $('share-copy').addEventListener('click',async()=>{
       if(!shareCard)return;const own=shareVersion;
-      try{await navigator.clipboard.writeText(shareCard.data.text+'\n'+shareCard.data.url);if(own===shareVersion)$('share-status').textContent='Result and link copied.';}
-      catch{if(own===shareVersion){$('share-link').focus();$('share-link').select();$('share-status').textContent='Copy unavailable. The link is selected.';}}
+      try{await navigator.clipboard.writeText(shareCard.data.text+'\n'+shareCard.data.url);if(own===shareVersion)$('share-dialog-status').textContent='Result and link copied.';}
+      catch{if(own===shareVersion){$('share-link').focus();$('share-link').select();$('share-dialog-status').textContent='Copy unavailable. The link is selected.';}}
     });
     $('another').addEventListener('click',async()=>{presentation++;presented='';stadium?.leave();stadiumRun=null;stadiumWaiting=false;storage(null);clearShare();run=null;pending=null;startRequest=null;rendered='';if(location.search)history.replaceState(null,'',location.pathname);page.classList.toggle('shootout-active',false);page.classList.toggle('shootout-finished',false);pitch();$('quiz-run').hidden=true;$('selection').hidden=false;error('');try{await loadCatalog();}catch(e){error(e.message);}});
     document.querySelectorAll('input[name="difficulty"]').forEach(r=>r.addEventListener('change',selection));

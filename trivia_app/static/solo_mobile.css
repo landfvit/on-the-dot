@@ -1,4 +1,4 @@
-/* Compact gameplay only. Selection and the results/review retain normal scrolling.
+/* Compact gameplay. The separate solo_results.css handles one-screen results.
  * svh keeps the controls still when mobile browser toolbars expand or collapse.
  * These variables also position the camera's framing region above the questions.
  */

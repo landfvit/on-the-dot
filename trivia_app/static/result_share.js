@@ -4,7 +4,7 @@
  */
 (function(root){
   'use strict';
-  const colors={background:'#091316',surface:'#101c20',text:'#e6eee4',muted:'#a9bbb4',accent:'#7ed69d',line:'#355052',miss:'#f17373'};
+  const colors={background:'#222326',surface:'#2b2d32',text:'#f7f6f2',muted:'#bcbfc8',accent:'#88b04b',line:'#54565f',miss:'#ff6f61'};
   const count=value=>Math.max(0,Math.floor(Number(value)||0));
   function snapshot(run,user,origin){
     const url=new URL('/penalties',origin);

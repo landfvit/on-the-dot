@@ -103,6 +103,10 @@ function fits(g){assert.deepEqual(g.overflow,[],JSON.stringify(g));assert(!g.bod
     const clip={x:Math.ceil(frame.x),y:Math.ceil(frame.y),width:Math.floor(frame.width),height:Math.floor(frame.height)};
     const still=await page.screenshot({clip});
     const stats=await sharp(still).stats();assert(stats.channels.slice(0,3).some(c=>c.stdev>10),'Stadium pixels are blank');
+    const {data:rgb,info}=await sharp(still).removeAlpha().raw().toBuffer({resolveWithObject:true});
+    let greenPixels=0;
+    for(let i=0;i<rgb.length;i+=info.channels)if(Math.abs(rgb[i]-136)<20&&Math.abs(rgb[i+1]-176)<20&&Math.abs(rgb[i+2]-75)<20)greenPixels++;
+    assert(greenPixels>info.width*info.height*.05,'Pitch does not render the supplied green');
     await page.evaluate(()=>{window.testShotDone=false;PointsStadium.shot('save').then(()=>window.testShotDone=true);});
     await page.waitForTimeout(250);const moving=await page.screenshot({clip});assert(!still.equals(moving),'Shot did not move');
     await page.waitForFunction(()=>window.testShotDone);
@@ -113,7 +117,7 @@ function fits(g){assert.deepEqual(g.overflow,[],JSON.stringify(g));assert(!g.bod
     assert.equal(await page.locator('[data-ad-slot]:visible').count(),0);
     await page.locator('#leave').click();await page.waitForSelector('#summary:not([hidden])');
     await page.waitForFunction(()=>document.body.classList.contains('stadium-ending'));
-    assert(await page.locator('#guest-benefits').isVisible());assert.equal(await page.locator('[data-ad-slot]:visible').count(),1);
+    assert(await page.locator('#guest-benefits').isVisible());assert.equal(await page.locator('[data-ad-slot]:visible').count(),0);
     await page.screenshot({path:`${artifacts}/guest-results.png`,fullPage:true});
     await page.locator('#another').click();assert(await page.locator('#selection').isVisible());
     assert.equal(await page.locator('#start').textContent(),'Play as guest');assert.equal(await page.locator('#guest-benefits').isVisible(),false);

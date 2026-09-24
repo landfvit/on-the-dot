@@ -32,16 +32,16 @@ class BrandAssetTests(unittest.TestCase):
             self.assertEqual(struct.unpack('>II',response.content[16:24]),(2000,2000))
         self.assertNotEqual(client.get('/trivia-assets/brand/private.png').status_code,200)
 
-    def test_wordmark_on_both_entry_pages_and_symbol_as_favicon_everywhere(self):
+    def test_guide_wordmark_and_transparent_favicon_without_extra_penalties_logo(self):
         client=TestClient(app)
         for path in ('/','/how-to-play','/penalties','/leaderboard','/account','/history'):
             parser=Images();parser.feed(client.get(path).text)
             self.assertEqual({icon['rel'] for icon in parser.icons},{'icon','apple-touch-icon'})
             self.assertEqual({icon['href'] for icon in parser.icons if icon['rel']=='icon'},
-                             {'/trivia-assets/brand/favicon.png?v=3','/trivia-assets/brand/favicon.svg?v=3'})
+                             {'/trivia-assets/brand/favicon.png?v=4','/trivia-assets/brand/favicon.svg?v=4'})
             self.assertEqual(next(icon['href'] for icon in parser.icons if icon['rel']=='apple-touch-icon'),
-                             '/trivia-assets/brand/icon-180.png?v=3')
-            if path in ('/','/how-to-play','/penalties'):
+                             '/trivia-assets/brand/icon-180.png?v=4')
+            if path in ('/','/how-to-play'):
                 self.assertEqual(len(parser.images),1)
                 self.assertEqual(parser.images[0]['alt'],'ON THE DOT.')
                 self.assertEqual(parser.images[0]['src'],'/trivia-assets/brand/logo-transparent.png?v=1')
@@ -53,23 +53,18 @@ class BrandAssetTests(unittest.TestCase):
         self.assertEqual(response.content,(ROOT/'trivia_app'/'static'/'brand'/'favicon.png').read_bytes())
         self.assertEqual(struct.unpack('>II',response.content[16:24]),(64,64))
 
-    def test_vector_favicon_embeds_the_white_symbol_with_rounded_clipping(self):
-        import base64
+    def test_vector_favicon_has_palette_green_circles_and_no_background(self):
         import xml.etree.ElementTree as ET
-        response=TestClient(app).get('/trivia-assets/brand/favicon.svg?v=3')
+        response=TestClient(app).get('/trivia-assets/brand/favicon.svg?v=4')
         self.assertEqual(response.status_code,200)
         self.assertEqual(response.headers['content-type'],'image/svg+xml')
         root=ET.fromstring(response.content)
-        x,y,width,height=map(float,root.attrib['viewBox'].split())
-        self.assertEqual(width,height)
-        self.assertLess(width,1700)
-        self.assertGreater(x,0);self.assertGreater(y,0)
-        image=root.find('.//{http://www.w3.org/2000/svg}image')
-        original=base64.b64decode(image.attrib['href'].split(',',1)[1])
-        self.assertEqual(original[:8],b'\x89PNG\r\n\x1a\n')
-        self.assertEqual(struct.unpack('>II',original[16:24]),(256,256))
-        clip=root.find('.//{http://www.w3.org/2000/svg}clipPath/{http://www.w3.org/2000/svg}rect')
-        self.assertGreater(float(clip.attrib['rx']),0)
+        self.assertEqual(root.attrib['viewBox'],'0 0 108 108')
+        self.assertEqual(root.attrib['fill'],'#88b04b')
+        circles=root.findall('{http://www.w3.org/2000/svg}circle')
+        self.assertEqual(len(circles),10)
+        self.assertEqual([circle.attrib['r'] for circle in circles],['16']*9+['6'])
+        self.assertEqual({child.tag for child in root},{'{http://www.w3.org/2000/svg}circle'})
 
     def test_transparent_wordmark_and_apple_icon_are_public(self):
         client=TestClient(app)

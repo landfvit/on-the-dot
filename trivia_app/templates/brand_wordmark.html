@@ -1,0 +1,29 @@
+{# Geometric lettering on a shared 100x100 grid: cap line 27, baseline 73.
+   Each letter has its own circle, so no neighboring artwork can leak in.
+   Repeated O/T glyphs share the same path; stroke weight lives in the CSS. #}
+{% set glyphs = {
+  'O': 'M29 27H71L83 39V61L71 73H29L17 61V39Z',
+  'N': 'M19 73V27H65L81 43V73',
+  'T': 'M15 27H85M50 27V73',
+  'H': 'M19 27V73M81 27V73M19 50H81',
+  'E': 'M82 27H32L18 41V73H82M18 50H78',
+  'D': 'M19 27H65L81 43V73H19Z'
+} %}
+<span class="brand-wordmark" aria-hidden="true">
+  {% for word in ('ON', 'THE', 'DOT') %}
+  <span class="brand-word" data-word="{{ word }}">
+    {% for letter in word %}
+    <svg class="brand-letter" data-letter="{{ letter }}" viewBox="0 0 100 100" focusable="false">
+      <circle cx="50" cy="50" r="50"/>
+      <path class="brand-glyph" d="{{ glyphs[letter] }}"/>
+    </svg>
+    {% endfor %}
+    {% if loop.last %}
+    <svg class="brand-dot" viewBox="0 0 100 100" focusable="false">
+      <circle cx="50" cy="50" r="50"/>
+      <path d="M42 33H58L68 50L58 67H42L32 50Z"/>
+    </svg>
+    {% endif %}
+  </span>
+  {% endfor %}
+</span>

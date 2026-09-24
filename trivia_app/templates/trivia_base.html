@@ -4,12 +4,12 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>{% block title %}ON THE DOT. Trivia{% endblock %}</title>
-    <link rel="icon" type="image/png" sizes="64x64" href="/trivia-assets/brand/favicon.png?v=3">
-    <link rel="icon" type="image/svg+xml" sizes="any" href="/trivia-assets/brand/favicon.svg?v=3">
-    <link rel="apple-touch-icon" sizes="180x180" href="/trivia-assets/brand/icon-180.png?v=3">
+    <link rel="icon" type="image/png" sizes="64x64" href="/trivia-assets/brand/favicon.png?v=4">
+    <link rel="icon" type="image/svg+xml" sizes="any" href="/trivia-assets/brand/favicon.svg?v=4">
+    <link rel="apple-touch-icon" sizes="180x180" href="/trivia-assets/brand/icon-180.png?v=4">
     <link rel="stylesheet" href="/trivia-assets/app.css?v=1">
     {% block styles %}{% endblock %}
-    <link rel="stylesheet" href="/trivia-assets/points_theme.css?v=8">
+    <link rel="stylesheet" href="/trivia-assets/points_theme.css?v=9">
     {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/community.css?v=8">{% endif %}
     {% block final_styles %}{% endblock %}
     {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/public_ui.css?v=5"><script src="/trivia-assets/public_ui.js?v=1" defer></script>{% endif %}
@@ -19,11 +19,7 @@
     <header class="points-header">
         {% if not private_navigation %}<button id="menu-open" class="icon-button coral-button" aria-label="Open menu" title="Menu" aria-haspopup="dialog"><img src="/trivia-assets/icons/menu.svg" alt=""></button>{% endif %}
         <a class="points-brand" href="/" aria-label="ON THE DOT. home">
-          <span class="brand-wordmark" aria-hidden="true">
-            <span class="brand-word brand-word-on"><img src="/trivia-assets/brand/logo-transparent.png?v=1" width="432" height="432" alt=""></span>
-            <span class="brand-word brand-word-the"><img src="/trivia-assets/brand/logo-transparent.png?v=1" width="432" height="432" alt=""></span>
-            <span class="brand-word brand-word-dot"><img src="/trivia-assets/brand/logo-transparent.png?v=1" width="432" height="432" alt=""></span>
-          </span>
+          {% include 'brand_wordmark.html' %}
         </a>
         {% if private_navigation %}
         <nav aria-label="Main navigation">

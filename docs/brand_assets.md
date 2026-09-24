@@ -7,7 +7,8 @@ The black-background user originals remain unchanged in
 
 The transparent wordmark and white-background symbol were made with the built-in
 image generation tool. Full-resolution editing outputs are kept as `logo-transparent-source.png` and
-`mark-white.png` in the same directory. They are build sources, not public routes.
+`mark-white.png` in the same directory. The latter is an archived white-background
+variant, no longer used by the favicon. These sources are not public routes.
 
 Wordmark prompt:
 
@@ -21,23 +22,28 @@ Symbol prompt:
 
 Run `node tools/build_favicon.cjs` with Sharp available on `NODE_PATH` to create:
 
-- `trivia_app/static/brand/logo-transparent.png`: 432px wordmark with genuine alpha, displayed without any CSS background or border.
-- `trivia_app/static/brand/favicon.svg`: tightly framed symbol with white background and rounded transparent outer corners.
-- `trivia_app/static/brand/favicon.png`: 64px browser fallback with the same corners.
-- `trivia_app/static/brand/icon-180.png`: 180px Apple touch icon.
+- `trivia_app/static/brand/favicon.svg`: native 3x3 circles plus period, in palette green `#88B04B`, with no background shape.
+- `trivia_app/static/brand/favicon.png`: 64px browser fallback with transparent alpha.
+- `trivia_app/static/brand/icon-180.png`: 180px transparent Apple touch icon.
 
-Browser tests cover wordmark alpha and opaque lettering, white favicon pixels,
-transparent corners, green symbol coverage at 16px and 32px, logo layout and both favicon formats. Increment asset URL versions
+The existing 432px `logo-transparent.png` remains on How to play only; it is no
+longer used in the header or beside the Penalties heading.
+
+Browser tests cover wordmark alpha and opaque lettering, no white/black favicon
+background, green symbol coverage at 16px and 32px, logo layout and both favicon formats. Increment asset URL versions
 when exporting a new favicon, because browsers cache tab icons separately.
 
 ## Horizontal Header
 
-The header composes three CSS viewports of the existing transparent wordmark:
-`ON`, `THE`, and `DOT.`. No raster is regenerated or stretched. The first viewport
-excludes the blank circle, while the last retains the small period. The original
-square layout remains on the entry pages, and the favicon is unchanged.
+The header uses one native SVG circle per letter in `brand_wordmark.html`, with
+no raster crops. The geometric glyphs follow the supplied logo, normalized to a
+shared 100px grid, cap line at 27, baseline at 73 and center at 50. Repeated O and
+T letters share their path definitions. Each word is a flex group; the small
+period aligns with the bottom of the last circle.
 
-In `points_theme.css`, `--wordmark-height` controls the circle height (32px on
-desktop, 24px on mobile); `gap` controls the spacing between words. The crop
-coordinates refer to the 432px PNG and must be updated if that source changes.
-The whole logo is one home link with an accessible name and a 44px touch target.
+In `points_theme.css`, `--wordmark-height` controls circle diameter (32px desktop,
+24px mobile), `--letter-gap` and `--word-gap` control spacing, and `--glyph-weight`
+sets the common stroke width. Circle fill uses `--brand-green`; the favicon
+builder uses its matching hex value. The whole logo is one accessible home link
+with a 44px touch target. Tests check letter geometry, exact palette color,
+transparent corners, visible glyph pixels, and responsive layout.

@@ -16,20 +16,17 @@ a { color:var(--text); text-underline-offset:4px; }
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 .points-header { background:var(--bg); border-color:var(--border); min-height:78px; }
 .points-brand { display:inline-flex; align-items:center; flex:none; min-height:44px; color:var(--text); font-weight:750; }
-/* Reuse the transparent square artwork as three CSS viewports, not stretched
- * letters. Source coordinates are pixels in the 432px export. The first crop
- * omits its blank circle; the last includes the small period. Change only
- * --wordmark-height and gap to adjust the header's size and word spacing. */
-.brand-wordmark { --wordmark-height:32px; display:flex; align-items:center; gap:6px; height:var(--wordmark-height); }
-.brand-word { position:relative; display:block; flex:none; overflow:hidden; height:var(--wordmark-height); }
-.brand-word img { position:absolute; display:block; max-width:none; width:calc(var(--wordmark-height) * 432 / 110); height:calc(var(--wordmark-height) * 432 / 110); left:calc(var(--wordmark-height) * -52 / 110); }
-.brand-word-on { width:calc(var(--wordmark-height) * 218 / 110); }
-.brand-word-on img { top:calc(var(--wordmark-height) * -52 / 110); }
-.brand-word-the { width:calc(var(--wordmark-height) * 328 / 110); }
-.brand-word-the img { top:calc(var(--wordmark-height) * -160 / 110); }
-.brand-word-dot { width:calc(var(--wordmark-height) * 356 / 110); }
-.brand-word-dot img { top:calc(var(--wordmark-height) * -268 / 110); }
-@media(max-width:700px) { .brand-wordmark { --wordmark-height:24px; gap:5px; } }
+/* Each circle owns one vector glyph. Size, letter gap, word gap and ink weight
+ * are independent controls; palette green is shared with the rest of the UI.
+ * The letter paths all use one cap height and baseline in brand_wordmark.html. */
+.brand-wordmark { --wordmark-height:32px; --letter-gap:2px; --word-gap:8px; --glyph-weight:9; display:flex; align-items:center; gap:var(--word-gap); height:var(--wordmark-height); }
+.brand-word { display:flex; align-items:flex-end; flex:none; gap:var(--letter-gap); height:var(--wordmark-height); }
+.brand-letter,.brand-dot { display:block; flex:none; width:var(--wordmark-height); height:var(--wordmark-height); }
+.brand-wordmark circle { fill:var(--brand-green); }
+.brand-glyph { fill:none; stroke:#000; stroke-width:var(--glyph-weight); stroke-linecap:round; stroke-linejoin:round; }
+.brand-dot { width:calc(var(--wordmark-height) * .32); height:calc(var(--wordmark-height) * .32); }
+.brand-dot path { fill:#000; }
+@media(max-width:700px) { .brand-wordmark { --wordmark-height:24px; --letter-gap:1.5px; --word-gap:6px; } }
 .points-period { color:var(--accent); }
 .points-header nav a,.points-signout { color:var(--muted); }
 .points-header nav a[aria-current] { color:var(--accent); border-color:var(--accent); }

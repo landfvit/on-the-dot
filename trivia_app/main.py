@@ -155,7 +155,7 @@ def home(request: Request):
 
 @app.get('/favicon.ico', include_in_schema=False)
 def favicon():
-    return RedirectResponse('/trivia-assets/brand/favicon.png?v=3', status_code=307)
+    return RedirectResponse('/trivia-assets/brand/favicon.png?v=4', status_code=307)
 
 
 @app.get('/quizzes', response_class=HTMLResponse, dependencies=[Depends(require_editor)])

@@ -10,6 +10,7 @@ class HeaderParser(HTMLParser):
         super().__init__()
         self.in_header = False
         self.controls = []
+        self.brand_images = []
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
@@ -17,6 +18,8 @@ class HeaderParser(HTMLParser):
             self.in_header = True
         if self.in_header and tag in ('a', 'button', 'nav', 'form'):
             self.controls.append((tag, attrs.get('id') or attrs.get('href')))
+        if self.in_header and tag == 'img' and '/brand/' in attrs.get('src', ''):
+            self.brand_images.append(attrs)
 
     def handle_endtag(self, tag):
         if tag == 'header':
@@ -49,6 +52,10 @@ class PublicShellTests(unittest.TestCase):
                 parser = HeaderParser()
                 parser.feed(response.text)
                 self.assertEqual(parser.controls, [('button', 'menu-open'), ('a', '/')])
+                self.assertEqual(len(parser.brand_images), 3)
+                self.assertTrue(all(image['src'] == '/trivia-assets/brand/logo-transparent.png?v=1'
+                                    and image['alt'] == '' for image in parser.brand_images))
+                self.assertIn('aria-label="ON THE DOT. home"', response.text)
                 self.assertNotIn('id="profile-open"', response.text)
                 self.assertNotIn('id="profile-drawer"', response.text)
                 self.assertIn('aria-label="Game menu"', response.text)

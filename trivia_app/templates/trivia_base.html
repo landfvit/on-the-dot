@@ -9,7 +9,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/trivia-assets/brand/icon-180.png?v=3">
     <link rel="stylesheet" href="/trivia-assets/app.css?v=1">
     {% block styles %}{% endblock %}
-    <link rel="stylesheet" href="/trivia-assets/points_theme.css?v=7">
+    <link rel="stylesheet" href="/trivia-assets/points_theme.css?v=8">
     {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/community.css?v=8">{% endif %}
     {% block final_styles %}{% endblock %}
     {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/public_ui.css?v=5"><script src="/trivia-assets/public_ui.js?v=1" defer></script>{% endif %}
@@ -18,7 +18,13 @@
 <body>
     <header class="points-header">
         {% if not private_navigation %}<button id="menu-open" class="icon-button coral-button" aria-label="Open menu" title="Menu" aria-haspopup="dialog"><img src="/trivia-assets/icons/menu.svg" alt=""></button>{% endif %}
-        <a class="points-brand" href="/" aria-label="ON THE DOT. home">ON THE DOT<span class="points-period" aria-hidden="true">.</span></a>
+        <a class="points-brand" href="/" aria-label="ON THE DOT. home">
+          <span class="brand-wordmark" aria-hidden="true">
+            <span class="brand-word brand-word-on"><img src="/trivia-assets/brand/logo-transparent.png?v=1" width="432" height="432" alt=""></span>
+            <span class="brand-word brand-word-the"><img src="/trivia-assets/brand/logo-transparent.png?v=1" width="432" height="432" alt=""></span>
+            <span class="brand-word brand-word-dot"><img src="/trivia-assets/brand/logo-transparent.png?v=1" width="432" height="432" alt=""></span>
+          </span>
+        </a>
         {% if private_navigation %}
         <nav aria-label="Main navigation">
             <a href="/quizzes" {% if active_page == 'play' %}aria-current="page"{% endif %}>Quizzes</a>

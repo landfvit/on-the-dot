@@ -29,3 +29,15 @@ Run `node tools/build_favicon.cjs` with Sharp available on `NODE_PATH` to create
 Browser tests cover wordmark alpha and opaque lettering, white favicon pixels,
 transparent corners, green symbol coverage at 16px and 32px, logo layout and both favicon formats. Increment asset URL versions
 when exporting a new favicon, because browsers cache tab icons separately.
+
+## Horizontal Header
+
+The header composes three CSS viewports of the existing transparent wordmark:
+`ON`, `THE`, and `DOT.`. No raster is regenerated or stretched. The first viewport
+excludes the blank circle, while the last retains the small period. The original
+square layout remains on the entry pages, and the favicon is unchanged.
+
+In `points_theme.css`, `--wordmark-height` controls the circle height (32px on
+desktop, 24px on mobile); `gap` controls the spacing between words. The crop
+coordinates refer to the 432px PNG and must be updated if that source changes.
+The whole logo is one home link with an accessible name and a 44px touch target.

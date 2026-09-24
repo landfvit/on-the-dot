@@ -16,12 +16,32 @@ const output='/tmp/on-the-dot-brand';fs.mkdirSync(output,{recursive:true});
    else throw Error('Unexpected API '+path);
    await route.fulfill({status,json:data});
   });
-  for(const [width,height] of [[320,568],[390,844],[1440,1000]]){
+  for(const [width,height] of [[320,568],[390,844],[700,1000],[768,1024],[1440,1000]]){
    await page.setViewportSize({width,height});
    for(const path of ['/','/penalties']){
     await page.goto(origin+path);
     await page.waitForFunction(()=>document.querySelector('.home-logo')?.complete&&document.querySelector('.home-logo').naturalWidth===432);
     if(path==='/penalties')await page.waitForFunction(()=>!document.getElementById('start').disabled);
+    await page.waitForFunction(()=>[...document.querySelectorAll('.brand-word img')].every(e=>e.complete&&e.naturalWidth===432));
+    const brand=page.getByRole('link',{name:'ON THE DOT. home',exact:true});
+    assert.equal(await brand.getAttribute('href'),'/');
+    assert.equal((await brand.textContent()).trim(),'','Header must use the artwork, not a second text wordmark');
+    const menu=await page.locator('#menu-open').boundingBox(),brandBox=await brand.boundingBox();
+    assert(menu.x+menu.width<brandBox.x);assert(brandBox.x+brandBox.width<=width-16);
+    assert(brandBox.height>=44,'Keep the home link touch target');
+    const words=await page.locator('.brand-word').evaluateAll(es=>es.map(e=>{
+     const r=e.getBoundingClientRect(),img=e.querySelector('img');
+     return {name:e.classList[1],x:r.x,y:r.y,width:r.width,height:r.height,image:img.getBoundingClientRect().width};
+    }));
+    assert.deepEqual(words.map(w=>w.name),['brand-word-on','brand-word-the','brand-word-dot']);
+    for(let i=0;i<words.length;i++){
+     assert.equal(words[i].height,width<=700?24:32);
+     assert.equal(words[i].y,words[0].y,'All words must share one baseline');
+     assert(Math.abs(words[i].image/words[i].height-432/110)<.01,'Never stretch the source letters');
+     if(i)assert(words[i-1].x+words[i-1].width<words[i].x,'Words must not overlap');
+    }
+    await page.locator('#menu-open').click();assert(await page.locator('#menu-drawer').isVisible());
+    await page.getByRole('button',{name:'Close menu',exact:true}).click();
     const logo=await page.locator('.home-logo').boundingBox(),heading=await page.locator('.brand-heading h1').boundingBox(),action=await page.locator('.brand-heading > a').boundingBox();
     assert.equal(logo.width,logo.height);assert(logo.width>=96);assert(logo.y+logo.height<height);
     assert(logo.x+logo.width<=heading.x);assert(heading.y+heading.height<=action.y+1);
@@ -73,7 +93,7 @@ const output='/tmp/on-the-dot-brand';fs.mkdirSync(output,{recursive:true});
     }
     await page.screenshot({path:`${output}/${path==='/'?'home':'penalties'}-${width}.png`});
    }
-   console.log(`PASS ${width}: transparent wordmark, rounded white favicon and compact heading`);
+   console.log(`PASS ${width}: horizontal header logo, working menu, transparent wordmark and rounded favicon`);
   }
   const response=await page.request.get(origin+'/favicon.ico');assert(response.ok());assert.equal(response.headers()['content-type'],'image/png');
   assert.deepEqual(errors,[]);

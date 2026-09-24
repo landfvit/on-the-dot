@@ -18,7 +18,7 @@ def period_start(period, now):
 
 @router.get('/leaderboard')
 def leaderboard(request: Request, period: Literal['today', 'week', 'all'] = 'today',
-                metric: Literal['level','streak','wins','win_rate','xp']='xp',
+                metric: Literal['level','streak','wins','win_rate','xp','daily_wins']='xp',
                 board: Literal['players','teams']='players',
                 offset: int = Query(0, ge=0, le=10000), limit: int = Query(25, ge=1, le=100)):
     with get_connection() as conn:
@@ -33,9 +33,10 @@ def leaderboard(request: Request, period: Literal['today', 'week', 'all'] = 'tod
         if metric in ('level','streak'):period='all'
         since = period_start(period, now)
         # Only these two fixed SQL fragments vary; no request value is SQL text.
-        source = '''SELECT username,xp,total_xp,wins,losses,played,win_rate,club,level,streak,
+        source = '''SELECT username,xp,total_xp,wins,losses,played,win_rate,club,level,streak,daily_wins,
                         username sort_name,username=%(username)s is_me FROM levels
-                    WHERE CASE WHEN %(metric)s IN ('wins','win_rate') THEN played>0
+                    WHERE CASE WHEN %(metric)s='daily_wins' THEN daily_wins>0
+                        WHEN %(metric)s IN ('wins','win_rate') THEN played>0
                         WHEN %(metric)s='streak' THEN total_xp>0 OR played>0 OR streak>0
                         ELSE xp>0 OR played>0 END'''
         if board == 'teams':
@@ -44,6 +45,7 @@ def leaderboard(request: Request, period: Literal['today', 'week', 'all'] = 'tod
             source = '''SELECT c.team_id,c.name,count(l.account_id)::int members,
                         COALESCE(sum(l.xp),0)::bigint xp,COALESCE(sum(l.total_xp),0)::bigint total_xp,
                         COALESCE(sum(l.level),0)::bigint level,COALESCE(sum(l.streak),0)::bigint streak,
+                        COALESCE(sum(l.daily_wins),0)::bigint daily_wins,
                         COALESCE(sum(l.wins),0)::bigint wins,COALESCE(sum(l.losses),0)::bigint losses,
                         COALESCE(sum(l.played),0)::bigint played,avg(l.win_rate) win_rate,
                         c.name sort_name,c.team_id=%(team_id)s is_me
@@ -53,7 +55,10 @@ def leaderboard(request: Request, period: Literal['today', 'week', 'all'] = 'tod
         result = conn.execute('''WITH points AS (
             SELECT account_id,sum(amount)::bigint total_xp,
                 sum(CASE WHEN %(since)s::timestamptz IS NULL OR created_at>=%(since)s THEN amount ELSE 0 END)::bigint xp
-            FROM game_xp_ledger WHERE created_at<=%(now)s GROUP BY account_id
+            FROM game_all_xp WHERE created_at<=%(now)s GROUP BY account_id
+        ), daily AS (
+            SELECT account_id,count(*) daily_wins FROM game_daily_wins
+            WHERE won_at<=%(now)s AND (%(since)s::timestamptz IS NULL OR won_at>=%(since)s) GROUP BY account_id
         ), matches AS (
             SELECT account_id,count(*) FILTER(WHERE won) wins,count(*) FILTER(WHERE NOT won) losses,count(*) played,
                 100.0*count(*) FILTER(WHERE won)/NULLIF(count(*),0) win_rate
@@ -62,17 +67,17 @@ def leaderboard(request: Request, period: Literal['today', 'week', 'all'] = 'tod
         ), activity AS (
             SELECT account_id,day,
                 day-(row_number() OVER(PARTITION BY account_id ORDER BY day))::int island
-            FROM game_daily_activity WHERE day<=(%(now)s::timestamptz AT TIME ZONE 'UTC')::date
+            FROM game_all_activity WHERE day<=(%(now)s::timestamptz AT TIME ZONE 'UTC')::date
         ), streaks AS (
             SELECT account_id,count(*)::int streak FROM activity GROUP BY account_id,island
             HAVING max(day)>=(%(now)s::timestamptz AT TIME ZONE 'UTC')::date-1
         ), scores AS (
-            SELECT a.account_id,a.username,a.club_id,COALESCE(s.streak,0) streak,
+            SELECT a.account_id,a.username,a.club_id,COALESCE(s.streak,0) streak,COALESCE(d.daily_wins,0) daily_wins,
                 COALESCE(p.xp,0) xp,COALESCE(p.total_xp,0) total_xp,
                 COALESCE(m.wins,0) wins,COALESCE(m.losses,0) losses,COALESCE(m.played,0) played,m.win_rate,
                 CASE WHEN c.team_id IS NOT NULL THEN jsonb_build_object('team_id',c.team_id,'name',c.name) END club
             FROM game_accounts a LEFT JOIN points p USING(account_id) LEFT JOIN matches m USING(account_id)
-            LEFT JOIN streaks s USING(account_id)
+            LEFT JOIN streaks s USING(account_id) LEFT JOIN daily d USING(account_id)
             LEFT JOIN game_clubs c ON c.team_id=a.club_id WHERE NOT a.is_guest AND a.deleted_at IS NULL
         ), levels AS (
             SELECT *,
@@ -81,7 +86,7 @@ def leaderboard(request: Request, period: Literal['today', 'week', 'all'] = 'tod
             FROM scores
         ), competitors AS (''' + source + '''), ranking_values AS (
             SELECT *,CASE %(metric)s WHEN 'level' THEN level WHEN 'wins' THEN wins
-                WHEN 'streak' THEN streak WHEN 'win_rate' THEN win_rate ELSE xp END ranking_value FROM competitors
+                WHEN 'daily_wins' THEN daily_wins WHEN 'streak' THEN streak WHEN 'win_rate' THEN win_rate ELSE xp END ranking_value FROM competitors
         ), ranked AS (
             SELECT dense_rank() OVER(ORDER BY ranking_value DESC NULLS LAST) rank,* FROM ranking_values
         ) SELECT

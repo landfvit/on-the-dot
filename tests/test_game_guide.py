@@ -47,7 +47,7 @@ class GameGuideTests(unittest.TestCase):
         html = TestClient(app).get('/how-to-play').text
         for text in ('Your team gives no XP bonus', "The team leaderboard adds up current members' XP",
                      'you must wait 3 days before changing again',
-                     'Guest games are unlimited', 'every Monday at 00:00 UTC',
+                     'Guest Solo games are unlimited', 'every Monday at 00:00 UTC',
                      'A timeout or ending early does not extend the streak', 'Ending a shootout early counts as a loss'):
             self.assertIn(text, html)
         self.assertIn('/how-to-play#teams', TestClient(app).get('/account').text)

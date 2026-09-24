@@ -59,7 +59,7 @@ def catalog(request:Request):
         rows=conn.execute('''SELECT p.section_code code,p.section_name label,d.difficulty,p.question->>'topic' source_topic,
             count(*) FILTER (WHERE h.question_id IS NULL) n
             FROM penalty_bank_questions p JOIN game_current_difficulty d USING(release_id,question_id)
-            LEFT JOIN game_question_history h ON h.question_id=p.question_id AND h.account_id=%s AND h.week_start=%s
+            LEFT JOIN game_used_questions h ON h.question_id=p.question_id AND h.account_id=%s AND h.week_start=%s
             WHERE p.release_id=ANY(%s) AND d.approved AND p.question->>'topic'=ANY(%s)
             GROUP BY p.section_code,p.section_name,d.difficulty,p.question->>'topic' ORDER BY p.section_name''',
             (user['account_id'] if user and not user['is_guest'] else None,week,active_releases(conn),topics.sources('ALL'))).fetchall()
@@ -82,7 +82,7 @@ def history(request:Request):
         user=player_identity(conn,request)
         week,reset=week_window(now_ms(conn))
         days=conn.execute('''SELECT day,array_agg(question_id ORDER BY run_id,position) question_ids
-            FROM game_question_history WHERE account_id=%s AND week_start=%s GROUP BY day ORDER BY day''',
+            FROM game_used_questions WHERE account_id=%s AND week_start=%s GROUP BY day ORDER BY day''',
             (user['account_id'],week)).fetchall()
     return {'week_start':week,'resets_at':reset,'days':days}
 
@@ -95,7 +95,7 @@ def load_deck(conn,ident,body,now,size=10,exclude=()):
         JOIN game_current_difficulty d USING(release_id,question_id)
         WHERE p.release_id=ANY(%s) AND d.approved AND d.difficulty=%s AND (%s='ALL' OR p.section_code=%s)
         AND p.question->>'topic'=ANY(%s)
-        AND NOT EXISTS(SELECT 1 FROM game_question_history h
+        AND NOT EXISTS(SELECT 1 FROM game_used_questions h
             WHERE h.account_id=%s AND h.week_start=%s AND h.question_id=p.question_id)
         ORDER BY p.question_id''',
         (releases,body.difficulty,body.category,body.category,topics.sources(body.topic),ident,week)).fetchall()
@@ -174,6 +174,8 @@ def start(body:Start,request:Request,response:Response):
                 if active['state']['category'].get('topic_code','ALL')!=body.topic:
                     raise HTTPException(409,'Finish or end your active quiz before changing category.')
                 return public(active,now)
+        if conn.execute('SELECT 1 FROM game_mode_members WHERE account_id=%s AND active',(ident,)).fetchone():
+            raise HTTPException(409,'Finish or leave your Daily Challenge or Friend Duel first.')
         deck,category=load_deck(conn,None if user['is_guest'] else ident,body,now)
         state=game.create(deck,body.difficulty,category,now)
         row=conn.execute('INSERT INTO game_solo_runs(run_id,account_id,start_request_id,state,is_trial) VALUES(%s,%s,%s,%s,%s) RETURNING *',

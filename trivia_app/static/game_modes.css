@@ -1,0 +1,18 @@
+/* Mode navigation lives only in the pre-game view, never over the stadium. */
+.game-mode-tabs{display:flex;flex-wrap:wrap;gap:8px 20px;border-bottom:1px solid var(--border,#41524e);margin-bottom:24px;padding-bottom:10px}
+.game-mode-tabs a{padding:6px 0;text-decoration:none;font-weight:650}
+.game-mode-tabs a[aria-current]{color:var(--accent,#88b04b);box-shadow:0 3px var(--accent,#88b04b)}
+.daily-ranking-link{display:inline-flex;align-items:center;gap:8px;margin-top:16px}
+.daily-ranking-link img,.invite-link-row img{width:20px;height:20px}
+.invite-link-row{display:flex;gap:8px;margin:8px 0 20px}
+.invite-link-row input{flex:1;min-width:0}
+.invite-link-row button{width:44px;flex:none;display:grid;place-items:center;padding:0}
+.invite-link-row img{filter:invert(1)}
+#friend-lobby .actions{flex-wrap:wrap}
+#mode-auth h2,#lobby-title{font-size:22px}
+[data-mode="friend"] .difficulty-options small{display:none}
+[data-mode="friend"] #result-review{display:none}
+[data-mode="friend"] #result-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+[data-mode="daily"] #result-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+.ranking-tabs{flex-wrap:wrap}
+@media(max-width:600px){.game-mode-tabs{gap:8px 16px;margin-bottom:16px;font-size:14px}}

@@ -97,7 +97,7 @@ class ShootoutDatabaseTests(unittest.TestCase):
             self.assertEqual(data['me']['club']['team_id'],team['team_id'])
         public=self.client.get('/api/players/profiles/test_player').json()
         self.assertEqual(public['club'],team);self.assertNotIn('email',public)
-        self.assertIsNone(self.client.put('/api/players/me/team',json={'team_id':None}).json()['club'])
+        self.assertEqual(self.client.put('/api/players/me/team',json={'team_id':None}).status_code,409)
 
     def test_unplayed_exit_counts_as_loss_without_xp_or_win_bonus(self):
         ident=self.start('hard')['run_id'];self.client.post(f'/api/solo/runs/{ident}/leave')

@@ -7,7 +7,9 @@
   const period=()=>document.querySelector('input[name="period"]:checked')?.value||'today';
   const metric=()=>document.querySelector('input[name="metric"]:checked')?.value||'xp';
   const board=()=>document.querySelector('input[name="board"]:checked')?.value||'players';
-  const labels={xp:'XP',streak:'Streak',wins:'Wins',win_rate:'Win rate',level:'Levels'};
+  const labels={xp:'XP',streak:'Streak',wins:'Wins',win_rate:'Win rate',level:'Levels',daily_wins:'Daily wins'};
+  const requestedMetric=new URLSearchParams(location.search||'').get('metric');
+  if(ranking&&Object.hasOwn(labels,requestedMetric)){const input=document.querySelector(`input[name="metric"][value="${requestedMetric}"]`);if(input)input.checked=true;}
   const rate=n=>n===null||n===undefined?'–':`${Number(n).toFixed(1)}%`;
   function playerLink(p){const a=node('a',p.username);a.href='/u/'+encodeURIComponent(p.username);return a;}
   function renderRanking(data){
@@ -32,7 +34,7 @@
       const a=node('a',data.signed_in?(teams?'Your profile':'Play penalties'):'Sign in');a.href=data.signed_in&&!teams?'/penalties':'/account';$('ranking-self').append(a);
     }
     const noun=teams?'team':'player';
-    $('distribution').hidden=!data.participants;$('participant-count').textContent=`${number(data.participants)} ${noun}${data.participants===1?'':'s'}`;
+    $('distribution').hidden=!data.participants||selected==='daily_wins';$('participant-count').textContent=`${number(data.participants)} ${noun}${data.participants===1?'':'s'}`;
     const maximum=Math.max(1,...data.distribution.map(b=>b.count));
     $('distribution-bars').replaceChildren(...data.distribution.map(b=>{
       const col=node('div',undefined,'distribution-column'),bar=node('div',undefined,'distribution-bar');

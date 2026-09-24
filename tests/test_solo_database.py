@@ -37,7 +37,7 @@ class SoloDatabaseTests(unittest.TestCase):
                 mock=patch(target,return_value=original);mock.start();self.addCleanup(mock.stop)
             conn.execute(sql.SQL('CREATE SCHEMA {}').format(sql.Identifier(self.schema)))
             conn.execute(sql.SQL('SET search_path TO {},public').format(sql.Identifier(self.schema)))
-            for name in ['037_player_progress','038_solo_answer_guards','039_email_trials_xp','040_weekly_question_history','042_solo_answer_duration','043_solo_shootout','044_solo_community','045_account_settings','046_team_membership']:
+            for name in ['037_player_progress','038_solo_answer_guards','039_email_trials_xp','040_weekly_question_history','042_solo_answer_duration','043_solo_shootout','044_solo_community','045_account_settings','046_team_membership','047_daily_friends']:
                 if name=='039_email_trials_xp':
                     conn.execute('INSERT INTO game_accounts(account_id,username,password_hash) VALUES(%s,%s,%s)',
                                  (uuid4(),'legacy_player',password_hash('legacy-password-1234')))
@@ -134,7 +134,7 @@ class SoloDatabaseTests(unittest.TestCase):
         self.assertEqual(data['participants'],1);self.assertTrue(data['signed_in'])
         row=data['entries'][0]
         self.assertEqual(row['xp'],100);self.assertEqual(row['rank'],1)
-        self.assertEqual(set(row),{'rank','username','xp','total_xp','level','streak','wins','losses','played','win_rate','club','ranking_value'})
+        self.assertEqual(set(row),{'rank','username','xp','total_xp','level','streak','wins','losses','played','win_rate','club','ranking_value','daily_wins'})
         self.assertEqual(data['me'],row)
         self.assertEqual(sum(b['count'] for b in data['distribution']),1)
         self.assertEqual(data['distribution'][1]['count'],1)

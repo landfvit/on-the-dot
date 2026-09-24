@@ -9,7 +9,7 @@ function setup(view='leaderboard') {
   vm.runInNewContext(source,{document:{getElementById:get,createElement:element,
     querySelector:s=>s==='.community-page'?{dataset:{view}}:s.includes('metric')?metric:s.includes('board')?board:selected,
     querySelectorAll:s=>s.includes('metric')?[get('xp'),get('streak'),get('level'),get('wins'),get('win_rate')]:s.includes('board')?[get('players'),get('teams')]:tabs},
-    AbortController,Date,encodeURIComponent,
+    AbortController,Date,encodeURIComponent,URLSearchParams,location:{search:''},
     PointsUI:{badge:club=>club?.team_id&&club?.name?.trim()?Object.assign(element('img'),{alt:club.name}):null},
     fetch:(url,options)=>new Promise(resolve=>requests.push({url,options,resolve}))});
   return {get,requests,selected,metric,board};

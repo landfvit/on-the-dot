@@ -37,9 +37,11 @@
     if(own){teamChangeAt=p.team_change?.next_change_at||null;teamChangeStatus();$('bio').value=p.bio;$('profile-username').value=p.username;$('account-email').value=p.email||'';$('public-profile').href='/u/'+encodeURIComponent(p.username);globalThis.PointsAccountSettings?.setProfile(p);}
   }
   async function accountPage(){
+    const params=new URLSearchParams(location.search||''),next=params.get('next');
+    const returnTo=next&&/^\/(daily|penalties|friends(?:\/[A-Za-z0-9_-]{32,64})?)$/.test(next)?next:null;
     const publicName=page.dataset.username;
     if(publicName){showProfile(await api('/api/players/profiles/'+encodeURIComponent(publicName)),false);return;}
-    const user=await currentUser();if(user)showProfile(user,true);else{$('notice').textContent='';$('authentication').hidden=false;}
+    const user=await currentUser();if(user&&returnTo){location.href=returnTo;return;}if(user)showProfile(user,true);else{$('notice').textContent='';$('authentication').hidden=false;}
     setInterval(()=>{if(!$('own-profile').hidden)teamChangeStatus();},60000);
     function authMode(){
       const register=document.querySelector('input[name="auth-mode"]:checked').value==='register';
@@ -48,13 +50,13 @@
       $('authenticate').textContent=register?'Create account':'Sign in';$('password').autocomplete=register?'new-password':'current-password';error('');
     }
     document.querySelectorAll('input[name="auth-mode"]').forEach(input=>input.addEventListener('change',authMode));
-    if(location.search==='?mode=register')document.querySelector('input[name="auth-mode"][value="register"]').checked=true;
+    if(params.get('mode')==='register')document.querySelector('input[name="auth-mode"][value="register"]').checked=true;
     authMode();globalThis.PointsAccountSettings?.resetView();
     $('auth-form').addEventListener('submit',async e=>{
       e.preventDefault();error('');$('authenticate').disabled=true;
       try{const mode=document.querySelector('input[name="auth-mode"]:checked').value;
         const credentials=mode==='register'?{username:$('username').value,email:$('email').value,password:$('password').value}:{identifier:$('identifier').value,password:$('password').value};
-        const p=await api('/api/players/'+mode,credentials);$('password').value='';showProfile(p,true);
+        const p=await api('/api/players/'+mode,credentials);$('password').value='';if(returnTo){location.href=returnTo;return;}showProfile(p,true);
       }catch(e){error(e.message);}finally{$('authenticate').disabled=false;}
     });
     $('profile-edit').addEventListener('submit',async e=>{
@@ -88,6 +90,8 @@
   }
 
   async function soloPage(){
+    const daily=page.dataset.mode==='daily',base=daily?'/api/daily':'/api/solo',minimum=daily?1:10;
+    let wonToday=false;
     let user=null,counts={},rules=null,trialAvailable=true,run=null,offset=0,polling=false,busy=false,rendered='',pending=null,startRequest=null;
     let catalogReady=false,catalogLoading=false,catalogReset=Infinity;
     const animatedShots=new Set(),scene=globalThis.PenaltyScene;
@@ -225,10 +229,17 @@
         animatedShots.add(key);scene.shot(answer.option_id===null?'miss':answer.is_correct?'goal':'save',key);
       }else if(!answer)scene.reset();
     }
-    function storage(value){try{const key='points.solo.'+(user?.username||'trial');if(value===null)localStorage.removeItem(key);else if(value!==undefined)localStorage.setItem(key,value);return localStorage.getItem(key);}catch{return null;}}
-    const difficulty=()=>document.querySelector('input[name="difficulty"]:checked').value;
+    function storage(value){try{const key=(daily?'points.daily.':'points.solo.')+(user?.username||'trial');if(value===null)localStorage.removeItem(key);else if(value!==undefined)localStorage.setItem(key,value);return localStorage.getItem(key);}catch{return null;}}
+    const difficulty=()=>daily?'mixed':document.querySelector('input[name="difficulty"]:checked').value;
     function selection(){
       const count=counts[difficulty()]||0;
+      if(daily){
+        $('availability').hidden=false;
+        $('availability').textContent=catalogLoading?'Preparing Daily Challenge...':wonToday?'Today\'s challenge is won. Come back tomorrow.':catalogReady&&count<1?'No unused daily questions remain. Come back tomorrow.':!catalogReady?'Daily Challenge is not available yet.':'One daily pool: 10 Easy, 20 Medium and 20 Hard questions.';
+        $('weekly-reset').hidden=!catalogReady;
+        $('start').disabled=!catalogReady||count<1||wonToday||busy;$('start').textContent='Play Daily Challenge';
+        $('trial-note').hidden=true;$('quiz-rules').textContent='15 seconds each · 10 / 20 / 30 XP per correct answer · One daily win';return;
+      }
       $('availability').textContent=catalogLoading?'Preparing shootout...':!catalogReady?'Could not load shootouts. Refresh to try again.':count>=10?'':'No new shootout at this difficulty right now. Try another difficulty.';
       $('availability').hidden=catalogReady&&count>=10;
       $('weekly-reset').hidden=!catalogReady||count>=10||!$('weekly-reset').textContent;
@@ -239,7 +250,8 @@
     async function loadCatalog(){
       catalogReady=false;catalogLoading=true;selection();
       try{
-        const catalog=await api('/api/solo/catalog');
+        const catalog=await api(base+'/catalog');
+        if(daily){counts={mixed:catalog.remaining};rules=catalog.rules;wonToday=catalog.won_today;catalogReset=Date.parse(catalog.resets_at);$('weekly-reset').textContent='New daily pool at 00:00 UTC. Played questions stay excluded until Monday.';catalogReady=true;return;}
         // Keep eligibility checks internal; every new game uses all clubs and topics.
         counts=catalog.topics.find(t=>t.code==='ALL')?.counts_by_team.ALL||{};rules=catalog.rules;
         catalogReset=catalog.resets_at?Date.parse(catalog.resets_at):Infinity;
@@ -276,7 +288,7 @@
         button.addEventListener('click',()=>submit(option.id));$('choices').append(button);
       });
       // Puvod odpovedi patri do Studia. Hrac vidi pouze vysledek a vysvetleni.
-      $('feedback').textContent=answer?(answer.option_id===null?'Time is up. ':answer.is_correct?`Correct. +${run.rules.xp_per_correct} ${run.is_trial?'trial XP':'XP'}. `:'Incorrect. ')+answer.explanation:'';
+      $('feedback').textContent=answer?(answer.option_id===null?'Time is up. ':answer.is_correct?`Correct. +${answer.xp??run.rules.xp_per_correct} ${run.is_trial?'trial XP':'XP'}. `:'Incorrect. ')+answer.explanation:'';
       $('next').hidden=!['READY','REVIEW'].includes(run.phase);$('next').textContent=run.phase==='READY'?'Take first shot':run.shootout?.next_role==='keeper'?'Face next penalty':'Next shot';
       $('leave').hidden=done;$('another').hidden=!done;$('summary').hidden=!done;
       $('another').textContent='New shootout';$('guest-benefits').hidden=!done||!run.is_trial;
@@ -287,6 +299,14 @@
         $('result-heading').textContent=run.shootout?.winner?(run.shootout.winner==='player'?'You won the shootout!':'Opponent wins'):run.perfect?'Perfect shootout!':run.phase==='ABANDONED'?'Shootout ended':'Shootout complete';
         $('result-completion').textContent=run.shootout?`${run.shootout.player} : ${run.shootout.opponent} · ${run.review.length} ${run.review.length===1?'penalty':'penalties'}${run.end_reason==='question_pool_exhausted'?' · No unused questions remain; no winner declared.':''}`:`${run.review.filter(a=>a.option_id!==null).length} answered · ${run.review.filter(a=>a.option_id===null).length} timed out · ${total-run.review.length} unplayed`;
         metrics('result-metrics',[[`${run.correct} / ${total}`,'Correct answers'],[run.total_xp,run.is_trial?'Trial XP (not saved)':'XP earned'],[run.bonus_xp,run.rules.bonus_mode==='win'?'Win bonus':'Perfect bonus'],[run.multiplier+'x','Multiplier']]);
+        if(daily){
+          $('result-heading').textContent=run.won?'Daily Challenge won!':run.phase==='ABANDONED'?'Challenge ended':'Try again tomorrow';
+          if(!run.won&&run.phase==='FINISHED')$('result-heading').textContent='Opponent wins';
+          if(run.end_reason==='daily_pool_exhausted')$('result-completion').textContent+=' · Daily pool completed';
+          if(run.end_reason==='daily_reset')$('result-completion').textContent+=' · Daily reset';
+          metrics('result-metrics',[[`${run.correct} / ${total}`,'Correct answers'],[run.total_xp,'XP earned']]);
+          $('another').textContent='Back to Daily Challenge';
+        }
         const p=run.player_progress;
         $('result-level').hidden=!p||run.is_trial;
         if(p&&!run.is_trial){
@@ -308,13 +328,13 @@
     async function refresh(){
       if(!run||polling)return;polling=true;
       const id=run.run_id,own=presentation;
-      try{const next=await api('/api/solo/runs/'+id);if(run?.run_id!==id||own!==presentation)return;if(!$('retry').hidden)error('');render(next);$('retry').hidden=true;}
+      try{const next=await api(base+'/runs/'+id);if(run?.run_id!==id||own!==presentation)return;if(!$('retry').hidden)error('');render(next);$('retry').hidden=true;}
       catch(e){if(run?.run_id!==id||own!==presentation)return;error(e.message);rendered='';$('retry').hidden=false;for(const b of $('choices').children)b.disabled=true;}
       finally{polling=false;}
     }
     async function command(path,body){
       if(busy||(path==='next'&&stadiumWaiting))return;busy=true;error('');for(const b of $('choices').children)b.disabled=true;$('next').disabled=true;
-      try{const next=await api(`/api/solo/runs/${run.run_id}/${path}`,body);busy=false;rendered='';render(next);pending=null;}
+      try{const next=await api(`${base}/runs/${run.run_id}/${path}`,body);busy=false;rendered='';render(next);pending=null;}
       catch(e){error(e.message);busy=false;rendered='';await refresh();}
       finally{busy=false;$('next').disabled=stadiumWaiting;}
     }
@@ -351,10 +371,10 @@
     $('another').addEventListener('click',async()=>{presentation++;presented='';stadium?.leave();stadiumRun=null;stadiumWaiting=false;storage(null);clearShare();run=null;pending=null;startRequest=null;rendered='';if(location.search)history.replaceState(null,'',location.pathname);page.classList.toggle('shootout-active',false);page.classList.toggle('shootout-finished',false);pitch();$('quiz-run').hidden=true;$('selection').hidden=false;error('');try{await loadCatalog();}catch(e){error(e.message);}});
     document.querySelectorAll('input[name="difficulty"]').forEach(r=>r.addEventListener('change',selection));
     $('quiz-start').addEventListener('submit',async e=>{
-      e.preventDefault();if(busy||!catalogReady||(counts[difficulty()]||0)<10)return;busy=true;selection();error('');
+      e.preventDefault();if(busy||!catalogReady||(counts[difficulty()]||0)<minimum||daily&&wonToday)return;busy=true;selection();error('');
       const category='ALL',topic='ALL',level=difficulty();
       if(!startRequest||startRequest.category!==category||startRequest.topic!==topic||startRequest.difficulty!==level)startRequest={category,topic,difficulty:level,request_id:crypto.randomUUID()};
-      try{const next=await api('/api/solo/runs',startRequest);busy=false;render(next);startRequest=null;}catch(e){error(e.message);if(e.status===409){try{await loadCatalog();}catch(refreshError){error(refreshError.message);}}}finally{busy=false;selection();}
+      try{const next=await api(base+'/runs',daily?{request_id:startRequest.request_id}:startRequest);busy=false;render(next);startRequest=null;}catch(e){error(e.message);if(e.status===409){try{await loadCatalog();}catch(refreshError){error(refreshError.message);}}}finally{busy=false;selection();}
     });
     setInterval(()=>{
       if(!run)return;
@@ -366,15 +386,16 @@
     setInterval(()=>{if(run&&run.phase==='ANSWERING'&&!busy)refresh();},1000);
     setInterval(()=>{if(!run&&!busy&&!catalogLoading&&Date.now()+offset>=catalogReset)loadCatalog().catch(e=>error(e.message));},30000);
     pitch();user=await currentUser();if(user?.preferences)globalThis.PointsPreferences?.set(user.preferences);
+    if(daily&&!user){$('quiz-start').hidden=true;$('mode-auth').hidden=false;$('mode-signin').href='/account?next=/daily';$('mode-register').href='/account?mode=register&next=/daily';return;}
     await loadCatalog();
     // History links can only resolve through the existing owner-authorized API.
     const requestedRun=new URLSearchParams(location.search||'').get('run');
     if(requestedRun){
       if(!user){error('Sign in to view this result.');return;}
-      try{render(await api('/api/solo/runs/'+encodeURIComponent(requestedRun)));}catch(e){error(e.message);}
+      try{render(await api(base+'/runs/'+encodeURIComponent(requestedRun)));}catch(e){error(e.message);}
       return;
     }
-    const active=await api('/api/solo/active');trialAvailable=active.trial_available!==false;selection();
+    const active=await api(base+'/active');trialAvailable=active.trial_available!==false;selection();
     // Only the server's active run may auto-resume. Finished games are opened
     // explicitly from History, never resurrected from an old local pointer.
     if(active.run)render(active.run);else storage(null);

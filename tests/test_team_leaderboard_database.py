@@ -52,6 +52,9 @@ class TeamLeaderboardDatabaseTests(unittest.TestCase):
                 CREATE TABLE game_match_results(account_id uuid,won bool,finished_at timestamptz DEFAULT clock_timestamp());
                 CREATE TABLE game_daily_activity(account_id uuid,day date,PRIMARY KEY(account_id,day));
                 CREATE TABLE game_solo_runs(account_id uuid,state jsonb);
+                CREATE VIEW game_all_xp AS SELECT * FROM game_xp_ledger;
+                CREATE VIEW game_all_activity AS SELECT * FROM game_daily_activity;
+                CREATE TABLE game_daily_wins(account_id uuid,won_at timestamptz);
             ''')
             apply(conn, '046_team_membership')
             self.now = conn.execute('SELECT clock_timestamp() AS now').fetchone()['now']

@@ -7,16 +7,18 @@
   const colors={background:'#222326',surface:'#2b2d32',text:'#f7f6f2',muted:'#bcbfc8',accent:'#88b04b',line:'#54565f',miss:'#ff6f61'};
   const count=value=>Math.max(0,Math.floor(Number(value)||0));
   function snapshot(run,user,origin){
-    const url=new URL('/penalties',origin);
+    const friendly=run.mode==='friend',daily=run.mode==='daily';
+    const url=new URL(friendly?'/friends':daily?'/daily':'/penalties',origin);
     if(!['https:','http:'].includes(url.protocol))throw new Error('Invalid game URL');
     const shootout=run.shootout;
-    const difficulty=['easy','medium','hard'].includes(run.difficulty)?run.difficulty:'easy';
+    const difficulty=daily?'daily':(['easy','medium','hard'].includes(run.difficulty)?run.difficulty:'easy');
     const total=shootout?run.review.length:count(run.rules.questions);
     const status=run.phase==='ABANDONED'?'Shootout ended':shootout?.winner==='player'?'Shootout won':shootout?.winner==='opponent'?'Opponent wins':'Shootout complete';
     const score=shootout?`${count(shootout.player)} : ${count(shootout.opponent)}`:`${count(run.correct)} / ${total}`;
     return {
       title:'ON THE DOT. | '+status,url:url.href,
-      text:`ON THE DOT. · ${difficulty[0].toUpperCase()+difficulty.slice(1)} penalties\n${shootout?score+' · ':''}${count(run.correct)}/${total} correct · ${count(run.total_xp)} ${run.is_trial?'trial XP':'XP'}`,
+      text:`ON THE DOT. · ${difficulty[0].toUpperCase()+difficulty.slice(1)} penalties\n${shootout?score+' · ':''}${count(run.correct)}/${total} correct · ${friendly?'Friend Duel':count(run.total_xp)+' '+(run.is_trial?'trial XP':'XP')}`,
+      friendly,opponent:String(run.opponent||'Opponent').slice(0,24),
       status,difficulty,score,total,correct:count(run.correct),xp:count(run.total_xp),trial:Boolean(run.is_trial),
       multiplier:Math.max(1,count(run.multiplier)),winBonus:run.rules.bonus_mode==='win',
       player:String(user?.username||'You').slice(0,24),team:String(user?.club?.name||'').slice(0,80),
@@ -47,7 +49,7 @@
     text(data.status.toUpperCase(),600,144,26,colors.accent,'center');line(180);
     text(data.player,246,270,28,colors.text,'center',340,700);
     if(data.team)text(data.team,246,300,19,colors.muted,'center',340,400);
-    text('Opponent',954,270,28,colors.text,'center',340,700);
+    text(data.opponent||'Opponent',954,270,28,colors.text,'center',340,700);
     text(data.score,600,312,86,colors.text,'center',340,800);
     if(data.attempts)data.attempts.forEach((attempts,side)=>{
       const total=Math.max(5,attempts.length),indices=Array.from({length:total},(_,i)=>i).filter(i=>total<=7||i<5||i>=total-2);
@@ -55,7 +57,7 @@
       indices.forEach((index,i)=>ball(center+(i-(indices.length-1)/2)*34,350,attempts[index]));
     });
     text(`${data.total} ${data.attempts?(data.total===1?'penalty':'penalties'):(data.total===1?'question':'questions')}`,600,359,18,colors.muted,'center');line(393);
-    const metrics=[[`${data.correct} / ${data.total}`,'CORRECT ANSWERS'],[data.xp,data.trial?'TRIAL XP (NOT SAVED)':'XP EARNED'],[`${data.multiplier}x`,data.winBonus?'WIN MULTIPLIER':'BONUS MULTIPLIER']];
+    const metrics=[[`${data.correct} / ${data.total}`,'CORRECT ANSWERS'],[data.friendly?'Friendly':data.xp,data.friendly?'NO XP OR RATING':data.trial?'TRIAL XP (NOT SAVED)':'XP EARNED'],[data.friendly?'1 v 1':`${data.multiplier}x`,data.friendly?'FRIEND DUEL':data.winBonus?'WIN MULTIPLIER':'BONUS MULTIPLIER']];
     metrics.forEach(([value,label],i)=>{const x=246+i*354;text(value,x,464,42,colors.text,'center');text(label,x,500,15,colors.muted,'center',320);});
     line(547);text(data.url,48,592,20,colors.accent,'left',870,400);text('PLAY PENALTIES',1152,592,17,colors.text,'right',230);
     return canvas;

@@ -152,10 +152,10 @@ def new_session(conn,ident,request,response):
 
 def profile(conn,row):
     ident=row['account_id']
-    total=conn.execute('SELECT COALESCE(sum(amount),0) xp FROM game_xp_ledger WHERE account_id=%s',(ident,)).fetchone()['xp']
+    total=conn.execute('SELECT COALESCE(sum(amount),0) xp FROM game_all_xp WHERE account_id=%s',(ident,)).fetchone()['xp']
     level=conn.execute('SELECT level,minimum_xp FROM game_levels WHERE minimum_xp<=%s ORDER BY minimum_xp DESC LIMIT 1',(total,)).fetchone()
     next_level=conn.execute('SELECT minimum_xp FROM game_levels WHERE minimum_xp>%s ORDER BY minimum_xp LIMIT 1',(total,)).fetchone()
-    days=[r['day'] for r in conn.execute('SELECT day FROM game_daily_activity WHERE account_id=%s ORDER BY day',(ident,)).fetchall()]
+    days=[r['day'] for r in conn.execute('SELECT day FROM game_all_activity WHERE account_id=%s ORDER BY day',(ident,)).fetchall()]
     now=conn.execute('SELECT clock_timestamp() AS now').fetchone()['now'].astimezone(timezone.utc)
     completed=conn.execute("SELECT count(*) n FROM game_solo_runs WHERE account_id=%s AND state->>'phase'='FINISHED'",(ident,)).fetchone()['n']
     club=conn.execute('SELECT team_id,name,season FROM game_clubs WHERE team_id=%s',(row.get('club_id'),)).fetchone()

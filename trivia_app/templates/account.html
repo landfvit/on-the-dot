@@ -9,6 +9,7 @@
   <section id="authentication" hidden>
     <form id="auth-form" class="account-form">
       <fieldset class="auth-options"><legend>Account</legend><label><input type="radio" name="auth-mode" value="login" checked> Sign in</label><label><input type="radio" name="auth-mode" value="register"> Create account</label></fieldset>
+      <p class="muted">Save XP, levels and streaks. Unlock Daily Challenge and private Friend Duels. Friend Duels award no XP or rating.</p>
       <label id="login-field">Email or legacy username<input id="identifier" autocomplete="username" required minlength="3" maxlength="254"></label>
       <div id="registration-fields" class="account-fields" hidden>
         <label>Email<input id="email" type="email" autocomplete="email" required disabled maxlength="254"></label>
@@ -78,4 +79,4 @@
   <p id="delete-status" role="alert"></p><div class="actions"><button class="danger-button">Delete permanently</button><button id="delete-cancel" type="button">Cancel</button></div>
 </form></dialog>
 {% endblock %}
-{% block scripts %}<script src="/trivia-assets/account_settings.js?v=1" defer></script><script src="/trivia-assets/solo.js?v=17" defer></script>{% endblock %}
+{% block scripts %}<script src="/trivia-assets/account_settings.js?v=1" defer></script><script src="/trivia-assets/solo.js?v=18" defer></script>{% endblock %}

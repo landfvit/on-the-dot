@@ -1,6 +1,8 @@
 {% extends 'trivia_base.html' %}
-{% block title %}Penalties · ON THE DOT.{% endblock %}
-{% block final_styles %}<link rel="stylesheet" href="/trivia-assets/solo_mobile.css?v=2"><link rel="stylesheet" href="/trivia-assets/solo_results.css?v=1">{% endblock %}
+{% set mode = game_mode|default('solo') %}
+{% set mode_title = 'Daily Challenge' if mode == 'daily' else 'Friend Duel' if mode == 'friend' else 'Penalties' %}
+{% block title %}{{ mode_title }} · ON THE DOT.{% endblock %}
+{% block final_styles %}<link rel="stylesheet" href="/trivia-assets/solo_mobile.css?v=2"><link rel="stylesheet" href="/trivia-assets/solo_results.css?v=1"><link rel="stylesheet" href="/trivia-assets/game_modes.css?v=1">{% endblock %}
 {% block styles %}<link rel="stylesheet" href="/trivia-assets/penalties.css?v=2"><link rel="stylesheet" href="/trivia-assets/solo.css?v=4"><link rel="stylesheet" href="/trivia-assets/stadium.css?v=4"><link rel="stylesheet" href="/trivia-assets/shootout.css?v=4">{% endblock %}
 {% block content %}
 {% include 'stadium.html' %}
@@ -9,13 +11,15 @@
   <div class="shootout-team"><span>Opponent</span><strong id="score-opponent">0</strong><div id="kicks-opponent" class="shootout-kicks"></div></div>
   <small id="shootout-round"></small>
 </section>
-<main class="solo-page solo-penalties" data-page="solo">
-  <header class="solo-heading"><h1>Penalties</h1><a class="game-rules-link" href="/how-to-play"><img src="/trivia-assets/icons/circle-help.svg" alt="">How to play</a></header>
+<main class="solo-page solo-penalties" data-page="{{ 'friend' if mode == 'friend' else 'solo' }}" data-mode="{{ mode }}" data-invite="{{ invite_code|default('') }}">
+  <header class="solo-heading"><h1>{{ mode_title }}</h1><a class="game-rules-link" href="/how-to-play"><img src="/trivia-assets/icons/circle-help.svg" alt="">How to play</a></header>
   <div id="notice" role="status" aria-live="polite"></div><div id="error" role="alert" hidden></div>
   <div class="solo-penalty-layout"><div class="solo-questions">
   <section id="selection" aria-label="Choose a quiz">
+    <nav class="game-mode-tabs" aria-label="Game mode"><a href="/penalties" {% if mode == 'solo' %}aria-current="page"{% endif %}>Solo</a><a href="/daily" {% if mode == 'daily' %}aria-current="page"{% endif %}>Daily Challenge</a><a href="/friends" {% if mode == 'friend' %}aria-current="page"{% endif %}>Friend Duel</a></nav>
+    <section id="mode-auth" hidden><h2>Play with an account</h2><p>Unlock Daily Challenge and private Friend Duels. Save Solo and Daily XP, earn levels and build your streak.</p><div class="actions"><a id="mode-signin" class="primary-link" href="/account">Sign in</a><a id="mode-register" class="primary-link" href="/account?mode=register">Create account</a></div></section>
     <form id="quiz-start" class="quiz-selection">
-      <fieldset class="difficulty-options"><legend>Difficulty</legend>
+      <fieldset class="difficulty-options" {% if mode == 'daily' %}hidden{% endif %}><legend>Difficulty</legend>
         <label><input type="radio" name="difficulty" value="easy" checked><span>Easy <small id="easy-rate">10 XP / answer</small><small id="easy-perfect">Win: 2x XP</small></span></label>
         <label><input type="radio" name="difficulty" value="medium"><span>Medium <small id="medium-rate">20 XP / answer</small><small id="medium-perfect">Win: 3x XP</small></span></label>
         <label><input type="radio" name="difficulty" value="hard"><span>Hard <small id="hard-rate">30 XP / answer</small><small id="hard-perfect">Win: 4x XP</small></span></label>
@@ -24,6 +28,8 @@
       <p id="trial-note" class="muted" hidden>Guest mode · Progress is not saved</p>
       <p id="availability" class="muted" role="status"></p><p id="weekly-reset" class="muted" hidden></p><button class="primary" id="start" disabled>Start quiz</button>
     </form>
+    {% if mode == 'daily' %}<a class="daily-ranking-link" href="/leaderboard?metric=daily_wins">Daily wins leaderboard <img src="/trivia-assets/icons/arrow-right.svg" alt=""></a>{% endif %}
+    {% if mode == 'friend' %}<section id="friend-lobby" hidden aria-labelledby="lobby-title"><h2 id="lobby-title">Invite a friend</h2><p id="lobby-players"></p><p id="lobby-status" role="status"></p><div id="invite-controls"><label for="invite-link">Invitation link</label><div class="invite-link-row"><input id="invite-link" readonly><button id="invite-copy" type="button" title="Copy invitation" aria-label="Copy invitation"><img src="/trivia-assets/icons/copy.svg" alt=""></button><button id="invite-share" type="button" title="Share invitation" aria-label="Share invitation"><img src="/trivia-assets/icons/share-2.svg" alt=""></button></div></div><div class="actions"><button id="friend-join" class="primary" hidden>Join duel</button><button id="friend-ready" class="primary" hidden>Ready to play</button><button id="friend-leave" hidden>Leave duel</button></div></section>{% endif %}
     {% with ad_slot='game-selection' %}{% include 'ad_slot.html' %}{% endwith %}
   </section>
   <section id="quiz-run" hidden aria-labelledby="question-title">
@@ -42,7 +48,7 @@
       <div id="result-level" hidden><strong id="result-level-label"></strong><progress id="result-level-progress" aria-label="Level progress"></progress><p id="result-level-remaining"></p></div>
       <div class="actions result-actions"><button id="another" class="primary" hidden>New shootout</button><a id="summary-account" class="primary-link" href="/account">View profile</a><a class="primary-link" href="/leaderboard">Leaderboard</a></div>
       <section id="guest-benefits" class="guest-benefits" aria-labelledby="guest-heading" hidden>
-        <div><h3 id="guest-heading">Make it count</h3><p>Save XP, levels and streaks. Guest games stay separate.</p></div>
+        <div><h3 id="guest-heading">Make it count</h3><p>Save XP, levels and streaks. Unlock Daily Challenge and Friend Duels. Guest progress stays separate.</p></div>
         <a class="primary-link" href="/account?mode=register">Create account</a>
       </section>
       {% with ad_slot='shootout-results' %}{% include 'ad_slot.html' %}{% endwith %}
@@ -74,4 +80,4 @@
   </div>
 </dialog>
 {% endblock %}
-{% block scripts %}<script src="/trivia-assets/penalty_shots.js?v=1" defer></script><script src="/trivia-assets/stadium_intro.js?v=12" defer></script><script src="/trivia-assets/penalty_scene.js?v=6" defer></script><script src="/trivia-assets/result_share.js?v=2" defer></script><script src="/trivia-assets/solo.js?v=17" defer></script><script src="/trivia-assets/solo_mobile.js?v=1" defer></script>{% endblock %}
+{% block scripts %}<script src="/trivia-assets/penalty_shots.js?v=1" defer></script><script src="/trivia-assets/stadium_intro.js?v=12" defer></script><script src="/trivia-assets/penalty_scene.js?v=6" defer></script><script src="/trivia-assets/result_share.js?v=2" defer></script><script src="/trivia-assets/{{ 'friends.js?v=1' if mode == 'friend' else 'solo.js?v=18' }}" defer></script><script src="/trivia-assets/solo_mobile.js?v=1" defer></script>{% endblock %}

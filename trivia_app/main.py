@@ -23,6 +23,7 @@ from api.solo_routes import router as solo
 from api.solo_difficulty import router as solo_difficulty
 from api.trivia_writer import router as trivia_writer
 from api.game_community import router as game_community
+from api.challenge_routes import router as challenges
 from trivia_app.game_guide import guide_context
 
 
@@ -52,7 +53,7 @@ app.mount('/assets', TriviaAssets(directory=ROOT / 'web' / 'static'), name='asse
 app.mount('/trivia-assets', TriviaAssets(directory=ROOT / 'trivia_app' / 'static',
     public_files=('app.css','penalties.css','penalty_scene.js','solo.css','solo.js',
                   'stadium.css','stadium_intro.js','stadium_scene.js','stadium_config.js','stadium_v6_world.js','stadium_motion.js','penalty_shots.js','points_theme.css',
-                  'community.css','community.js','shell.js','shootout.css','result_share.js','solo_mobile.css','solo_mobile.js','solo_results.css',
+                  'community.css','community.js','shell.js','shootout.css','result_share.js','solo_mobile.css','solo_mobile.js','solo_results.css','friends.js','game_modes.css',
                   'account_settings.css','account_settings.js','public_ui.css','public_ui.js',
                   'audio.css','audio.js','icons/volume-2.svg','icons/volume-x.svg',
                   'game_guide.css','game_guide.js','guide/shooter.png','guide/keeper.png','icons/circle-help.svg',
@@ -72,6 +73,7 @@ app.include_router(solo)
 app.include_router(solo_difficulty)
 app.include_router(trivia_writer)
 app.include_router(game_community)
+app.include_router(challenges)
 
 
 @app.middleware('http')
@@ -177,6 +179,17 @@ def penalties_page(request:Request):
 @app.get('/solo',response_class=HTMLResponse)
 def solo_page(request:Request):
     return RedirectResponse('/penalties',status_code=307)
+
+
+@app.get('/daily',response_class=HTMLResponse)
+def daily_page(request:Request):
+    return templates.TemplateResponse(request=request,name='solo.html',context={'active_page':'daily','game_mode':'daily'})
+
+
+@app.get('/friends',response_class=HTMLResponse)
+@app.get('/friends/{code}',response_class=HTMLResponse)
+def friends_page(request:Request,code:str=''):
+    return templates.TemplateResponse(request=request,name='solo.html',context={'active_page':'friends','game_mode':'friend','invite_code':code})
 
 
 @app.get('/account',response_class=HTMLResponse)

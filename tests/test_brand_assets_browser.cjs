@@ -26,15 +26,27 @@ const output='/tmp/on-the-dot-brand';fs.mkdirSync(output,{recursive:true});
     assert.equal(logo.width,logo.height);assert(logo.width>=96);assert(logo.y+logo.height<height);
     assert(logo.x+logo.width<=heading.x);assert(heading.y+heading.height<=action.y+1);
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-    const favicon=await page.evaluate(async()=>{
-     const icon=document.querySelector('link[rel=icon]'),img=new Image();img.src=icon.href;await img.decode();
-     const canvas=document.createElement('canvas');canvas.width=canvas.height=32;
-     const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,32,32);
-     const data=ctx.getImageData(0,0,32,32).data;let green=0;
-     for(let i=0;i<data.length;i+=4)if(data[i+1]>100&&data[i+1]>data[i]*2&&data[i+1]>data[i+2]*1.2)green++;
-     return {src:icon.getAttribute('href'),green};
+    const favicons=await page.evaluate(async()=>{
+     const results=[];
+     for(const icon of document.querySelectorAll('link[rel=icon]'))for(const size of [16,32]){
+      const img=new Image();img.src=icon.href;await img.decode();
+      const canvas=document.createElement('canvas');canvas.width=canvas.height=size;
+      const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,size,size);
+      const data=ctx.getImageData(0,0,size,size).data;let green=0,left=size,right=-1,top=size,bottom=-1;
+      for(let i=0;i<data.length;i+=4)if(data[i+1]>100&&data[i+1]>data[i]*2&&data[i+1]>data[i+2]*1.2){
+       green++;const x=(i/4)%size,y=Math.floor(i/4/size);
+       left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);
+      }
+      results.push({src:icon.getAttribute('href'),green,size,left,right,top,bottom});
+     }
+     return results;
     });
-    assert.equal(favicon.src,'/trivia-assets/brand/mark.png?v=1');assert(favicon.green>200,'Favicon must remain visible at 32px');
+    assert.equal(favicons.length,4);
+    for(const f of favicons){
+     assert(f.src.startsWith('/trivia-assets/brand/favicon.'));
+     assert(f.green>f.size*f.size*.55,'Logo should fill most of the tab icon');
+     assert(f.left<=1&&f.right>=f.size-2&&f.top<=2&&f.bottom>=f.size-3,JSON.stringify(f));
+    }
     await page.screenshot({path:`${output}/${path==='/'?'home':'penalties'}-${width}.png`});
    }
    console.log(`PASS ${width}: original wordmark, compact heading, loaded and nonblank favicon`);

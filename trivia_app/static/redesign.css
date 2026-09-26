@@ -54,10 +54,11 @@ button,a,input,textarea,select { -webkit-tap-highlight-color:transparent; }
 .friend-waiting img { filter:none; opacity:1; }
 /* One public control skin, including anchor commands and radio-based tabs.
  * Local page styles still own dimensions, keeping the timed mobile grid fixed.
- * The result IDs in this list also cover the older result-card styles. */
+ * The result IDs in this list also cover the older result-card styles.
+ * Only controls share the bold weight; ordinary copy and headings keep theirs. */
 body:has(.public-header) {
   --control-fill:transparent; --control-text:var(--text); --control-border:var(--ink);
-  --control-icon:0; --control-width:2px; --control-radius:999px;
+  --control-icon:0; --control-width:2px; --control-radius:999px; --control-font-weight:700;
   --selected-fill:#111; --selected-text:#f6f3eb; --selected-icon:1;
 }
 html[data-theme=dark] body:has(.public-header) {
@@ -74,7 +75,9 @@ body:has(.public-header) :is(
   background:var(--control-fill); color:var(--control-text);
   border:var(--control-width) solid var(--control-border); border-radius:var(--control-radius);
   box-shadow:none; text-decoration:none;
+  font-family:inherit; font-weight:var(--control-font-weight);
 }
+body:has(.public-header) .difficulty-options label>span { font-weight:var(--control-font-weight); }
 /* Default icon color follows the control, not the page's light/dark background. */
 body:has(.public-header) :is(button,summary,.primary-link,.top-navigation a,.page-return>a,
   .home-modes a,.home-rules-bottom a,.home-progress a,.solo-heading>a,.daily-ranking-link,

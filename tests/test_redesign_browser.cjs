@@ -3,6 +3,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
 const origin=process.env.MOBILE_TEST_URL||'http://127.0.0.1:8015';
 assert(['localhost','127.0.0.1'].includes(new URL(origin).hostname));
 const out='/tmp/on-the-dot-redesign';fs.mkdirSync(out,{recursive:true});
+const controls='button,summary,.primary-link,.top-navigation a,.page-return>a,.home-modes a,.home-rules-bottom a,.home-progress a,.game-mode-tabs a,.guide-jump a,.guide-guest>a,.solo-heading>a,.daily-ranking-link,.community-actions>a,.site-footer a,#public-profile,.team-rules-link,.period-tabs span,.guide-scenarios span,.difficulty-options label,.difficulty-options label>span,.auth-options label,.team-options label';
 (async()=>{
  const browser=await chromium.launch({channel:'chrome',headless:true});
  try{
@@ -20,10 +21,20 @@ const out='/tmp/on-the-dot-redesign';fs.mkdirSync(out,{recursive:true});
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`Overflow ${width} ${path}`);
     const clipped=await page.locator('button:visible,a:visible,input:visible').evaluateAll(es=>es.filter(e=>!e.hasAttribute('data-label')&&e.scrollWidth>e.clientWidth+2).map(e=>e.id||e.textContent));
     assert.deepEqual(clipped,[],`Clipped controls ${width} ${path}`);
+    const inconsistentControls=await page.locator(controls).evaluateAll(es=>es.filter(e=>
+      e.checkVisibility({checkVisibilityCSS:true})&&
+      (getComputedStyle(e).fontWeight!=='700'||getComputedStyle(e).fontFamily!==getComputedStyle(document.body).fontFamily)
+    ).map(e=>({tag:e.tagName,id:e.id,text:e.textContent.trim().slice(0,70),weight:getComputedStyle(e).fontWeight})));
+    assert.deepEqual(inconsistentControls,[],`Controls must share the same bold font: ${width} ${path}`);
+    assert.equal(await page.locator('body').evaluate(e=>getComputedStyle(e).fontWeight),'400','Ordinary text must remain unchanged');
+    for(const copy of await page.locator('.home-steps p,.guide-intro,.difficulty-options small').all()){
+     assert.equal(await copy.evaluate(e=>getComputedStyle(e).fontWeight),'400');
+    }
     await page.screenshot({path:`${out}/${path.slice(1)||'home'}-${width}.png`,fullPage:true});
     if(path==='/'){
      assert.equal(await page.locator('.play-button').getAttribute('href'),'/penalties');
      assert.equal(await page.locator('.play-button').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(136, 176, 75)');
+     assert.equal(await page.locator('.play-button span').evaluate(e=>getComputedStyle(e).fontWeight),'900');
      const next=await page.locator('.home-section-heading').boundingBox();assert(next.y<height,'Hint of next section must be visible');
      for(const mode of ['daily','duel','solo']){
       await page.locator(`[data-mode=${mode}]`).click();

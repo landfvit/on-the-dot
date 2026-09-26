@@ -76,6 +76,8 @@ function fits(g){
       await page.waitForFunction(()=>window.PointsStadium?.inspect().active&&!window.PointsStadium.inspect().entering);
       await page.waitForTimeout(250);
       const before=await geometry(page);fits(before);
+      assert.equal(await page.locator('#question-title').evaluate(e=>getComputedStyle(e).fontWeight),'550');
+      assert((await page.locator('#choices button').evaluateAll(es=>es.map(e=>Number(getComputedStyle(e).fontWeight)))).every(w=>w===700));
       assert.equal(await page.locator('#leave').textContent(),'Forfeit');
       assert.equal(await page.locator('#question-panel #leave').count(),0);
       assert.equal(await page.locator('#leave').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(255, 111, 97)');

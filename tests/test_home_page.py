@@ -41,6 +41,18 @@ class HomePageTests(unittest.TestCase):
             self.assertIn('<h1>How to play</h1>',client.get('/how-to-play').text)
             connection.assert_not_called()
 
+    def test_public_pages_have_no_redundant_brand_section_labels(self):
+        client=TestClient(app)
+        for path in ('/','/penalties','/daily','/friends','/how-to-play','/leaderboard','/history','/account','/u/example'):
+            with self.subTest(path=path):
+                response=client.get(path)
+                self.assertEqual(response.status_code,200)
+                for label in ('class="section-label"','class="eyebrow"','ON THE DOT. /','POINTS /'):
+                    self.assertNotIn(label,response.text)
+                self.assertIn('class="brand-mark"',response.text)
+        self.assertIn('<h1>Leaderboard</h1>',client.get('/leaderboard').text)
+        self.assertIn('<h1>Your history</h1>',client.get('/history').text)
+
     def test_volume_is_only_in_account_settings_and_other_pages_use_mute(self):
         client=TestClient(app)
         for path in ('/','/penalties','/daily','/friends','/how-to-play','/leaderboard'):

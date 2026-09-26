@@ -2,7 +2,7 @@
 {% block title %}{{ 'Leaderboard' if active_page == 'leaderboard' else 'Your history' }} · ON THE DOT.{% endblock %}
 {% block content %}
 <main class="community-page" data-view="{{ active_page }}">
-  <header class="community-heading"><p class="section-label">ON THE DOT. / {{ 'RANKINGS' if active_page == 'leaderboard' else 'YOUR GAMES' }}</p><h1>{{ 'Leaderboard' if active_page == 'leaderboard' else 'Your history' }}</h1></header>
+  <header class="community-heading"><h1>{{ 'Leaderboard' if active_page == 'leaderboard' else 'Your history' }}</h1></header>
   {% if active_page == 'leaderboard' %}
   <p id="ranking-period" class="muted">All time</p>
   <fieldset class="period-tabs ranking-tabs"><legend class="sr-only">Rank by</legend>

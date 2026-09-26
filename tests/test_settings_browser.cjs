@@ -14,7 +14,7 @@ const initial={username:'matchday_player',email:'player@example.com',bio:'Footba
   await page.route('**/api/**',async route=>{
    const path=new URL(route.request().url()).pathname,method=route.request().method(),body=method==='GET'?{}:route.request().postDataJSON();let data={},status=200;
    if(path==='/api/players/me'&&method==='GET'){data=signedIn?profile:{detail:'Sign in'};status=signedIn?200:401;}
-   else if(path==='/api/players/me'&&method==='PATCH'){Object.assign(profile,body);data=profile;}
+   else if(path==='/api/players/me'&&method==='PATCH'){assert.deepEqual(Object.keys(body),['bio']);Object.assign(profile,body);data=profile;}
    else if(path==='/api/players/me'&&method==='DELETE'){assert.equal(body.confirmation,'DELETE');signedIn=false;data={deleted:true};}
    else if(path==='/api/players/settings')data={password_reset_available:true};
    else if(path==='/api/players/friends')data={friends:[]};
@@ -40,8 +40,11 @@ const initial={username:'matchday_player',email:'player@example.com',bio:'Footba
    await page.getByRole('radio',{name:'Arsenal',exact:true}).check();await page.locator('#save-team').click();
    await page.waitForFunction(()=>document.querySelector('#profile-team img')?.alt==='Arsenal');
    await page.locator('[data-profile-tab=settings]').click();await page.locator('summary').filter({hasText:/^Public profile$/}).click();
-   await page.locator('#profile-username').fill('updated_player');await page.locator('#profile-edit button[type=submit], #profile-edit button.primary').click();
-   await page.waitForFunction(()=>document.querySelector('#profile-name').textContent==='updated_player');
+   assert(await page.locator('#profile-username').evaluate(e=>e.readOnly));
+   assert.equal(await page.locator('#profile-username').inputValue(),initial.username);
+   await page.locator('#bio').fill('Updated bio');await page.locator('#profile-edit button[type=submit], #profile-edit button.primary').click();
+   await page.waitForFunction(()=>document.querySelector('#profile-bio').textContent==='Updated bio');
+   assert.equal(await page.locator('#profile-name').textContent(),initial.username);
    await page.locator('summary').filter({hasText:/^Password$/}).click();
    await page.locator('#current-password').fill('current-password');
    const toggle=page.locator('#current-password').locator('..').getByRole('button');await toggle.click();assert.equal(await page.locator('#current-password').getAttribute('type'),'text');await toggle.click();
@@ -55,7 +58,7 @@ const initial={username:'matchday_player',email:'player@example.com',bio:'Footba
    await page.locator('#delete-open').click();assert(await page.locator('#delete-dialog').isVisible());await page.locator('#delete-cancel').click();
    await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:`${output}/account-${width}.png`,fullPage:true});
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-   console.log(`PASS account ${width}: club badges, username, password, preferences and delete confirmation`);
+   console.log(`PASS account ${width}: club badges, permanent username, bio, password, preferences and delete confirmation`);
   }
   signedIn=false;await page.setViewportSize({width:390,height:844});await page.goto(origin+'/account');
   await page.locator('#forgot-password').click();await page.locator('#reset-email').fill('player@example.com');await page.locator('#reset-request button').first().click();
@@ -66,7 +69,7 @@ const initial={username:'matchday_player',email:'player@example.com',bio:'Footba
   await page.goto(origin+'/leaderboard?ad_preview=1');await page.waitForSelector('#ranking-rows .club-badge');
   assert.equal(await page.locator('[data-ad-slot]:visible').count(),1);await page.screenshot({path:`${output}/leaderboard-ads.png`,fullPage:true});
   await page.goto(origin+'/penalties?ad_preview=1');assert.equal(await page.locator('[data-ad-slot]:visible').count(),1);
-  assert.equal(await page.locator('.site-footer').textContent(),'PL Seasons 16/17 - 25/26');
+  assert.match(await page.locator('.site-footer').textContent(),/PL Seasons 16\/17 - 25\/26/);
   await page.screenshot({path:`${output}/selection-ads.png`,fullPage:true});
   await page.goto(origin+'/penalties');assert.equal(await page.locator('[data-ad-slot]:visible').count(),0);
   signedIn=true;await page.goto(origin+'/account');await page.locator('[data-profile-tab=settings]').click();await page.locator('summary').filter({hasText:/^Delete account$/}).click();await page.locator('#delete-open').click();await page.locator('#delete-password').fill('current-password');await page.locator('#delete-confirmation').fill('DELETE');

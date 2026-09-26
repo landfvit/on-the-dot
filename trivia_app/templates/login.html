@@ -5,6 +5,7 @@
     <h1>Studio sign in</h1>
     {% if error %}<p role="alert">{{ error }}</p>{% endif %}
     <form action="/login" method="post">
+        <input type="hidden" name="next" value="{{ destination|default('/internal/trivia') }}">
         <label>Username<input name="username" autocomplete="username" required maxlength="200"></label>
         <label>Password<input name="password" type="password" autocomplete="current-password" required maxlength="512"></label>
         <button type="submit" class="primary">Sign in</button>

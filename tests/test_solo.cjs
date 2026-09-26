@@ -89,17 +89,21 @@ test('timer bar follows the frozen duration for new and legacy runs',async()=>{
     s.timers.find(t=>t.ms===100).fn();
     assert.equal(s.get('timer').max,answer_ms/1000);
     assert.ok(s.get('timer').value<=answer_ms/1000);
+    assert.match(s.get('seconds').textContent,/^\d+ s$/);
+    assert.equal(s.get('seconds').textContent,Math.ceil(s.get('timer').value)+' s');
   }
 });
 test('penalty animation follows server review once and never sends score or XP',async()=>{
   const s=setup('solo',true);
   await boot(s,true,run({phase:'ANSWERING',position:1,deadline:Date.now()+10000,question:{text:'Question?',options:[{id:'0',text:'A'},{id:'1',text:'B'}]}}));
-  assert.equal(s.get('solo-attempts').children.length,10);assert.equal(s.shots.length,0);
+  assert.equal(s.shots.length,0);
   const submitting=s.get('choices').children[0].emit('click');await flush();
   const result=run({phase:'REVIEW',position:1,correct:1,total_xp:10,question:{text:'Question?',options:[{id:'0',text:'A'},{id:'1',text:'B'}]},review:[{position:1,option_id:'0',correct:'0',is_correct:true,authority:'user_attested',explanation:'A'}]});
   reply(s.requests[3],result);await submitting;
-  assert.deepEqual(s.shots,['goal']);assert.equal(s.get('penalty-score').textContent,'1 / 10');
-  assert.equal(s.get('feedback').textContent,'Correct. +10 XP. A');
+  assert.deepEqual(s.shots,['goal']);
+  assert.equal(s.get('feedback').textContent,'');
+  assert.equal(s.get('choices').children[0].children.length,0);
+  assert.equal(s.get('choices').children[0]['aria-label'],'A, correct answer');
   assert.doesNotMatch(s.get('feedback').textContent,/database|author|source/i);
   const retry=s.get('retry').emit('click');await flush();reply(s.requests[4],result);await retry;await flush();
   assert.deepEqual(s.shots,['goal']);
@@ -109,7 +113,7 @@ test('timeout is a miss and wrong answer is a save',async()=>{
   for(const [option,outcome] of [[null,'miss'],['1','save']]){
     const s=setup('solo',true);
     await boot(s,true,run({phase:'REVIEW',position:1,review:[{position:1,option_id:option,is_correct:false,explanation:'A'}]}));
-    assert.deepEqual(s.shots,[outcome]);assert.equal(s.get('penalty-score').textContent,'0 / 10');
+    assert.deepEqual(s.shots,[outcome]);
   }
 });
 test('anonymous players can start a guest game without a registration redirect',async()=>{
@@ -150,16 +154,17 @@ test('timeout results do not promise a daily streak',async()=>{
   const s=setup();await boot(s,true,run({phase:'FINISHED',position:10,streak_eligible:false,total_xp:90,base_xp:90}));
   assert.doesNotMatch(s.get('result-completion').textContent,/streak/i);
 });
-test('review retains explanations but never renders source or authority labels',async()=>{
+test('review shows the correct option only, without editorial explanations',async()=>{
   const s=setup();
   await boot(s,true,run({phase:'FINISHED',position:1,review:[{
     position:1,text:'Who won?',option_id:'a',correct:'a',is_correct:true,
+    options:[{id:'a',text:'Manchester United'},{id:'b',text:'Arsenal'}],
     explanation:'United finished first with 80 points.',authority:'user_attested',
     source:{references:['https://example.com/private-source']},
   }]}));
   const item=s.get('review').children[0];
   assert.deepEqual(item.children.map(n=>n.tag),['h3','p']);
-  assert.equal(item.children[1].textContent,'Correct · United finished first with 80 points.');
+  assert.equal(item.children[1].textContent,'Manchester United');
   assert.doesNotMatch(s.get('feedback').textContent,/source|author|database|https:/i);
 });
 test('result review paginates server answers and closes before a new shootout',async()=>{
@@ -280,9 +285,13 @@ test('difficulty selection uses server rates and perfect totals',async()=>{
   assert.equal(s.get('hard-perfect').textContent,'10/10: 900 XP');
 });
 
-test('answer feedback uses the frozen rate of the actual run',async()=>{
-  const s=setup();await boot(s,true,run({phase:'REVIEW',position:1,rules:{xp_per_correct:20},review:[{position:1,option_id:'0',correct:'0',is_correct:true,explanation:'Answer.'}],question:{text:'Question?',options:[{id:'0',text:'Answer'}]}}));
-  assert.match(s.get('feedback').textContent,/Correct\. \+20 XP/);
+test('correct, wrong and timed-out answers use option states without duplicate feedback',async()=>{
+  for(const option_id of ['0','1',null]){
+    const s=setup();await boot(s,true,run({phase:'REVIEW',position:1,rules:{xp_per_correct:20},review:[{position:1,option_id,correct:'0',is_correct:option_id==='0',explanation:'Citizenship question: editorial details.'}],question:{text:'Question?',options:[{id:'0',text:'England'},{id:'1',text:'France'}]}}));
+    assert.equal(s.get('feedback').textContent,'');
+    assert.equal(s.get('choices').children[0]['aria-label'],'England, correct answer');
+    assert(s.get('choices').children.every(button=>button.children.length===0));
+  }
 });
 
 test('registration submits email and username while login submits an identifier',async()=>{
@@ -300,6 +309,18 @@ test('registration submits email and username while login submits an identifier'
   assert.equal(s.requests[2].url,'/api/players/login');
   assert.deepEqual(JSON.parse(s.requests[2].options.body),{identifier:'person@example.com',password:'eight888'});
   reply(s.requests[2],{detail:'Invalid email or password'},401);await submit;
+});
+
+test('profile edits send only bio, never a modified username input',async()=>{
+  const s=setup('account'),profile={...user,bio:'',level_xp:0,next_level_xp:200,streak:{current:0,longest:0}};
+  reply(s.requests[0],profile);await flush();
+  assert.equal(s.get('profile-username').value,'tester');
+  s.get('profile-username').value='tampered_username';s.get('bio').value='New bio';
+  const submit=s.get('profile-edit').emit('submit');await flush();
+  assert.equal(s.requests[1].url,'/api/players/me');assert.equal(s.requests[1].options.method,'PATCH');
+  assert.deepEqual(JSON.parse(s.requests[1].options.body),{bio:'New bio'});
+  reply(s.requests[1],{...profile,bio:'New bio'});await submit;
+  assert.equal(s.get('profile-name').textContent,'tester');assert.equal(s.get('profile-bio').textContent,'New bio');
 });
 
 test('returning to selection refreshes weekly counts before enabling start',async()=>{
@@ -329,7 +350,7 @@ function shootout(overrides={}){
 test('TV scoreboard shows goals, misses and unplayed kicks independently for both sides',async()=>{
   const s=setup('solo',true);
   await boot(s,true,run({phase:'REVIEW',position:2,role:'keeper',shootout:shootout()}));
-  assert.equal(s.get('penalty-score').textContent,'1 : 0');
+  assert.equal(s.get('score-player').textContent,'1');assert.equal(s.get('score-opponent').textContent,'0');
   assert.deepEqual(s.get('kicks-player').children.map(e=>e.className),['shootout-kick goal',...Array(4).fill('shootout-kick pending')]);
   assert.equal(s.get('kicks-opponent').children[0].className,'shootout-kick miss');
   assert.equal(s.get('kicks-opponent').children[0]['aria-label'],'Opponent, penalty 1: missed');
@@ -419,5 +440,6 @@ test('new games always submit mixed topics and all clubs without displaying coun
   assert.deepEqual(JSON.parse(s.requests[3].options.body),{category:'ALL',topic:'ALL',difficulty:'medium',request_id:'request-3'});
   assert.equal(s.get('availability').textContent,'');
   reply(s.requests[3],run({difficulty:'medium',category:{label:'All clubs',topic_code:'ALL',topic_label:'Mixed topics'}}));await starting;
-  assert.equal(s.get('run-category').textContent,'Mixed topics · All clubs · Medium');
+  assert.equal(s.get('run-category').textContent,'');
+  assert.equal(s.get('run-xp').textContent,'');
 });

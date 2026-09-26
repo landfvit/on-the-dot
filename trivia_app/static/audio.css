@@ -1,8 +1,9 @@
-.sound-settings { display:grid; gap:18px; margin-top:28px; padding-top:24px; border-top:1px solid var(--border); }
+.sound-settings { display:grid; gap:14px; padding:12px 0 20px; }
 .sound-setting-row { display:flex; align-items:center; justify-content:space-between; gap:16px; font-size:14px; }
 .sound-volume { display:grid; grid-template-columns:minmax(0,1fr) 42px; align-items:center; gap:8px 16px; font-size:13px; }
 .sound-volume label { grid-column:1/-1; }
 .sound-volume input { width:100%; min-width:0; height:32px; margin:0; accent-color:var(--accent); }
+#own-profile .sound-volume input[type=range] { padding:0; border:0; background:transparent; }
 .sound-volume output { text-align:right; color:var(--muted); font-variant-numeric:tabular-nums; }
 #stadium-controls .stadium-actions { flex-wrap:nowrap; gap:8px; flex-shrink:0; }
 #stadium-controls [data-sound-toggle] { display:grid; place-items:center; width:44px; min-width:44px; height:44px; padding:10px; }

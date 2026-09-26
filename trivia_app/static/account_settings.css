@@ -1,6 +1,6 @@
 .password-field { position:relative; display:block; }
 .solo-page .password-field input { padding-right:52px!important; }
-.password-toggle { position:absolute; top:0; right:0; bottom:0; width:44px; border:0!important; background:transparent!important; padding:10px!important; display:grid; place-items:center; }
+.password-toggle { position:absolute; top:0; right:0; bottom:0; width:44px; padding:10px!important; display:grid; place-items:center; }
 .password-toggle img { width:20px; height:20px; filter:invert(1); }
 #own-profile { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:28px 40px; }
 #own-profile > #public-profile { grid-column:1/-1; }

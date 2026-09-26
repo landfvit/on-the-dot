@@ -45,13 +45,14 @@ async function check(page){
   try{
     const page=await browser.newPage({viewport:{width:402,height:700},isMobile:true,hasTouch:true,reducedMotion:'reduce'}),errors=[];
     // Exercise our fallback without opening the operating system's share UI.
-    await page.addInitScript(()=>Object.defineProperty(navigator,'canShare',{value:()=>false,configurable:true}));
+    await page.addInitScript(()=>Object.defineProperty(navigator,'share',{value:undefined,configurable:true}));
     page.on('pageerror',e=>errors.push(e.message));
     await page.route('**/api/**',async route=>{
       const path=new URL(route.request().url()).pathname;
       if(path==='/api/players/me')return route.fulfill({status:guest?401:200,json:guest?{detail:'Sign in'}:{username:'Tester',total_xp:24680,level:12}});
       if(path==='/api/solo/catalog')return route.fulfill({json:catalog});
       if(path==='/api/solo/active')return route.fulfill({json:{run,trial_available:true}});
+      if(path==='/api/shares/results')return route.fulfill({json:{title:'Shootout result',url:origin+'/s/test-result',image_url:origin+'/share/brand.png'}});
       throw new Error(`Unexpected ${path}`);
     });
     for(const [width,height] of [[320,480],[320,568],[375,620],[390,664],[402,700],[430,780],[768,1024],[568,320],[667,375],[844,390],[1280,720],[1440,1000]]){

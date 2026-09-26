@@ -8,21 +8,30 @@
     if (!$('stadium-layer')) return;
     const reduced = matchMedia('(prefers-reduced-motion: reduce)');
     const motionToggle=$('motion-toggle');
-    if(motionToggle){motionToggle.disabled=reduced.matches;motionToggle.checked=!reduced.matches&&globalThis.PointsPreferences?.get().animations!==false;}
+    let animationsEnabled=globalThis.PointsPreferences?.get().animations!==false;
     let engine = null, modules = null, version = 0, available = true, active = false, entering = false;
     let config = null, restoreFocus = null, lastShot = null;
-    const motion = () => !reduced.matches && $('motion-toggle')?.checked !== false && globalThis.PointsPreferences?.get().reduced_motion!==true;
+    const motion = () => !reduced.matches && animationsEnabled && globalThis.PointsPreferences?.get().reduced_motion!==true;
+    function syncMotionControl(){
+        if(!motionToggle)return;
+        const reducedMotion=reduced.matches||globalThis.PointsPreferences?.get().reduced_motion===true;
+        const enabled=motion(),label=reducedMotion?'Animations disabled by reduced motion':enabled?'Disable animations':'Enable animations';
+        motionToggle.disabled=reducedMotion;motionToggle.setAttribute('aria-pressed',String(enabled));
+        motionToggle.setAttribute('aria-label',label);motionToggle.title=label;
+        motionToggle.querySelector('img').src='/trivia-assets/icons/'+(enabled?'monitor':'monitor-off')+'.svg';
+    }
+    syncMotionControl();
 
     // Lokalne hostovana Three.js: zadne CDN requesty ani sledovani uzivatele.
     // Pri chybe se ukaze upozorneni. Zadny 2D renderer se uz nenacita.
     function load() {
-        if (!modules) modules = Promise.all([import('./stadium_scene.js?v=15'), import('./stadium_config.js?v=13')]);
+        if (!modules) modules = Promise.all([import('./stadium_scene.js?v=16'), import('./stadium_config.js?v=14')]);
         return modules;
     }
     async function prepare() { try { await load(); } catch { /* Chybu zobrazime az pri vstupu do hry. */ } }
     function reveal(amount) { document.body.style.setProperty('--stadium-reveal',String(amount)); }
     function panels(inert) {
-        for (const selector of ['.solo-questions','.question-column']) {
+        for (const selector of ['.solo-questions','.question-column','#shootout-hud']) {
             const panel = document.querySelector(selector); if (panel) panel.inert = inert;
         }
     }
@@ -58,7 +67,6 @@
             active=true;document.body.classList.add('stadium-playing');$('stadium-controls').hidden=false;
             globalThis.PointsAudio?.setCrowdActive?.(true);
             $('stadium-unavailable').hidden=true;
-            $('stadium-role').textContent=role==='keeper'?'Goalkeeper':'Penalty taker';
             $('stadium-outcome').hidden=true;
             const availableMs=maxDurationMs-(performance.now()-requestedAt);
             const sameRole=engine.inspect().role===role&&engine.inspect().phase==='ready';
@@ -97,26 +105,22 @@
         globalThis.PointsAudio?.setCrowdActive?.(false);
     }
     function reset() { lastShot=null;if(active){engine?.reset();$('stadium-outcome').hidden=true;} }
-    // Skore a hodiny jen zrcadlime z herniho controlleru. V 3D tak zustanou
-    // viditelne i na mobilu, kde je puvodni velky scoreboard skryty.
-    function hud({score,clock}) {
-        if(score!==undefined)$('stadium-score').textContent=score;
-        if(clock!==undefined)$('stadium-clock').textContent=clock;
-    }
     $('stadium-skip').addEventListener('click',skip);
-    $('motion-toggle')?.addEventListener('change',()=>{if(!motion()){skip();reset();}});
+    // Presentation only: finish camera travel or show the resolved shot pose.
+    // Never request a question, change a deadline, or discard a visible result.
+    function applyMotion(){
+        syncMotionControl();
+        if(!motion()){skip();if(lastShot)showShot(false);}
+    }
+    motionToggle?.addEventListener('click',()=>{animationsEnabled=!animationsEnabled;applyMotion();});
     window.addEventListener('points-preferences',()=>{
-        const preferences=globalThis.PointsPreferences?.get();if(motionToggle)motionToggle.checked=!reduced.matches&&preferences?.animations!==false;
-        if(!motion()){skip();reset();}
+        animationsEnabled=globalThis.PointsPreferences?.get().animations!==false;applyMotion();
     });
-    reduced.addEventListener('change',()=>{
-        if(motionToggle){motionToggle.disabled=reduced.matches;if(reduced.matches)motionToggle.checked=false;}
-        if(reduced.matches){skip();reset();}
-    });
+    reduced.addEventListener('change',applyMotion);
     window.addEventListener('keydown',event=>{if(event.key==='Escape'&&entering)skip();});
     window.addEventListener('pagehide',()=>{leave();engine?.dispose();engine=null;});
     // inspect() je pouze diagnostika kamery pro vizualni testy, ne herni stav.
-    window.PointsStadium={prepare,enter,skip,leave,shot,reset,hud,finish,
-        inspect:()=>({active,entering,...engine?.inspect()})};
+    window.PointsStadium={prepare,enter,skip,leave,shot,reset,finish,
+        inspect:()=>({active,entering,motionEnabled:motion(),...engine?.inspect()})};
     prepare();
 })();

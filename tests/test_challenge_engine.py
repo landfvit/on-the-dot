@@ -79,19 +79,57 @@ class ChallengeEngineTests(unittest.TestCase):
         s=g.daily_create(deck(3),1000,100000)
         for i in range(3):
             g.solo.advance(s,i,2000+i*1000)
-            g.solo.answer(s,i+1,'0',str(i),2100+i*1000);g.daily_exhaust(s,2100+i*1000)
+            g.daily_answer(s,i+1,'0',str(i),2100+i*1000)
         v=g.daily_view(s,5000)
-        self.assertTrue(v['won']);self.assertEqual(v['total_xp'],60)
+        self.assertFalse(v['won']);self.assertEqual(v['survival']['goals'],3);self.assertEqual(v['total_xp'],60)
         self.assertEqual(v['bonus_xp'],0);self.assertEqual(v['multiplier'],1)
         self.assertEqual([a['xp'] for a in v['review']],[10,20,30])
 
-    def test_daily_exhaustion_cannot_reverse_loss(self):
+    def test_daily_third_mistake_ends_run(self):
         s=g.daily_create(deck(6),1000,100000)
-        for i in range(6):
+        for i in range(3):
             g.solo.advance(s,i,2000+i*1000)
-            g.solo.answer(s,i+1,'1',str(i),2100+i*1000);g.daily_exhaust(s,2100+i*1000)
+            g.daily_answer(s,i+1,'1',str(i),2100+i*1000)
         self.assertFalse(g.daily_view(s,10000)['won'])
-        self.assertEqual(g.daily_view(s,10000)['shootout']['winner'],'opponent')
+        self.assertEqual(s['phase'],'FINISHED');self.assertEqual(s['end_reason'],'lives_exhausted')
+        self.assertEqual(g.daily_view(s,10000)['survival']['lives'],0)
+        with self.assertRaises(g.solo.SoloError):g.solo.advance(s,3,10000)
+
+    def test_daily_over_fifty_goals_never_switches_role_or_clinches(self):
+        s=g.daily_create(deck(1000),1000,1000000)
+        for i in range(75):
+            g.solo.advance(s,i,2000+i*1000);g.daily_answer(s,i+1,'0',str(i),2100+i*1000)
+            v=g.daily_view(s,2200+i*1000)
+            self.assertEqual(s['phase'],'REVIEW');self.assertEqual(v['role'],'shooter')
+            self.assertNotIn('shootout',v);self.assertEqual(v['survival']['lives'],3)
+        self.assertEqual(v['survival']['goals'],75)
+
+    def test_daily_timeouts_and_retries_consume_exactly_one_life(self):
+        s=g.daily_create(deck(),1000,1000000)
+        for i in range(3):
+            g.solo.advance(s,i,2000+i*20000)
+            g.daily_tick(s,s['deadline']);snapshot=deepcopy(s);g.daily_tick(s,s['deadline']+1)
+            self.assertEqual(snapshot,s);self.assertEqual(len(s['history']),i+1)
+        self.assertEqual(s['phase'],'FINISHED');self.assertEqual(g.daily_view(s,90000)['survival']['lives'],0)
+
+    def test_daily_answer_idempotency_privacy_and_practice_flag(self):
+        s=g.daily_create(deck(),1000,100000,ranked=False);g.solo.advance(s,0,2000)
+        v=g.daily_view(s,2000);self.assertNotIn('deck',v);self.assertNotIn('correct',v['question'])
+        self.assertFalse(v['survival']['ranked'])
+        g.daily_answer(s,1,'1','retry',2100);frozen=deepcopy(s)
+        g.daily_answer(s,1,'1','retry',2200);self.assertEqual(frozen,s)
+        with self.assertRaises(g.solo.SoloError):g.daily_answer(s,1,'0','retry',2200)
+
+    def test_third_error_on_last_question_is_not_pool_completion(self):
+        s=g.daily_create(deck(3),1000,100000)
+        for i in range(3):
+            g.solo.advance(s,i,2000+i*1000);g.daily_answer(s,i+1,'1',str(i),2100+i*1000)
+        self.assertEqual(s['end_reason'],'lives_exhausted')
+
+    def test_long_run_ends_at_daily_reset_not_solo_thirty_minute_limit(self):
+        s=g.daily_create(deck(),1000,10000000)
+        g.daily_tick(s,2000000);self.assertEqual(s['phase'],'READY')
+        g.daily_tick(s,10000000);self.assertEqual(s['end_reason'],'daily_reset')
 
     def test_empty_daily_and_utc_reset(self):
         with self.assertRaises(g.solo.SoloError):g.daily_create([],1000,2000)

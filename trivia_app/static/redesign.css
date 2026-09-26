@@ -2,6 +2,8 @@
  * the timed mobile game/results stay owned by solo_mobile.css/solo_results.css.
  * Change --line-width in points_theme.css to adjust the heavy outline system. */
 body { font-family:Inter,Arial,sans-serif; -webkit-font-smoothing:antialiased; }
+/* Shared desktop column; ad rails use the same width to keep a clear gutter. */
+body:has(.public-header) { --public-content-width:800px; }
 ::selection { color:var(--paper); background:var(--ink); }
 :is(h1,h2,h3,button,a,span) { letter-spacing:0; }
 h1,.community-heading h1,.solo-heading h1,.guide-heading h1 { font-weight:900; font-style:italic; }
@@ -9,73 +11,146 @@ h2,.game-guide h2 { font-weight:850; }
 button,a,input,textarea,select { -webkit-tap-highlight-color:transparent; }
 .public-header { border-bottom:var(--line-width) solid var(--ink); padding:24px 0; max-width:1160px; margin:0 auto; justify-content:space-between; }
 .public-header .top-navigation { display:flex; flex:0 0 auto; flex-wrap:nowrap; gap:12px; }
-.public-header .top-navigation a { position:relative; padding:10px; width:46px; height:46px; min-height:46px; border:2px solid transparent; border-radius:50%; }
-.public-header .top-navigation a[aria-current],.public-header .top-navigation a:first-child { border-color:var(--ink); }
-.public-header .top-navigation img { width:24px; height:24px; filter:none; }
+.public-header .top-navigation a { position:relative; padding:0; width:46px; height:46px; min-height:46px; flex:none; }
+.public-header .top-navigation img { display:block; width:24px; height:24px; flex:none; object-fit:contain; filter:none; }
 .public-header .top-navigation a:first-child img { filter:none; }
-.public-header .top-navigation a:hover { background:var(--surface-raised); }
 .public-header .top-navigation a::after { content:attr(data-label); position:absolute; top:calc(100% + 8px); left:50%; transform:translateX(-50%); font-size:11px; font-weight:600; white-space:nowrap; opacity:0; pointer-events:none; }
 .public-header .top-navigation a:is(:hover,:focus-visible)::after { opacity:1; }
 .page-return { max-width:1160px; padding:0; margin:12px auto 0; }
 .page-return a { font-size:13px; color:var(--text); }
 .page-return img,.game-rules-link img,.icon-button img,.invite-link-row img,.guide-xp-example img,.password-toggle img,.team-options .no-team img,#feedback-expand img,#share-copy img { filter:none; }
 .icon-button { border:2px solid var(--ink); background:transparent; }
-.primary-link,.solo-page .primary,.penalty-page .primary { border:2px solid var(--ink); background:var(--ink); color:var(--paper); }
-.primary-link img,.solo-page .primary img { filter:invert(1); }
-.game-guide .primary-link,.guide-heading .primary-link,.guest-benefits .primary-link { color:var(--paper); }
 :is(.solo-page,.community-page,.result-dialog,.shell-dialog) button { border-width:2px; }
 .solo-page input:not([type=radio]):not([type=checkbox]),.solo-page select,.solo-page textarea { border-width:2px; }
-.solo-page button,.community-page button,.primary-link,.result-dialog button { border-radius:4px; font-weight:700; }
+.solo-page button,.community-page button,.primary-link,.result-dialog button { font-weight:700; }
 .solo-heading,.community-heading,.guide-heading { border-bottom:var(--line-width) solid var(--ink); padding-bottom:24px; }
 .game-mode-tabs { border-bottom:2px solid var(--ink); }
 .game-mode-tabs a { min-height:44px; display:inline-flex; align-items:center; }
 .game-mode-tabs a[aria-current] { color:var(--ink); border-color:var(--ink); }
-.difficulty-options { border:var(--line-width) solid var(--ink)!important; border-radius:6px; }
-.difficulty-options label { border-right:2px solid var(--ink); }
-.difficulty-options label:has(:checked) { box-shadow:none; }
-.difficulty-options input { accent-color:var(--ink); }
-.difficulty-options label:has(:checked) input { accent-color:var(--paper); }
-#start { background:var(--brand-green); border:var(--line-width) solid var(--ink); color:var(--ink); }
-#start:hover:enabled { background:#99bd64; border-color:var(--ink); }
-.solo-choices button { border:2px solid var(--ink); background:var(--paper); font-weight:650; }
-.solo-choices button:not(:disabled):hover { background:var(--surface-raised); border-color:var(--ink); }
-.solo-choices .chosen { border-width:2px; background:var(--ink); color:var(--paper); }
-.solo-choices .correct { background:var(--selection); color:var(--ink); border-color:var(--ink); }
-.solo-choices .chosen.correct { background:var(--brand-green); color:var(--ink); border-color:var(--ink); }
-.solo-choices .incorrect { background:var(--error-surface); color:#84211e; border-color:var(--ink); }
-.solo-choices .chosen.incorrect { background:var(--coral); color:var(--paper); border-color:var(--ink); }
-.period-tabs span { border:2px solid var(--ink); background:transparent; }
-.period-tabs :checked+span { color:var(--paper); background:var(--ink); }
+.difficulty-options { border:0!important; border-radius:0; overflow:visible; gap:8px; }
+.difficulty-options label { position:relative; justify-content:center; text-align:center; }
+.difficulty-options label small { color:inherit; }
+.difficulty-options input { position:absolute; width:1px; height:1px; opacity:0; }
+.difficulty-options label:has(:focus-visible) { outline:2px solid var(--ink); outline-offset:3px; }
+.solo-choices button { font-weight:650; }
 .ranking-table td { background:transparent; border-top:2px solid var(--ink); }
 .ranking-table .own-rank td { background:var(--selection); }
 .ranking-self { border:2px solid var(--ink); background:transparent; }
 .ranking-self a,.ranking-self span { color:var(--ink); }
 .profile-tabs,.friend-row,.guide-section,.guide-end,.guide-guest,.history-row,.public-result { border-width:2px; }
 .guide-rewards th,.guide-rewards td { border-bottom-width:2px; }
-.guide-scenarios :checked+span { background:var(--ink); color:var(--paper); }
 .guide-scoreboard { border:var(--line-width) solid var(--ink); }
-.header-sound .sound-settings,.shell-dialog,.result-dialog,#delete-dialog,#feedback-dialog { border:var(--line-width) solid var(--ink); box-shadow:6px 6px 0 #1112; }
+.guide-scene { border:var(--line-width) solid #111; margin-inline:auto; object-fit:contain; object-position:center; }
+.guide-scoreboard { margin-inline:auto; }
+.shell-dialog,.result-dialog,#delete-dialog,#feedback-dialog { border:var(--line-width) solid var(--ink); box-shadow:6px 6px 0 #1112; }
 :is(.shell-dialog,.result-dialog,#delete-dialog,#feedback-dialog)::backdrop { background:#1116; backdrop-filter:blur(5px); }
 #summary .metric strong,#summary .metric:nth-child(n+3) strong,#summary .metric:nth-child(2) strong { color:var(--ink); }
-#summary #share-result { border:2px solid var(--ink); background:var(--paper); color:var(--ink); }
-#summary #share-result img { filter:none; }
-#summary .result-actions > * { background:var(--ink); border:2px solid var(--ink); color:var(--paper); }
-#summary .result-actions #another { background:var(--brand-green); color:var(--ink); }
-#summary #guest-benefits a,#mode-intro button.primary { background:var(--ink); color:var(--paper); border:2px solid var(--ink); }
 .shootout-finished .solo-questions { border-width:var(--line-width)!important; }
 #stadium-controls { border-bottom:var(--line-width) solid var(--ink); }
-#stadium-controls button { border:2px solid var(--ink); background:var(--paper); color:var(--ink); }
 #shootout-board { border:2px solid var(--ink); background:var(--paper); }
 .shootout-kick.goal { color:var(--ink); }
 .shootout-kick.miss { color:var(--coral); }
 .shootout-kick.pending { border:2px solid var(--ink); opacity:1; }
 .friend-waiting img { filter:none; opacity:1; }
-#forfeit-dialog #forfeit-confirm { background:var(--ink); color:var(--paper); border-color:var(--ink); }
+/* One public control skin, including anchor commands and radio-based tabs.
+ * Local page styles still own dimensions, keeping the timed mobile grid fixed.
+ * The result IDs in this list also cover the older result-card styles. */
+body:has(.public-header) {
+  --control-fill:transparent; --control-text:var(--text); --control-border:var(--ink);
+  --control-icon:0; --control-width:2px; --control-radius:999px;
+  --selected-fill:#111; --selected-text:#f6f3eb; --selected-icon:1;
+}
+html[data-theme=dark] body:has(.public-header) {
+  --control-icon:1; --selected-fill:#f6f3eb; --selected-text:#111; --selected-icon:0;
+}
+body:has(.public-header) :is(
+  button,summary,.primary-link,.play-button,.top-navigation a,.page-return>a,
+  .home-modes a,.home-rules-bottom a,.home-progress a,.game-mode-tabs a,
+  .guide-jump a,.guide-guest>a,.solo-heading>a,.daily-ranking-link,
+  .community-actions>a,.site-footer a,#public-profile,.team-rules-link,
+  .period-tabs span,.guide-scenarios span,.difficulty-options label,.auth-options label,.team-options label,
+  #summary #share-result,#summary #guest-benefits a
+) {
+  background:var(--control-fill); color:var(--control-text);
+  border:var(--control-width) solid var(--control-border); border-radius:var(--control-radius);
+  box-shadow:none; text-decoration:none;
+}
+/* Default icon color follows the control, not the page's light/dark background. */
+body:has(.public-header) :is(button,summary,.primary-link,.top-navigation a,.page-return>a,
+  .home-modes a,.home-rules-bottom a,.home-progress a,.solo-heading>a,.daily-ranking-link,
+  .team-options label,#summary #share-result) img[src*="/icons/"] { filter:invert(var(--control-icon)); }
+body:has(.public-header) :where(button,summary,.primary-link,.play-button,.top-navigation a,
+  .page-return>a,.home-modes a,.home-rules-bottom a,.home-progress a,.game-mode-tabs a,
+  .guide-jump a,.guide-guest>a,.solo-heading>a,.daily-ranking-link,.community-actions>a,
+  .site-footer a,#public-profile,.team-rules-link):hover:not(:disabled) { --control-fill:var(--surface-raised); }
+/* Selected controls invert with the theme; answer outcomes keep their colors. */
+body:has(.public-header) :is([aria-selected=true],[aria-pressed=true],[aria-current],
+  button.chosen,button:active:not(:disabled),a:active,summary:active,
+  details[open]>summary,.difficulty-options label:has(:checked),.auth-options label:has(:checked),
+  .team-options label:has(:checked),.period-tabs :checked+span,.guide-scenarios :checked+span) {
+  --control-fill:var(--selected-fill); --control-text:var(--selected-text); --control-icon:var(--selected-icon);
+}
+.difficulty-options label,.solo-choices button { --control-radius:6px; }
+body:has(.public-header) .solo-choices button.correct {
+  --control-fill:var(--brand-green); --control-text:#111; --control-border:#111; --control-icon:0;
+}
+body:has(.public-header) .solo-choices button.incorrect {
+  --control-fill:var(--coral); --control-text:#f6f3eb; --control-border:var(--coral); --control-icon:1;
+}
+html[data-theme=dark] body:has(.public-header) .solo-choices .incorrect { --control-text:#111; --control-icon:0; }
+.solo-choices button { position:relative; text-align:center; }
+/* Outcome color leaves all available space for long answer labels. */
+.solo-choices .correct,.solo-choices .incorrect { opacity:1; }
+.difficulty-options label:has(:checked) small { color:var(--selected-text); }
+body:has(.public-header) .play-button { --control-width:4.8px; --control-fill:var(--brand-green); --control-text:#111; --control-border:var(--ink); }
+body:has(.public-header) a.play-button:is(:hover,:active) { --control-fill:#99bd64; --control-text:#111; }
+/* Newly framed text links need comfortable inset space; game buttons keep
+ * their existing heights and vertical padding from the mobile styles. */
+:is(.page-return>a,.page-return>button:not(.icon-button),.home-modes a,.home-rules-bottom a,
+  .home-progress a,.game-mode-tabs a,.guide-jump a,.guide-guest>a,.solo-heading>a,
+  .daily-ranking-link,.community-actions>a,.site-footer a,:where(#public-profile),.team-rules-link,
+  .profile-tabs button,.auth-options label) {
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  min-height:44px; max-width:100%; padding:8px 16px; text-align:center;
+}
+body:has(.public-header) :is(.rule-tabs,.profile-tabs,.game-mode-tabs) {
+  display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); border:0; padding:0; gap:8px;
+}
+body:has(.public-header) :is(.rule-tabs,.profile-tabs,.game-mode-tabs)>* { min-width:0; margin:0; text-align:center; }
+.auth-options { flex-wrap:wrap; gap:8px; }
+.home-modes { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:min(420px,100%); gap:8px; }
+.home-rules-bottom { flex-wrap:wrap; gap:12px; }
+.rule-tabs button { flex:1; }
+.site-footer nav { flex-wrap:wrap; gap:8px; }
+/* Icon-only commands use their full box as the centering area. Text+icon
+ * commands stay in a single flex row, including the sharing dialogs. */
+body:has(.public-header) .icon-button:not(:has(span)) { display:grid; place-items:center; padding:0; }
+body:has(.public-header) :is(button,a,summary)>img[src*='/icons/'] { display:block; flex:none; object-fit:contain; }
+#share-native,#share-copy,#summary #share-result { display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+.game-share-preview,#share-preview { display:block; margin-inline:auto; object-position:center; }
+.mode-intro-scenes { align-items:center; }
+.mode-intro-scenes img { display:block; width:100%; height:auto; aspect-ratio:3/2; object-fit:contain; object-position:center; margin:0 auto; }
+#mode-intro-title:focus { outline:none; }
+#mode-intro .actions,#team-edit .actions,#profile-edit .actions,#delete-account .actions,#friend-lobby .actions {
+  display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); gap:8px; align-items:stretch;
+}
+#mode-intro .actions button { min-width:0; min-height:44px; }
+.guide-jump { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; }
+.guide-jump a { min-width:0; padding:8px; }
+.profile-record>summary,[data-profile-panel] details>summary { padding:10px 18px; list-style:none; }
+.profile-record>summary::-webkit-details-marker,[data-profile-panel] details>summary::-webkit-details-marker { display:none; }
+.profile-record>summary::after,[data-profile-panel] details>summary::after { content:' +'; float:right; }
+.profile-record[open]>summary::after,[data-profile-panel] details[open]>summary::after { content:' -'; }
 /* Do not add padding/height here: that would shift the fixed mobile answer grid. */
 .stadium-playing:not(.stadium-ending) .solo-questions { border-color:var(--ink); }
 .site-footer { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; max-width:1160px; padding:24px 0; border-top:2px solid var(--ink); text-align:left; }
-.site-footer nav { display:flex; gap:24px; }
+.site-footer nav { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
 .site-footer a { color:var(--ink); }
+@media(min-width:801px) {
+  body:has(.public-header):not(.stadium-playing) :is(.public-header,.page-return,.site-footer,.home-page,.solo-page,.community-page,.game-guide,.public-result) {
+    max-width:min(var(--public-content-width),calc(100% - 64px)); margin-left:auto; margin-right:auto;
+  }
+}
 @media(max-width:1256px) {
   .public-header,.page-return,.site-footer { margin-left:32px; margin-right:32px; }
 }
@@ -83,14 +158,29 @@ button,a,input,textarea,select { -webkit-tap-highlight-color:transparent; }
   .public-header { gap:16px; justify-content:space-between; padding:18px 0; }
   .public-header,.page-return,.site-footer { margin-left:16px; margin-right:16px; }
   .public-header .top-navigation { display:flex; grid-template-columns:none; flex-basis:auto; gap:6px; }
-  .public-header .top-navigation a { padding:10px; }
+  .public-header .top-navigation a { padding:0; }
   .public-header .top-navigation a::after { display:none; }
   .page-return { padding:0; gap:10px; }
   .site-footer { font-size:11px; }
 }
+@media(max-width:600px) {
+  .difficulty-options label { padding:10px 8px; align-items:center; }
+  .difficulty-options label>span { font-size:14px; line-height:1.25; }
+  .difficulty-options small { font-size:10px; margin-top:4px; }
+  .guide-jump { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .guide-jump a:last-child { grid-column:1/-1; }
+  .site-footer nav { width:100%; }
+  .site-footer nav a { min-width:0; padding:8px 6px; }
+  body:has(.public-header) .game-mode-tabs a { padding:8px 6px; font-size:12px; }
+  .home-modes a { min-width:0; padding:8px; gap:6px; font-size:12px; }
+  .home-modes a img { width:16px; height:16px; }
+}
 @media(max-width:450px) {
-  .public-header { justify-content:center; gap:12px; }
-  .public-header .top-navigation { flex-basis:100%; justify-content:center; gap:16px; }
-  .page-return { flex-wrap:wrap; }
-  .page-return > a { display:none; }
+  .public-header { flex-wrap:nowrap; justify-content:space-between; gap:12px; }
+  .public-header .top-navigation { flex-basis:auto; justify-content:flex-end; gap:8px; }
+  .page-return { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.5fr) 44px 44px; gap:6px; align-items:center; }
+  body:has(.home-page) .page-return { grid-template-columns:minmax(0,1fr) 44px 44px; }
+  .page-return > button:not(.icon-button) { margin:0; min-width:0; padding:8px; font-size:12px; gap:6px; white-space:nowrap; }
+  .page-return > button:not(.icon-button) img { width:16px; height:16px; }
+  body:has(.public-header) .page-return > a { display:none; }
 }

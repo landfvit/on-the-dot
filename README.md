@@ -22,6 +22,21 @@ database exports or copy the local `.env` to GitHub.
 
 ## Start
 
+### Local Editing
+
+Double-click `dev.command` or run `./dev.command` from this folder.
+Open http://127.0.0.1:8009/ and edit the files in this same project.
+Save HTML/CSS/JavaScript changes and refresh the browser; Python changes restart
+the server automatically. Stop with Ctrl+C in its terminal. For another free
+port, use `PORT=8010 ./dev.command`.
+
+This launcher explicitly uses `on_the_dot` on this Mac's PostgreSQL server,
+not the Render database. It disables outgoing email and uses local share/duel
+links. Local accounts and results stay local. The public site only changes
+after a GitHub push and deployment. Never commit `.env` or database exports.
+
+### Regular Local Server
+
 Double-click `start.command` in Finder, or run `./start.command` in this folder.
 Open http://127.0.0.1:8004/penalties. The editor is at
 http://127.0.0.1:8004/internal/trivia; existing credentials are in the private `.env`.

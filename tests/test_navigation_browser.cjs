@@ -22,7 +22,20 @@ const links=['/penalties','/leaderboard','/account'];
    await route.fulfill({status,json:data});
   });
   for(const width of [320,390,768,1100,1440]){
-   await page.setViewportSize({width,height:900});await page.goto(origin+'/penalties');
+   await page.setViewportSize({width,height:900});await page.goto(origin+'/');
+   const play=await page.locator('.play-button').boundingBox(),content=await page.locator('.home-page').boundingBox();
+   assert(Math.abs(play.width-Math.min(674,content.width)*.8)<1,'Play width must be 20% smaller');
+   assert(Math.abs(play.height-(width<=720?164:218)*.8)<1,'Play height must be 20% smaller');
+   assert.equal(await page.locator('.play-button span').evaluate(e=>parseFloat(getComputedStyle(e).fontSize)),width<=720?86.4:120);
+   assert.equal(await page.locator('.home-modes,.match-format,.step-index').count(),0);
+   for(const theme of ['light','dark']){
+    await page.evaluate(theme=>{document.documentElement.dataset.theme=theme;},theme);
+    assert.deepEqual(await page.locator('.play-button').evaluate(e=>{const s=getComputedStyle(e);return [s.borderTopColor,s.backgroundColor];}),[theme==='dark'?'rgb(246, 243, 235)':'rgb(17, 17, 17)','rgb(136, 176, 75)']);
+    assert.equal(await page.locator('.site-footer').evaluate(e=>getComputedStyle(e).marginTop),'0px');
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await page.screenshot({path:`${output}/home-${width}-${theme}.png`,fullPage:true});
+   }
+   await page.goto(origin+'/penalties');
    assert.equal(await page.locator('#menu-open,#menu-drawer,.shell-drawer').count(),0);
    const nav=page.getByRole('navigation',{name:'Main navigation',exact:true});
    assert(await nav.isVisible());assert.equal(await nav.locator('img').count(),3);
@@ -36,11 +49,12 @@ const links=['/penalties','/leaderboard','/account'];
    }
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
    await page.screenshot({path:`${output}/navigation-${width}.png`});
-   await page.locator('.header-sound > summary').click();
-   assert(await page.locator('.header-sound .sound-settings').isVisible());
-   await page.keyboard.press('Escape');assert.equal(await page.locator('.header-sound').getAttribute('open'),null);
-   await page.locator('.header-sound > summary').click();await page.locator('.public-header').click({position:{x:4,y:4}});
-   assert.equal(await page.locator('.header-sound').getAttribute('open'),null);
+   assert.equal(await page.locator('.header-sound,[data-sound-volume]').count(),0);
+   const sound=page.locator('.page-return [data-sound-toggle]');
+   await sound.click();assert.equal(await sound.getAttribute('aria-pressed'),'false');
+   assert.equal(await page.evaluate(()=>PointsAudio.getSettings().enabled),false);
+   await sound.click();assert.equal(await sound.getAttribute('aria-pressed'),'true');
+   assert.equal(await page.evaluate(()=>PointsAudio.getSettings().enabled),true);
    await page.locator('[data-share-game]').click();assert(await page.locator('#game-share-dialog').isVisible());
    const share=await page.locator('#game-share-dialog').boundingBox();
    assert(share.x>=0&&share.x+share.width<=width+1);assert(Math.abs(share.x-(width-share.width)/2)<2);
@@ -48,6 +62,11 @@ const links=['/penalties','/leaderboard','/account'];
    await page.keyboard.press('Escape');assert(!(await page.locator('#game-share-dialog').isVisible()));
    console.log(`PASS navigation ${width}: visible icon links, no drawer/overflow, sound and sharing`);
   }
+  await page.setViewportSize({width:320,height:568});await page.goto(origin+'/');
+  assert(Math.abs((await page.locator('.play-button').boundingBox()).height-128*.8)<1);
+  assert.equal(await page.locator('.play-button span').evaluate(e=>parseFloat(getComputedStyle(e).fontSize)),68.8);
+  await page.screenshot({path:`${output}/home-short-phone.png`,fullPage:true});
+  console.log('PASS compact phone: Play height and type are 20% smaller');
   for(const path of ['/penalties','/daily','/friends']){
    await page.goto(origin+path);
    await page.locator('.game-rules-link').click();await page.waitForURL(origin+'/how-to-play');

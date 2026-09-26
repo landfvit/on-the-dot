@@ -21,6 +21,9 @@ Without `--render` it upgrades the local database from `.env`.
 - Password change and email change require the current password and revoke all
   other sessions and outstanding recovery links. The current session is rotated.
 - Username, bio and club are public; email and preferences remain private.
+- Username is chosen at registration and cannot be edited. The profile API
+  rejects a `username` field. Usernames are normalized to lowercase and protected
+  by the database's UNIQUE constraint, including concurrent registrations.
 - Account deletion requires the password and explicit `DELETE`. It removes email,
   password hash, username, bio, club, sessions and recovery tokens. A random
   tombstone identity remains for frozen, non-public gameplay/XP records. Deleted
@@ -87,6 +90,12 @@ require at least 1280 x 780. Both also require a fine pointer and hover support.
 Smaller windows and touch devices retain the original layout without these slots.
 Side rails never overlay the live pitch; they fade back with the results.
 Account, login, history and recovery pages contain no ad placements.
+
+The desktop public UI is capped at 800px (including its header and footer).
+Both side rails follow that shared width and keep a 24px gap from the content.
+Rails are also prepared on Home, How to play, Daily and Friend Duel selection;
+append `?ad_preview=1` to inspect the empty placements. Mobile layout and the
+full-screen stadium remain unchanged. No ad provider is loaded.
 
 When adding a provider, keep each creative inside `.ad-creative`, reserve these
 dimensions before requesting an ad, and integrate the appropriate consent flow

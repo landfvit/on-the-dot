@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow"><title>Developer dashboard | ON THE DOT.</title>
+  <link rel="icon" href="/trivia-assets/brand/favicon.svg?v=4">
+  <link rel="stylesheet" href="/trivia-assets/developer_dashboard.css?v=1">
+  <script src="/trivia-assets/developer_dashboard.js?v=1" defer></script>
+</head>
+<body>
+  <header class="admin-header"><a href="/"><img src="/trivia-assets/brand/favicon.svg?v=4" width="36" height="36" alt="ON THE DOT."></a>
+    <strong>Developer dashboard</strong><span class="private-label">Private</span>
+    <nav aria-label="Admin links"><a href="/internal/trivia">Studio</a><a href="/">View site</a>
+      <form action="/logout" method="post"><button>Sign out</button></form></nav>
+  </header>
+  <main>
+    <div class="topline"><h1>Activity &amp; management</h1><div class="refresh"><span id="updated">Not loaded</span><button id="refresh">Refresh</button></div></div>
+    <p id="error" role="alert" hidden></p>
+    <nav class="tabs" aria-label="Dashboard sections">
+      <button data-tab="overview" aria-pressed="true">Overview</button><button data-tab="players" aria-pressed="false">Players</button>
+      <button data-tab="games" aria-pressed="false">Games</button><button data-tab="management" aria-pressed="false">Management</button>
+    </nav>
+    <section id="overview" aria-label="Overview">
+      <div class="section-heading"><h2>Game activity</h2><label>Period <select id="period"><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select></label></div>
+      <div id="metrics" class="metrics" aria-live="polite"></div>
+      <div class="chart-heading"><h2>Games started</h2><span>UTC calendar days</span></div>
+      <div id="activity-chart" class="chart" role="img" aria-label="Game starts by day"></div><div id="chart-dates" class="chart-dates"></div>
+      <div class="overview-tables"><section><h2>By mode</h2><div id="modes"></div></section><section><h2>Approved questions</h2><div id="questions"></div><a href="/internal/trivia/difficulty">Review difficulty</a></section></div>
+      <p class="data-note">Active games: a start, question open, answer or duel connection within 5 minutes. This is game activity, not a live visitor count. Guest counts represent browser identities, not unique people.</p>
+    </section>
+    <section id="players" aria-label="Players" hidden>
+      <form id="player-search" class="filters"><label>Find player<input id="search" type="search" maxlength="100" placeholder="Username or email"></label>
+        <label>Accounts<select id="player-status"><option value="all">Registered</option><option value="blocked">Blocked</option><option value="guests">Guests</option></select></label><button>Search</button></form>
+      <div id="player-table"></div><div id="player-paging" class="paging"></div>
+    </section>
+    <section id="games" aria-label="Games" hidden>
+      <div class="filters"><label>Mode<select id="game-mode"><option value="all">All modes</option><option value="solo">Solo</option><option value="daily">Daily Challenge</option><option value="friend">Friend Duel</option></select></label>
+        <label>Status<select id="game-status"><option value="all">All games</option><option value="active">Active · 5 min</option><option value="finished">Finished</option><option value="abandoned">Abandoned / expired</option></select></label></div>
+      <div id="game-table"></div><div id="game-paging" class="paging"></div>
+    </section>
+    <section id="management" aria-label="Management" hidden>
+      <h2>Content workspace</h2><nav class="workspace-links" aria-label="Content management"><a href="/internal/trivia">Question editor</a><a href="/internal/trivia/bank">Question bank &amp; validation</a><a href="/internal/trivia/difficulty">Difficulty &amp; approval</a></nav>
+      <div class="section-heading"><h2>Admin audit log</h2><span>UTC</span></div><div id="audit-table"></div><div id="audit-paging" class="paging"></div>
+    </section>
+  </main>
+  <dialog id="player-dialog" aria-labelledby="player-title">
+    <div class="section-heading"><h2 id="player-title">Player</h2><button class="icon-button" id="close-player" aria-label="Close player details" title="Close player details"><img src="/trivia-assets/icons/x.svg" alt=""></button></div>
+    <p id="player-error" role="alert" hidden></p><div id="player-detail"></div>
+    <div id="player-actions" class="actions"><button data-action="revoke_sessions">Sign out all devices</button><button data-action="block" class="danger">Block account</button><button data-action="unblock">Unblock account</button></div>
+    <form id="action-form" hidden>
+      <h3 id="action-title"></h3><p id="action-impact"></p>
+      <label>Reason<textarea id="action-reason" minlength="3" maxlength="500" required rows="2"></textarea></label>
+      <label id="confirmation-label" for="action-confirmation">Confirm username</label><input id="action-confirmation" autocomplete="off" required maxlength="24">
+      <div class="actions"><button type="button" id="cancel-action">Cancel</button><button type="submit" class="danger" id="confirm-action">Confirm</button></div>
+    </form>
+    <h3>Recent games</h3><div id="player-games"></div><h3>Recent admin actions</h3><div id="player-audit"></div>
+  </dialog>
+</body>
+</html>

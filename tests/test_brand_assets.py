@@ -12,11 +12,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class Images(HTMLParser):
     def __init__(self):
-        super().__init__();self.images=[];self.icons=[]
+        super().__init__();self.images=[];self.icons=[];self.marks=[]
 
     def handle_starttag(self, tag, attrs):
         attrs=dict(attrs)
         if tag=='img' and attrs.get('class')=='home-logo':self.images.append(attrs)
+        if tag=='img' and attrs.get('class')=='brand-mark':self.marks.append(attrs)
         if tag=='link' and attrs.get('rel') in ('icon','apple-touch-icon'):self.icons.append(attrs)
 
 
@@ -41,11 +42,9 @@ class BrandAssetTests(unittest.TestCase):
                              {'/trivia-assets/brand/favicon.png?v=4','/trivia-assets/brand/favicon.svg?v=4'})
             self.assertEqual(next(icon['href'] for icon in parser.icons if icon['rel']=='apple-touch-icon'),
                              '/trivia-assets/brand/icon-180.png?v=4')
-            if path == '/how-to-play':
-                self.assertEqual(len(parser.images),1)
-                self.assertEqual(parser.images[0]['alt'],'ON THE DOT.')
-                self.assertEqual(parser.images[0]['src'],'/trivia-assets/brand/logo-transparent.png?v=2')
-            else:self.assertEqual(parser.images,[])
+            self.assertEqual(parser.images,[])
+            self.assertEqual(len(parser.marks),1)
+            self.assertEqual(parser.marks[0]['src'],'/trivia-assets/brand/favicon.svg?v=4')
 
     def test_legacy_favicon_request_resolves_to_the_symbol(self):
         response=TestClient(app).get('/favicon.ico')

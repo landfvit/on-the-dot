@@ -46,11 +46,12 @@ class ChallengeDatabaseTests(SoloDatabaseTests):
     def test_daily_pool_is_shared_exact_and_private(self):
         self.assertEqual(TestClient(app).get('/api/daily/catalog').status_code,401)
         a=self.client.get('/api/daily/catalog');b=self.friend.get('/api/daily/catalog')
-        self.assertEqual(a.status_code,200,a.text);self.assertEqual(a.json()['remaining'],50)
+        self.assertEqual(a.status_code,200,a.text);self.assertGreater(a.json()['remaining'],50)
         self.assertEqual(a.json()['day'],b.json()['day']);self.assertNotIn('deck',a.json())
         with self.connection() as conn:
             rows=conn.execute('SELECT deck FROM game_daily_pools').fetchall();self.assertEqual(len(rows),1)
-            self.assertEqual({d:sum(q['difficulty']==d for q in rows[0]['deck']) for d in ['easy','medium','hard']},{'easy':10,'medium':20,'hard':20})
+            self.assertEqual(len(rows[0]['deck']),1000)
+            self.assertEqual({q['difficulty'] for q in rows[0]['deck']},{'easy','medium','hard'})
 
     def test_daily_only_opened_questions_block_solo(self):
         run=self.daily();ident=run['run_id'];row=self.mode_row(ident)
@@ -63,27 +64,38 @@ class ChallengeDatabaseTests(SoloDatabaseTests):
         with self.connection() as conn:
             seen=routes.used_questions(conn,[row['owner_id']],r.json().get('server_now',routes.now_ms(conn)))
             self.assertEqual(seen,{row['state']['deck'][0]['question_id']})
-        self.assertEqual(self.client.get('/api/daily/catalog').json()['remaining'],49)
+        self.assertFalse(self.client.get('/api/daily/catalog').json()['ranked_available'])
 
     def test_daily_win_xp_and_retry_are_exactly_once(self):
         run=self.daily();path='/api/daily/runs/'+run['run_id'];deck=self.mode_row(run['run_id'])['state']['deck']
-        for i in range(6):
+        for i in range(9):
             self.client.post(path+'/next',json={'previous':i})
-            body={'position':i+1,'option_id':deck[i]['correct'],'request_id':str(uuid4())}
+            wrong=next(o['id'] for o in deck[i]['options'] if o['id']!=deck[i]['correct'])
+            body={'position':i+1,'option_id':deck[i]['correct'] if i<6 else wrong,'request_id':str(uuid4())}
             r=self.client.post(path+'/answers',json=body);self.assertEqual(r.status_code,200,r.text)
             self.assertEqual(self.client.post(path+'/answers',json=body).status_code,200)
-        self.assertTrue(r.json()['won']);self.assertEqual(r.json()['total_xp'],sum(routes.game.XP[q['difficulty']] for q in deck[:6]))
+        self.assertFalse(r.json()['won']);self.assertEqual(r.json()['survival']['goals'],6)
+        self.assertEqual(r.json()['total_xp'],sum(routes.game.XP[q['difficulty']] for q in deck[:6]))
+        transition=r.json()['xp_transition']
+        self.assertEqual(transition['earned_xp'],r.json()['total_xp'])
+        self.assertEqual(transition['before']['total_xp'],0)
+        self.assertEqual(transition['after'],r.json()['player_progress'])
         self.assertEqual(self.client.get('/api/players/me').json()['stats']['wins'],0)
         with self.connection() as conn:
-            self.assertEqual(conn.execute('SELECT count(*) n FROM game_daily_wins').fetchone()['n'],1)
+            self.assertEqual(conn.execute('SELECT count(*) n FROM game_daily_scores').fetchone()['n'],1)
+            self.assertEqual(conn.execute('SELECT count(*) n FROM game_daily_wins').fetchone()['n'],0)
             self.assertEqual(conn.execute('SELECT count(*) n FROM game_mode_xp').fetchone()['n'],6)
-        r=self.client.get('/api/community/leaderboard?metric=daily_wins&period=all');self.assertEqual(r.status_code,200,r.text)
-        self.assertEqual(r.json()['entries'][0]['daily_wins'],1)
-        self.assertEqual(self.client.post('/api/daily/runs',json={'request_id':str(uuid4())}).status_code,409)
+        r=self.client.get('/api/community/leaderboard?metric=daily_highscore&period=today');self.assertEqual(r.status_code,200,r.text)
+        self.assertEqual(r.json()['entries'][0]['daily_highscore'],6);self.assertEqual(r.json()['period'],'all')
+        practice=self.daily();self.assertFalse(practice['survival']['ranked'])
+        empty=self.client.post('/api/daily/runs/'+practice['run_id']+'/leave',json={}).json()
+        self.assertEqual(empty['xp_transition']['earned_xp'],0)
+        self.assertEqual(empty['xp_transition']['before'],empty['xp_transition']['after'])
+        with self.connection() as conn:self.assertEqual(conn.execute('SELECT count(*) n FROM game_daily_scores').fetchone()['n'],1)
 
     def test_friend_private_answers_replay_and_no_xp(self):
         path,s=self.duel();row=self.mode_row(s['run_id']);opens=row['state']['round']['opens_at'];correct=row['state']['deck'][0]['correct']
-        wrong=str((int(correct)+1)%4)
+        wrong=next(o['id'] for o in row['state']['deck'][0]['options'] if o['id']!=correct)
         with patch('api.challenge_routes.now_ms',return_value=opens+500):
             for client in [self.client,self.friend]:
                 r=client.post(path+'/answers',json={'position':1,'option_id':wrong,'request_id':str(uuid4())});self.assertEqual(r.status_code,200,r.text)
@@ -113,7 +125,7 @@ class ChallengeDatabaseTests(SoloDatabaseTests):
             r=self.client.post(path+'/answers',json={'position':1,'option_id':row['state']['deck'][0]['correct'],'request_id':str(uuid4())})
         self.assertEqual(r.status_code,409)
         latest=self.mode_row(s['run_id'])['state'];self.assertEqual(len(latest['history']),1);self.assertIsNone(latest['history'][0]['option_id'])
-        self.assertEqual(self.client.get('/api/daily/catalog').json()['remaining'],49)
+        self.assertEqual(routes.game.daily_view(latest,latest['deadline'])['survival']['lives'],2)
 
     def test_daily_exhaustion_award_and_database_guards(self):
         # A player may have seen 49 of today's questions in earlier games.
@@ -123,11 +135,12 @@ class ChallengeDatabaseTests(SoloDatabaseTests):
             run=uuid4();state=routes.game.daily_create(deck[:1],now,int(reset.timestamp()*1000))
             conn.execute("INSERT INTO game_mode_runs(run_id,mode,owner_id,start_request_id,day,state) VALUES(%s,'daily',%s,%s,%s,%s)",(run,user['account_id'],uuid4(),day,Jsonb(state)))
             conn.execute('INSERT INTO game_mode_members(run_id,account_id,seat) VALUES(%s,%s,0)',(run,user['account_id']))
+            conn.execute('INSERT INTO game_daily_attempts(account_id,day,run_id) VALUES(%s,%s,%s)',(user['account_id'],day,run))
             with self.assertRaises(DatabaseError),conn.transaction():
-                conn.execute('INSERT INTO game_daily_wins(account_id,day,run_id) VALUES(%s,%s,%s)',(user['account_id'],day,run))
+                conn.execute('INSERT INTO game_daily_scores(run_id,account_id,day,goals,penalties) VALUES(%s,%s,%s,1,1)',(run,user['account_id'],day))
         path='/api/daily/runs/'+str(run);self.client.post(path+'/next',json={'previous':0})
         r=self.client.post(path+'/answers',json={'position':1,'option_id':deck[0]['correct'],'request_id':str(uuid4())})
-        self.assertEqual(r.status_code,200,r.text);self.assertTrue(r.json()['won']);self.assertEqual(r.json()['end_reason'],'daily_pool_exhausted')
+        self.assertEqual(r.status_code,200,r.text);self.assertEqual(r.json()['survival']['goals'],1);self.assertEqual(r.json()['end_reason'],'daily_pool_exhausted')
 
     def test_friend_simultaneous_answers_are_serialized(self):
         path,s=self.duel();row=self.mode_row(s['run_id']);opens=row['state']['round']['opens_at'];correct=row['state']['deck'][0]['correct']
@@ -157,6 +170,67 @@ class ChallengeDatabaseTests(SoloDatabaseTests):
         with self.connection() as conn:
             self.assertEqual(conn.execute('SELECT count(*) n FROM game_daily_wins').fetchone()['n'],0)
             self.assertEqual(conn.execute('SELECT count(*) n FROM game_mode_members WHERE active').fetchone()['n'],0)
+
+    def test_practice_high_score_never_enters_rankings_or_repeats_opened_questions(self):
+        first=self.daily();path='/api/daily/runs/'+first['run_id']
+        q=self.mode_row(first['run_id'])['state']['deck'][0]
+        self.client.post(path+'/next',json={'previous':0})
+        self.client.post(path+'/answers',json={'position':1,'option_id':q['correct'],'request_id':str(uuid4())})
+        self.client.post(path+'/leave',json={})
+        practice=self.daily();path='/api/daily/runs/'+practice['run_id'];row=self.mode_row(practice['run_id'])
+        self.assertNotIn(q['question_id'],[q['question_id'] for q in row['state']['deck']])
+        self.assertFalse(practice['survival']['ranked'])
+        for i in range(4):
+            self.client.post(path+'/next',json={'previous':i})
+            r=self.client.post(path+'/answers',json={'position':i+1,'option_id':row['state']['deck'][i]['correct'],'request_id':str(uuid4())})
+            self.assertEqual(r.status_code,200,r.text)
+        self.client.post(path+'/leave',json={})
+        self.assertEqual(self.client.get('/api/community/leaderboard?metric=daily_highscore').json()['entries'][0]['daily_highscore'],1)
+        with self.connection() as conn:
+            with self.assertRaises(DatabaseError),conn.transaction():
+                conn.execute('INSERT INTO game_daily_scores(run_id,account_id,day,goals,penalties) VALUES(%s,%s,%s,4,4)',
+                    (row['run_id'],row['owner_id'],row['day']))
+            with self.assertRaises(DatabaseError),conn.transaction():
+                conn.execute('UPDATE game_daily_scores SET goals=999')
+
+    def test_new_utc_day_unlocks_one_attempt_and_keeps_all_time_best(self):
+        first=self.daily();row=self.mode_row(first['run_id']);path='/api/daily/runs/'+first['run_id']
+        self.client.post(path+'/next',json={'previous':0})
+        self.client.post(path+'/answers',json={'position':1,'option_id':row['state']['deck'][0]['correct'],'request_id':str(uuid4())})
+        # Starting tomorrow must expire the old run without an active GET first.
+        with patch('api.challenge_routes.now_ms',return_value=row['state']['expires_at']+1000):
+            second=self.daily();self.assertTrue(second['survival']['ranked'])
+            self.client.post('/api/daily/runs/'+second['run_id']+'/leave',json={})
+            self.assertFalse(self.client.get('/api/daily/catalog').json()['ranked_available'])
+        scores=self.client.get('/api/community/leaderboard?metric=daily_highscore&period=week').json()
+        self.assertEqual(scores['entries'][0]['daily_highscore'],1);self.assertEqual(scores['period'],'all')
+
+    def test_survival_score_share_has_no_opponent_or_invented_win(self):
+        s=self.daily();self.client.post('/api/daily/runs/'+s['run_id']+'/leave',json={})
+        r=self.client.post('/api/shares/results',json={'mode':'daily','run_id':s['run_id']})
+        self.assertEqual(r.status_code,200,r.text);self.assertIn('0 goals',r.json()['title'])
+        from urllib.parse import urlsplit
+        page=self.client.get(urlsplit(r.json()['url']).path)
+        self.assertEqual(page.status_code,200);self.assertNotIn('Opponent',page.text)
+        self.assertNotIn('0 : 0',page.text)
+        self.assertEqual(self.client.get(urlsplit(r.json()['image_url']).path).status_code,200)
+
+    def test_client_cannot_choose_practice_before_first_ranked_attempt(self):
+        r=self.client.post('/api/daily/runs',json={'request_id':str(uuid4()),'ranked':False})
+        self.assertEqual(r.status_code,422)
+        first=self.daily();self.assertTrue(first['survival']['ranked'])
+        self.assertEqual(self.friend.get('/api/daily/runs/'+first['run_id']).status_code,404)
+
+    def test_legacy_pool_extension_is_atomic_preserves_prefix_and_then_freezes(self):
+        with self.connection() as conn:
+            now=routes.now_ms(conn);day,_=routes.day_window(now)
+            old=routes.snapshots(conn,routes.candidates(conn)[:50])
+            conn.execute('INSERT INTO game_daily_pools(day,deck) VALUES(%s,%s)',(day,Jsonb(old)))
+            expanded,_,_=routes.daily_pool(conn,now)
+            self.assertEqual(expanded[:50],old);self.assertEqual(len(expanded),1000)
+            self.assertEqual(routes.daily_pool(conn,now)[0],expanded)
+            with self.assertRaises(DatabaseError),conn.transaction():
+                conn.execute('UPDATE game_daily_pools SET deck=%s WHERE day=%s',(Jsonb(old),day))
 
 
 # The fixture is inherited for its setup helpers only. Do not collect its

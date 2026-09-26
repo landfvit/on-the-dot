@@ -18,7 +18,7 @@ def period_start(period, now):
 
 @router.get('/leaderboard')
 def leaderboard(request: Request, period: Literal['today', 'week', 'all'] = 'today',
-                metric: Literal['level','streak','wins','win_rate','xp','daily_wins']='xp',
+                metric: Literal['level','streak','wins','win_rate','xp','daily_wins','daily_highscore']='xp',
                 board: Literal['players','teams']='players',
                 offset: int = Query(0, ge=0, le=10000), limit: int = Query(25, ge=1, le=100)):
     with get_connection() as conn:
@@ -30,6 +30,8 @@ def leaderboard(request: Request, period: Literal['today', 'week', 'all'] = 'tod
             except HTTPException as exc:
                 if exc.status_code != 401: raise
         now = conn.execute('SELECT clock_timestamp() AS now').fetchone()['now']
+        if metric=='daily_highscore':
+            return daily_highscores(conn,board,username,team_id,offset,limit,now)
         if metric in ('level','streak'):period='all'
         since = period_start(period, now)
         # Only these two fixed SQL fragments vary; no request value is SQL text.
@@ -105,6 +107,31 @@ def leaderboard(request: Request, period: Literal['today', 'week', 'all'] = 'tod
              'limit': limit, 'offset': offset,'metric':metric}).fetchone()
         return {**result, 'period': period, 'metric':metric,'board':board,'since': since, 'as_of': now, 'timezone': 'UTC',
                 'offset': offset, 'limit': limit, 'signed_in': username is not None}
+
+
+def daily_highscores(conn,board,username,team_id,offset,limit,now):
+    """One personal best per registered account; practice never enters this table."""
+    source='''SELECT a.username,b.goals daily_highscore,a.username sort_name,
+        a.username=%(username)s is_me,
+        CASE WHEN c.team_id IS NOT NULL THEN jsonb_build_object('team_id',c.team_id,'name',c.name) END club
+        FROM best b JOIN game_accounts a USING(account_id)
+        LEFT JOIN game_clubs c ON c.team_id=a.club_id WHERE NOT a.is_guest AND a.deleted_at IS NULL'''
+    if board=='teams':
+        source='''SELECT c.team_id,c.name,sum(b.goals)::bigint daily_highscore,c.name sort_name,
+            c.team_id=%(team_id)s is_me,count(*) members FROM best b
+            JOIN game_accounts a USING(account_id) JOIN game_clubs c ON c.team_id=a.club_id
+            WHERE NOT a.is_guest AND a.deleted_at IS NULL GROUP BY c.team_id,c.name'''
+    result=conn.execute('''WITH best AS (
+        SELECT account_id,max(goals) goals FROM game_daily_scores WHERE recorded_at<=%(now)s GROUP BY account_id
+    ), competitors AS ('''+source+'''), ranked AS (
+        SELECT dense_rank() OVER(ORDER BY daily_highscore DESC) rank,*,daily_highscore ranking_value FROM competitors
+    ) SELECT (SELECT count(*) FROM ranked) participants,
+        COALESCE((SELECT jsonb_agg(to_jsonb(r)-'sort_name'-'is_me' ORDER BY daily_highscore DESC,sort_name)
+            FROM (SELECT * FROM ranked ORDER BY daily_highscore DESC,sort_name LIMIT %(limit)s OFFSET %(offset)s) r),'[]'::jsonb) entries,
+        (SELECT to_jsonb(r)-'sort_name'-'is_me' FROM ranked r WHERE is_me) me''',
+        dict(username=username,team_id=team_id,now=now,limit=limit,offset=offset)).fetchone()
+    return {**result,'distribution':[],'metric':'daily_highscore','period':'all','board':board,
+            'since':None,'as_of':now,'timezone':'UTC','offset':offset,'limit':limit,'signed_in':username is not None}
 
 
 @router.get('/history')

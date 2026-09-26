@@ -35,7 +35,6 @@
       }));
     }
     $('shootout-round').textContent=terminal(s)?'Full time':Math.min(...s.attempts)>=5?'Sudden death':`Round ${s.round?.pair||1} / 5`;
-    stadium?.hud?.({score:`${s.score[s.me]} : ${s.score[1-s.me]}`});
   }
   function lobby(s){
     $('friend-lobby').hidden=false;$('quiz-start').hidden=true;
@@ -45,16 +44,17 @@
     $('friend-ready').hidden=s.players.length<2;$('friend-ready').disabled=busy||s.players[s.me].ready;
     $('friend-leave').hidden=false;$('friend-join').hidden=true;$('invite-controls').hidden=false;
     if(entered){
+      $('shootout-board').hidden=false;
       $('selection').hidden=true;$('quiz-run').hidden=false;$('summary').hidden=true;$('question-panel').hidden=false;
       $('question-title').textContent=s.players[1-s.me]?.ready?'Getting ready...':`Waiting for ${opponentName(s)}`;
       $('question-title').setAttribute('aria-live','polite');
       // Occupy the existing answer slot: the loader never pushes controls down.
       if(!$('choices').querySelector('.friend-waiting')){
         const waiting=node('div',undefined,'friend-waiting'),ball=node('img');
-        waiting.setAttribute('aria-hidden','true');ball.src='/trivia-assets/icons/football.svg?v=2';ball.alt='';waiting.append(ball);$('choices').replaceChildren(waiting);
+        waiting.setAttribute('aria-hidden','true');ball.src='/trivia-assets/icons/football.svg?v=3';ball.alt='';waiting.append(ball);$('choices').replaceChildren(waiting);
       }
       $('feedback').textContent='The duel starts when both players are ready.';
-      $('run-category').textContent=playerName(s,s.me);$('run-position').textContent=s.players[s.me].ready?'Ready':'Getting ready';$('run-xp').textContent='Friendly';
+      $('run-position').textContent=s.players[s.me].ready?'Ready':'Getting ready';
       $('leave').hidden=false;
       $('timer').parentElement.hidden=true;$('next').hidden=true;
     }
@@ -98,6 +98,7 @@
   function render(s){
     if(room&&room.run_id===s.run_id&&s.server_now<room.server_now)return;
     room=s;offset=s.server_now-Date.now();
+    updateClock();
     if(terminal(s)&&$('forfeit-dialog').open)$('forfeit-dialog').close();
     // Fetch at the shared opening instant, not at each tab's arbitrary polling
     // phase. The server still withholds question/answer data before that time.
@@ -113,21 +114,21 @@
     $('selection').hidden=true;$('quiz-run').hidden=false;
     const done=terminal(s),active=s.phase==='ANSWERING',r=s.round;
     page.classList.toggle('shootout-active',!done);page.classList.toggle('shootout-finished',done);
-    $('run-category').textContent=opponentName(s);
     $('run-position').textContent=r?(r.shooter===s.me?'Shooting':'Defending')+' · Round '+r.pair:'';
-    $('run-xp').textContent='Friendly';$('question-title').textContent=s.question?.text||(done?'Duel ended':r?.shooter===s.me?'Get ready to shoot':'Get ready to save');
+    $('question-title').textContent=s.question?.text||(done?'Duel ended':r?.shooter===s.me?'Get ready to shoot':'Get ready to save');
     $('timer').parentElement.hidden=!active&&s.phase!=='COUNTDOWN';$('choices').replaceChildren();
     for(const option of s.question?.options||[]){
       const b=node('button',option.text);b.disabled=!active||busy||r.own_option!==null;
       b.classList.toggle('chosen',option.id===r.own_option);
-      if(r.outcome)b.classList.toggle('correct',option.id===s.question.correct);
+      if(r.outcome){
+        b.classList.toggle('correct',option.id===s.question.correct);
+        b.classList.toggle('incorrect',option.id===r.own_option&&option.id!==s.question.correct);
+        if(option.id===s.question.correct)b.setAttribute('aria-label',option.text+', correct answer');
+        else if(option.id===r.own_option)b.setAttribute('aria-label',option.text+', incorrect answer');
+      }
       b.addEventListener('click',()=>answer(option.id));$('choices').append(b);
     }
-    let feedback=active&&r?.own_option!==null?`Answer locked. Waiting for ${opponentName(s)}...`:'';
-    if(r?.outcome){
-      const bothWrong=r.answers.every(a=>!a?.correct);
-      feedback=r.outcome==='replay'?(bothWrong?'Neither answer was correct. Replay with a new question.':'Both correct, too close to call. Replay with a new question.'):(r.outcome==='goal'?'Goal. ':'Saved. ')+(s.question?.explanation||'');
-    }
+    const feedback=active&&r?.own_option!==null?`Answer locked. Waiting for ${opponentName(s)}...`:'';
     $('feedback').textContent=feedback;$('next').hidden=true;$('leave').hidden=done;
     $('summary').hidden=true;$('question-panel').hidden=false;
     if(done)summary(s);present(s);
@@ -201,14 +202,14 @@
   });
   setInterval(()=>{if(room&&!terminal(room)&&!document.hidden)refresh();},1000);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden&&room)refresh();});
-  setInterval(()=>{
+  function updateClock(){
     if(!room?.round)return;
     const countdown=room.phase==='COUNTDOWN',active=room.phase==='ANSWERING',r=room.round;
-    const remaining=Math.max(0,(countdown?r.opens_at:r.deadline)-Date.now()-offset)/1000;
-    $('seconds').textContent=(countdown?'Ready in ':'')+remaining.toFixed(1)+' s';$('timer').max=countdown?4:15;$('timer').value=remaining;
-    stadium?.hud?.({clock:active?remaining.toFixed(1)+' s':''});
+    const remaining=countdown||active?Math.max(0,(countdown?r.opens_at:r.deadline)-Date.now()-offset)/1000:0;
+    $('seconds').textContent=(countdown?'Ready in ':'')+Math.ceil(remaining)+' s';$('timer').max=countdown?4:15;$('timer').value=remaining;
     if(active&&remaining===0)for(const b of $('choices').children)b.disabled=true;
-  },100);
+  }
+  setInterval(updateClock,100);
   async function init(){
     page.classList.toggle('friend-motion-off',globalThis.PointsPreferences?.get?.().animations===false||globalThis.PointsPreferences?.get?.().reduced_motion===true);
     $('start').textContent='Create invitation';$('quiz-rules').textContent='5 penalties each · 15 seconds · No XP or rating';$('availability').hidden=true;

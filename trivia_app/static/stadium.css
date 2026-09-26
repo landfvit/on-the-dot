@@ -13,6 +13,8 @@
 #stadium-score,#stadium-clock { font-size:14px; font-variant-numeric:tabular-nums; white-space:nowrap; }
 #stadium-clock { min-width:42px; font-weight:750; }
 #stadium-controls button { padding:9px 12px; min-height:40px; cursor:pointer; }
+#stadium-controls .icon-button { display:grid; place-items:center; width:44px; height:44px; min-width:44px; padding:0; flex:none; gap:0; }
+#stadium-controls .icon-button img { display:block; width:20px; height:20px; flex:none; object-fit:contain; }
 #stadium-controls button:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 #stadium-outcome { position:fixed; z-index:5; top:88px; left:24px; margin:0; font-weight:750; padding:8px 16px; }
 #stadium-unavailable { margin:18px 24px; padding:14px; border:1px solid var(--coral); color:var(--text); background:var(--surface); }

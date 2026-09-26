@@ -8,7 +8,8 @@ const output='/tmp/on-the-dot-audio';fs.mkdirSync(output,{recursive:true});
 const rules={format:'shootout',bonus_mode:'win',answer_ms:15000,xp_per_correct:10,xp_by_difficulty:{easy:10,medium:20,hard:30},win_multipliers:{easy:2,medium:3,hard:4}};
 const catalog={categories:[{code:'ALL',label:'All clubs',counts:{easy:100,medium:100,hard:100}}],topics:[{code:'ALL',label:'Mixed topics',counts_by_team:{ALL:{easy:100,medium:100,hard:100}}}],rules};
 const question={text:'Who won the Premier League in 2017/18?',options:[{id:'0',text:'Manchester City'},{id:'1',text:'Chelsea'}]};
-let run=null;
+let run=null,signedIn=false;
+const profile={username:'AudioTest',bio:'',email:'audio@example.test',total_xp:0,level:1,level_xp:0,next_level_xp:100,streak:{current:0,longest:0},preferences:{animations:true,reduced_motion:false}};
 function start(){run={run_id:'sound-test',phase:'READY',position:0,role:'shooter',rules,question:null,review:[],
  category:{label:'All clubs',topic_label:'Mixed topics'},difficulty:'easy',is_trial:true,correct:0,total_xp:0,base_xp:0,bonus_xp:0,multiplier:1,
  shootout:{player:0,opponent:0,kicks:{player:0,opponent:0},attempts:[],round:1,next_role:'shooter',winner:null,sudden_death:false}};}
@@ -23,7 +24,9 @@ function wav(samples){
   page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/api/**',async route=>{
    const url=new URL(route.request().url()).pathname;let data={},status=200;
-   if(url==='/api/players/me'){data={detail:'Sign in'};status=401;}
+   if(url==='/api/players/me'){data=signedIn?profile:{detail:'Sign in'};status=signedIn?200:401;}
+   else if(url==='/api/players/settings')data={password_reset_available:false};
+   else if(url==='/api/players/friends')data={friends:[]};
    else if(url==='/api/solo/catalog')data=catalog;
    else if(url==='/api/solo/active')data={run:run?{...run,server_now:Date.now()}:null,trial_available:true};
    else if(url==='/api/solo/runs'){start();data=run;}
@@ -38,12 +41,18 @@ function wav(samples){
    await route.fulfill({status,json:data===run?{...data,server_now:Date.now()}:data});
   });
   await page.goto(origin+'/penalties');assert.equal(await page.evaluate(()=>PointsAudio.inspect().state),'locked');
-  await page.locator('.header-sound > summary').click();await page.waitForFunction(()=>PointsAudio.inspect().state==='running');
-  await page.locator('#sound-volume').fill('25');assert.equal(await page.evaluate(()=>PointsAudio.getSettings().volume),.25);
-  await page.locator('.header-sound [data-sound-toggle]').click();assert.equal(await page.evaluate(()=>PointsAudio.getSettings().enabled),false);
-  await page.reload();assert.equal(await page.evaluate(()=>PointsAudio.getSettings().enabled),false);assert.equal(await page.evaluate(()=>PointsAudio.getSettings().volume),.25);
-  await page.locator('.header-sound > summary').click();await page.locator('.header-sound [data-sound-toggle]').click();await page.waitForFunction(()=>PointsAudio.inspect().state==='running');
-  await page.screenshot({path:output+'/sound-settings.png'});await page.keyboard.press('Escape');
+  assert.equal(await page.locator('[data-sound-volume],.header-sound').count(),0);
+  await page.locator('.page-return [data-sound-toggle]').click();assert.equal(await page.evaluate(()=>PointsAudio.getSettings().enabled),false);
+  assert(await page.locator('[data-sound-toggle]').evaluateAll(es=>es.every(e=>e.getAttribute('aria-pressed')==='false')));
+  await page.reload();assert.equal(await page.evaluate(()=>PointsAudio.getSettings().enabled),false);
+  signedIn=true;await page.goto(origin+'/account');await page.locator('[data-profile-tab=settings]').click();
+  await page.getByText('Sound',{exact:true}).click();await page.locator('#sound-volume').fill('25');
+  assert.equal(await page.evaluate(()=>PointsAudio.getSettings().volume),.25);
+  assert.equal(await page.evaluate(()=>PointsAudio.getSettings().enabled),false,'Changing volume must not unmute');
+  await page.screenshot({path:output+'/sound-settings.png'});
+  signedIn=false;await page.goto(origin+'/penalties');assert.equal(await page.evaluate(()=>PointsAudio.getSettings().volume),.25);
+  await page.locator('.page-return [data-sound-toggle]').click();await page.waitForFunction(()=>PointsAudio.inspect().state==='running');
+  assert.equal(await page.evaluate(()=>PointsAudio.getSettings().volume),.25,'Unmute keeps the saved volume');
   await page.evaluate(()=>{window.soundCues=[];const play=PointsAudio.play;PointsAudio.play=name=>{const played=play(name);soundCues.push({name,played,time:performance.now(),caught:PointsStadium.inspect().caught});return played;};});
   await page.setViewportSize({width:320,height:568});await page.locator('#start').click();
   await page.locator('#mode-intro button[value=play]').click();
@@ -56,11 +65,23 @@ function wav(samples){
   await page.locator('#next').click();await page.waitForSelector('#choices button:not([disabled])');await page.locator('#choices button').first().click();
   await page.waitForFunction(()=>!document.getElementById('next').disabled);
   assert.deepEqual(await page.evaluate(()=>soundCues.map(c=>c.name)),['kick','net','crowd-cheer']);
-  assert(await page.evaluate(()=>PointsAudio.inspect().ambiencePlaying));
+  assert.equal(await page.evaluate(()=>PointsAudio.inspect().ambiencePlaying),false);
+  assert(await page.evaluate(()=>PointsAudio.inspect().crowdReady));
   await page.locator('#next').click();await page.waitForSelector('#choices button:not([disabled])');await page.locator('#choices button').first().click();
   await page.waitForFunction(()=>!document.getElementById('next').disabled);
   const cues=await page.evaluate(()=>soundCues);assert.deepEqual(cues.map(c=>c.name),['kick','net','crowd-cheer','kick','catch','crowd-cheer']);
   assert(cues.every(c=>c.played));assert(cues.at(-1).caught);assert(cues[4].time-cues[3].time>300);
+  const unchanged=JSON.stringify(run),cueCount=cues.length;
+  const poseBefore=await page.evaluate(()=>{const s=PointsStadium.inspect();return {caught:s.caught,ball:s.ball,role:s.role};});
+  await page.locator('#motion-toggle').click();
+  assert.equal(await page.locator('#motion-toggle').getAttribute('aria-pressed'),'false');
+  assert.equal(await page.evaluate(()=>PointsStadium.inspect().motionEnabled),false);
+  assert((await page.locator('#motion-toggle img').getAttribute('src')).endsWith('monitor-off.svg'));
+  assert.deepEqual(await page.evaluate(()=>{const s=PointsStadium.inspect();return {caught:s.caught,ball:s.ball,role:s.role};}),poseBefore,'Disabling motion preserves the current pose');
+  assert.equal(await page.evaluate(()=>soundCues.length),cueCount,'Toggling motion must not replay result audio');
+  await page.locator('#motion-toggle').click();
+  assert.equal(await page.evaluate(()=>PointsStadium.inspect().motionEnabled),true);
+  assert.equal(JSON.stringify(run),unchanged,'Presentation controls never change game state');
   await page.locator('#stadium-controls [data-sound-toggle]').click();
   assert.equal(await page.evaluate(()=>PointsAudio.inspect().activeVoices),0);assert.equal(await page.evaluate(()=>PointsAudio.play('win')),false);
   await page.locator('#stadium-controls [data-sound-toggle]').click();await page.locator('#leave').click();
@@ -72,16 +93,17 @@ function wav(samples){
 
   // Render the production sound recipes to actual samples without using a
   // speaker or allowing the output device to affect a deterministic check.
-  for(const name of ['click','kick','catch','net','win','loss','crowd-cheer','crowd-groan']){
-   const sample=await browser.newPage();await sample.setContent('<button>Unlock</button>');
+  for(const name of ['click','kick','catch','net','win','loss','level-up','crowd-cheer','crowd-groan']){
+   const sample=await browser.newPage();await sample.route('**/audio-test',route=>route.fulfill({contentType:'text/html',body:'<button>Unlock</button>'}));await sample.goto(origin+'/audio-test');
    await sample.evaluate(()=>{
     window.AudioContext=class{
      constructor(){const ctx=new OfflineAudioContext(1,153600,48000);window.renderAudio=()=>ctx.startRendering();this.sampleRate=ctx.sampleRate;this.currentTime=0;this.state='suspended';this.destination=ctx.destination;
-      for(const method of ['createGain','createDynamicsCompressor','createBuffer','createBufferSource','createBiquadFilter','createOscillator'])this[method]=ctx[method].bind(ctx);}
+      for(const method of ['createGain','createDynamicsCompressor','createBuffer','createBufferSource','createBiquadFilter','createOscillator','decodeAudioData'])this[method]=ctx[method].bind(ctx);}
      async resume(){this.state='running';}async suspend(){this.state='suspended';}async close(){this.state='closed';}
     };
    });
    await sample.addScriptTag({content:audioScript});await sample.getByRole('button').click();
+   await sample.evaluate(()=>PointsAudio.setCrowdActive(true));await sample.waitForFunction(()=>PointsAudio.inspect().crowdReady);
    const samples=await sample.evaluate(async cue=>{PointsAudio.stop();if(!PointsAudio.play(cue))throw Error('Cue blocked');const buffer=await renderAudio();return [...buffer.getChannelData(0)];},name);
    const peak=samples.reduce((n,x)=>Math.max(n,Math.abs(x)),0),energy=samples.reduce((n,x)=>n+x*x,0);
    assert(peak>.001&&peak<.98,`${name} is silent or clipping: ${peak}`);assert(energy>.0001);

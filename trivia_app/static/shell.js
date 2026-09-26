@@ -6,9 +6,6 @@
     dialog.querySelector('[data-close-dialog]').addEventListener('click',()=>dialog.close());
     dialog.addEventListener('click',event=>{if(event.target===dialog){const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close();}});
   }
-  const sound=document.querySelector('.header-sound');
-  document.addEventListener('click',event=>{if(sound?.open&&!sound.contains(event.target))sound.open=false;});
-  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&sound?.open){sound.open=false;sound.querySelector('summary').focus();}});
   // Only go back inside this site. A directly opened invite/result goes home.
   let previous=null;
   try{

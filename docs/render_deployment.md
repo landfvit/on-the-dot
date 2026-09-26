@@ -25,8 +25,11 @@ Set these values in the web service's environment settings, never in Git:
 | `FORWARDED_ALLOW_IPS` | `*`, only on Render behind its managed ingress |
 | `WEB_CONCURRENCY` | `1` for this small initial instance |
 
-Leave `TRIVIA_EDITOR_USERNAME` and `TRIVIA_EDITOR_PASSWORD` unset. Do not upload
-the local `.env`. Do not install the optional Apple Silicon MLX environment.
+For the private developer dashboard, set `TRIVIA_EDITOR_USERNAME` and a unique
+`TRIVIA_EDITOR_PASSWORD` of at least 16 characters in Render, not Git. These
+credentials also protect Studio; normal player accounts have no admin access.
+Leave them unset when admin access is not needed. Never upload the local `.env`
+or install the optional Apple Silicon MLX environment.
 
 Render's public HTTP port is reachable through its ingress, not directly from
 the internet. The forwarded-header setting above lets the app see the original
@@ -43,8 +46,9 @@ import/training scripts are local-only and some still use `DB_*` directly.
 The local `tools.render_game_database` utility exports an explicit allowlist of
 published questions, their audit records, difficulty revisions, levels and
 clubs, plus the full schema. It does not export player accounts, sessions,
-game history, trained models or football fact tables. Keep the editor disabled:
-this database can play frozen questions, not re-run historical analysis.
+game history, trained models or football fact tables. The admin dashboard can
+report on production games, but the editor cannot re-run historical football
+analysis without those separate local datasets.
 
 Create a bundle locally (choose a new directory for every export):
 
@@ -82,7 +86,7 @@ Do not run migrations or restore a full local database automatically on startup.
 - Prepare and validate a game-only data import without local accounts/sessions.
 - Check that the imported database fits the Free storage limit with headroom.
 - Verify registration/login and same-origin POST requests over HTTPS.
-- Verify internal editor routes remain inaccessible.
+- Verify internal dashboard/editor routes and APIs reject unauthenticated users.
 - Test exports and arrange an upgrade or migration before database expiry.
 - Connect `onthedot.gg` only after the temporary Render URL works end to end.
 
@@ -95,3 +99,19 @@ References:
 - https://render.com/docs/web-services
 - https://render.com/docs/postgresql-creating-connecting
 - https://render.com/docs/free
+
+## September 26 Release
+
+Before pushing the updated Daily Challenge and developer dashboard to `main`,
+apply both additive migrations to the existing Render database, in order:
+
+```sh
+.venv/bin/python -m tools.migrate_account_settings --render --migration 049_daily_survival
+.venv/bin/python -m tools.migrate_account_settings --render --migration 050_developer_dashboard
+```
+
+Each command privately prompts for the external URL and creates a backup before
+the migration. An `already applied` response is safe. Never replace production
+data with the local database. After deploying, check `/`, `/penalties`, `/daily`,
+`/friends`, `/account`, `/leaderboard` and `/internal/dashboard`. An unauthenticated
+dashboard visit must redirect to login; `/api/developer/overview` must reject it.

@@ -76,7 +76,6 @@ class EmailUpdate(StrictModel):
 class ProfileEdit(StrictModel):
     bio:str=Field(default='',max_length=160)
     accent:Literal['green','pink','blue','gold']='green'
-    username:str|None=Field(default=None,min_length=3,max_length=24,pattern=r'^[A-Za-z0-9_]+$')
 
 
 class PasswordChange(StrictModel):
@@ -130,9 +129,11 @@ def account(conn,request,lock=False):
         WHERE s.token_hash=%s AND s.expires_at>clock_timestamp() AND NOT a.is_guest AND a.deleted_at IS NULL''',
         (hashlib.sha256(token.encode()).hexdigest(),)).fetchone()
     if not row:raise HTTPException(401,'Your session has expired. Sign in again.')
+    if row.get('blocked_at'):raise HTTPException(403,'This account is blocked. Contact support.')
     if lock:
         row=conn.execute('SELECT * FROM game_accounts WHERE account_id=%s AND deleted_at IS NULL FOR UPDATE',(row['account_id'],)).fetchone()
         if not row:raise HTTPException(401,'Your session has expired. Sign in again.')
+        if row.get('blocked_at'):raise HTTPException(403,'This account is blocked. Contact support.')
         # Password changes revoke sessions while holding the same account lock.
         if not conn.execute('SELECT 1 FROM game_sessions WHERE token_hash=%s AND expires_at>clock_timestamp()',
                             (hashlib.sha256(token.encode()).hexdigest(),)).fetchone():
@@ -150,11 +151,27 @@ def new_session(conn,ident,request,response):
                         secure=request.url.scheme=='https' or os.getenv('TRIVIA_HTTPS_ONLY')=='1')
 
 
+def xp_progress(conn,total):
+    level=conn.execute('SELECT level,minimum_xp FROM game_levels WHERE minimum_xp<=%s ORDER BY minimum_xp DESC LIMIT 1',(total,)).fetchone()
+    next_level=conn.execute('SELECT minimum_xp FROM game_levels WHERE minimum_xp>%s ORDER BY minimum_xp LIMIT 1',(total,)).fetchone()
+    return {'total_xp':total,'level':level['level'],'level_xp':level['minimum_xp'],
+            'next_level_xp':next_level['minimum_xp'] if next_level else None}
+
+
+def xp_transition(conn,ident,run_id,after):
+    """Presentation data from committed awards, never from client XP estimates."""
+    earned=conn.execute('SELECT COALESCE(sum(amount),0) xp FROM game_all_xp WHERE account_id=%s AND run_id=%s',
+                        (ident,run_id)).fetchone()['xp']
+    before=xp_progress(conn,after['total_xp']-earned)
+    levels=conn.execute('SELECT level,minimum_xp FROM game_levels WHERE level BETWEEN %s AND %s ORDER BY level',
+                        (before['level'],after['level']+1)).fetchall()
+    return {'earned_xp':earned,'before':before,'after':after,'levels':levels}
+
+
 def profile(conn,row):
     ident=row['account_id']
     total=conn.execute('SELECT COALESCE(sum(amount),0) xp FROM game_all_xp WHERE account_id=%s',(ident,)).fetchone()['xp']
-    level=conn.execute('SELECT level,minimum_xp FROM game_levels WHERE minimum_xp<=%s ORDER BY minimum_xp DESC LIMIT 1',(total,)).fetchone()
-    next_level=conn.execute('SELECT minimum_xp FROM game_levels WHERE minimum_xp>%s ORDER BY minimum_xp LIMIT 1',(total,)).fetchone()
+    progress=xp_progress(conn,total)
     days=[r['day'] for r in conn.execute('SELECT day FROM game_all_activity WHERE account_id=%s ORDER BY day',(ident,)).fetchall()]
     now=conn.execute('SELECT clock_timestamp() AS now').fetchone()['now'].astimezone(timezone.utc)
     completed=conn.execute("SELECT count(*) n FROM game_solo_runs WHERE account_id=%s AND state->>'phase'='FINISHED'",(ident,)).fetchone()['n']
@@ -162,8 +179,8 @@ def profile(conn,row):
     stats=conn.execute('''SELECT count(*) FILTER(WHERE won) wins,count(*) FILTER(WHERE NOT won) losses,
         count(*) played,round(100.0*count(*) FILTER(WHERE won)/NULLIF(count(*),0),1) win_rate
         FROM game_match_results WHERE account_id=%s''',(ident,)).fetchone()
-    return {'username':row['username'],'bio':row['bio'],'accent':row['accent'],'total_xp':total,'club':club,'stats':stats,
-            'level':level['level'],'level_xp':level['minimum_xp'],'next_level_xp':next_level['minimum_xp'] if next_level else None,
+    return {'username':row['username'],'bio':row['bio'],'accent':row['accent'],'club':club,'stats':stats,
+            **progress,
             'completed_quizzes':completed,'streak':streak(days,now.date()),
             'daily_reset':datetime.combine(now.date()+timedelta(days=1),datetime.min.time(),timezone.utc)}
 
@@ -190,6 +207,7 @@ def login(body:Login,request:Request,response:Response):
             (email=%s OR (email IS NULL AND username=%s)) FOR UPDATE''',(body.identifier,body.identifier)).fetchone()
         valid=verify_password(body.password,row['password_hash'] if row else DUMMY_HASH)
         if not row or not valid:raise HTTPException(401,'Invalid email or password')
+        if row.get('blocked_at'):raise HTTPException(403,'This account is blocked. Contact support.')
         new_session(conn,row['account_id'],request,response)
         return private_profile(conn,row)
 
@@ -234,14 +252,11 @@ def join_club(body:ClubEdit,request:Request):
 @router.patch('/me',dependencies=[Depends(same_origin)])
 def edit_profile(body:ProfileEdit,request:Request):
     rate_limit(request,'account-edit',20)
-    try:
-        with get_connection() as conn:
-            row=account(conn,request,lock=True)
-            username=check_username(body.username) if body.username is not None else row['username']
-            row=conn.execute('UPDATE game_accounts SET bio=%s,accent=%s,username=%s WHERE account_id=%s RETURNING *',
-                             (body.bio.strip(),body.accent,username,row['account_id'])).fetchone()
-            return private_profile(conn,row)
-    except UniqueViolation:raise HTTPException(409,'This username is unavailable')
+    with get_connection() as conn:
+        row=account(conn,request,lock=True)
+        row=conn.execute('UPDATE game_accounts SET bio=%s,accent=%s WHERE account_id=%s RETURNING *',
+                         (body.bio.strip(),body.accent,row['account_id'])).fetchone()
+        return private_profile(conn,row)
 
 
 @router.put('/email',dependencies=[Depends(same_origin)])
@@ -322,7 +337,7 @@ def request_reset(body:ResetRequest,request:Request):
     with get_connection() as conn:
         row=conn.execute('SELECT * FROM game_accounts WHERE email=%s AND NOT is_guest AND deleted_at IS NULL FOR UPDATE',
                          (str(body.email).lower(),)).fetchone()
-        if not row:return message
+        if not row or row.get('blocked_at'):return message
         if conn.execute("SELECT 1 FROM game_password_resets WHERE account_id=%s AND created_at>clock_timestamp()-INTERVAL '1 minute'",(row['account_id'],)).fetchone():return message
         conn.execute('DELETE FROM game_password_resets WHERE account_id=%s',(row['account_id'],))
         conn.execute('INSERT INTO game_password_resets(token_hash,account_id) VALUES(%s,%s)',(digest,row['account_id']))
@@ -348,7 +363,7 @@ def confirm_reset(body:ResetPassword,request:Request,response:Response):
         row=conn.execute('SELECT * FROM game_accounts WHERE account_id=%s AND deleted_at IS NULL AND NOT is_guest FOR UPDATE',
                          (reset['account_id'],)).fetchone()
         valid=conn.execute('SELECT 1 FROM game_password_resets WHERE token_hash=%s AND expires_at>clock_timestamp() FOR UPDATE',(digest,)).fetchone()
-        if not row or not valid:raise HTTPException(400,'Reset link is invalid or expired')
+        if not row or row.get('blocked_at') or not valid:raise HTTPException(400,'Reset link is invalid or expired')
         conn.execute('UPDATE game_accounts SET password_hash=%s WHERE account_id=%s',(password_hash(body.new_password),row['account_id']))
         conn.execute('DELETE FROM game_password_resets WHERE account_id=%s',(row['account_id'],))
         conn.execute('DELETE FROM game_sessions WHERE account_id=%s',(row['account_id'],))

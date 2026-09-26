@@ -37,7 +37,7 @@ class SoloDatabaseTests(unittest.TestCase):
                 mock=patch(target,return_value=original);mock.start();self.addCleanup(mock.stop)
             conn.execute(sql.SQL('CREATE SCHEMA {}').format(sql.Identifier(self.schema)))
             conn.execute(sql.SQL('SET search_path TO {},public').format(sql.Identifier(self.schema)))
-            for name in ['037_player_progress','038_solo_answer_guards','039_email_trials_xp','040_weekly_question_history','042_solo_answer_duration','043_solo_shootout','044_solo_community','045_account_settings','046_team_membership','047_daily_friends','048_social_play']:
+            for name in ['037_player_progress','038_solo_answer_guards','039_email_trials_xp','040_weekly_question_history','042_solo_answer_duration','043_solo_shootout','044_solo_community','045_account_settings','046_team_membership','047_daily_friends','048_social_play','049_daily_survival','050_developer_dashboard']:
                 if name=='039_email_trials_xp':
                     conn.execute('INSERT INTO game_accounts(account_id,username,password_hash) VALUES(%s,%s,%s)',
                                  (uuid4(),'legacy_player',password_hash('legacy-password-1234')))
@@ -51,7 +51,7 @@ class SoloDatabaseTests(unittest.TestCase):
                 conn.execute(sql.SQL('SET search_path TO {},public').format(sql.Identifier(self.schema)))
                 yield conn
         self.connection=isolated
-        for module in ['api.player_accounts','api.solo_routes','api.solo_difficulty','api.game_community','api.social_routes','api.result_shares','trivia_app.main']:
+        for module in ['api.player_accounts','api.solo_routes','api.solo_difficulty','api.game_community','api.social_routes','api.result_shares','api.developer_dashboard','trivia_app.main']:
             p=patch(module+'.get_connection',isolated);p.start();self.addCleanup(p.stop)
         for module in ['api.player_accounts','api.solo_routes','api.social_routes','api.result_shares']:
             p=patch(module+'.rate_limit');p.start();self.addCleanup(p.stop)
@@ -107,6 +107,12 @@ class SoloDatabaseTests(unittest.TestCase):
         self.client.get(f'/api/solo/runs/{ident}');self.client.get(f'/api/solo/runs/{ident}')
         me=self.client.get('/api/players/me').json();self.assertEqual(me['total_xp'],900);self.assertEqual(me['level'],3)
         self.assertEqual(result['player_progress'],{key:me[key] for key in ('total_xp','level','level_xp','next_level_xp')})
+        transition=result['xp_transition']
+        self.assertEqual(transition['earned_xp'],900)
+        self.assertEqual(transition['before'],{'total_xp':0,'level':1,'level_xp':0,'next_level_xp':200})
+        self.assertEqual(transition['after'],result['player_progress'])
+        self.assertEqual(transition['levels'],[{'level':1,'minimum_xp':0},{'level':2,'minimum_xp':200},{'level':3,'minimum_xp':600},{'level':4,'minimum_xp':1200}])
+        self.assertEqual(self.client.get(f'/api/solo/runs/{ident}').json()['xp_transition'],transition)
         self.assertEqual(me['streak']['current'],1)
         with self.connection() as conn:
             self.assertEqual(conn.execute('SELECT count(*) n FROM game_xp_ledger').fetchone()['n'],11)
@@ -127,6 +133,21 @@ class SoloDatabaseTests(unittest.TestCase):
             self.assertEqual(result['bonus_xp'],0)
             self.assertEqual(result['player_progress']['total_xp'],10)
             self.assertIsNotNone(result['player_progress']['next_level_xp'])
+            self.assertEqual(result['xp_transition']['earned_xp'],10)
+            self.assertEqual(result['xp_transition']['before']['total_xp'],0)
+
+    def test_xp_transition_preserves_prior_games(self):
+        self.complete()
+        previous=self.client.get('/api/players/me').json()
+        ident=self.start('easy')['run_id']
+        self.client.post(f'/api/solo/runs/{ident}/next',json={'previous':0})
+        choice=self.row(ident)['state']['deck'][0]['correct']
+        self.client.post(f'/api/solo/runs/{ident}/answers',json={'position':1,'option_id':choice,'request_id':str(uuid4())})
+        result=self.client.post(f'/api/solo/runs/{ident}/leave',json={}).json()
+        transition=result['xp_transition']
+        self.assertEqual(transition['earned_xp'],10)
+        self.assertEqual(transition['before'],{key:previous[key] for key in ('total_xp','level','level_xp','next_level_xp')})
+        self.assertEqual(transition['after']['total_xp'],previous['total_xp']+10)
 
     def test_leaderboard_uses_ledger_and_exposes_only_public_player_fields(self):
         self.complete('easy')

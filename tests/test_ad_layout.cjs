@@ -30,6 +30,8 @@ function separate(a,b){return a.x+a.width<=b.x||b.x+b.width<=a.x||a.y+a.height<=
   await page.route('**/api/**',async route=>{
    const path=new URL(route.request().url()).pathname;let data={},status=200;
    if(path==='/api/players/me'){data={detail:'Sign in'};status=401;}
+   else if(path==='/api/players/settings')data={password_reset_available:false};
+   else if(path==='/api/friends/active')data={code:null};
    else if(path==='/api/solo/catalog')data=catalog;
    else if(path==='/api/solo/active')data={run:run?{...run,server_now:Date.now()}:null,trial_available:true};
    else if(path.endsWith('/leave')){run.phase='ABANDONED';run.shootout.winner='opponent';data={...run,server_now:Date.now()};}
@@ -53,6 +55,26 @@ function separate(a,b){return a.x+a.width<=b.x||b.x+b.width<=a.x||a.y+a.height<=
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
    if(width===1440)await page.screenshot({path:output+'/selection.png',fullPage:true});
    console.log(`PASS selection rails ${width}x${height}`);
+  }
+  for(const width of [1024,1280,1440,1920]){
+   await page.setViewportSize({width,height:900});
+   for(const path of ['/','/how-to-play','/daily','/friends','/account']){
+    await page.goto(origin+path+'?ad_preview=1');
+    const content=await page.locator('main').boundingBox();assert(content.width<=800);
+    assert(Math.abs(content.x-(width-content.width)/2)<1,'Content must stay centered');
+    for(const selector of ['.public-header','.page-return','.site-footer']){
+     const box=await page.locator(selector).boundingBox();assert(box.width<=800);
+     assert(Math.abs(box.x-(width-box.width)/2)<1,selector+' must stay centered');
+    }
+    const rails=page.locator('.ad-rail:visible');assert.equal(await rails.count(),width>=1280&&path!='/account'?2:0);
+    for(const rail of await rails.all()){
+     const box=await rail.boundingBox();assert(separate(box,content));
+     assert(box.x+box.width<=content.x-23||box.x>=content.x+content.width+23,'Ad gutter must be at least 24px');
+    }
+    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    if(width===1440&&path==='/')await page.screenshot({path:output+'/home-rails.png',fullPage:true});
+   }
+   console.log(`PASS shared 800px column, centered headers and safe rails at ${width}`);
   }
   await page.setViewportSize({width:1440,height:900});await page.goto(origin+'/leaderboard?ad_preview=1');
   assert.equal(await page.locator('.ad-rail:visible').count(),2);

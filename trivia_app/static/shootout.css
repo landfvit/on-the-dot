@@ -1,11 +1,18 @@
 /* Broadcast score: fixed ball dimensions prevent layout jumps after each kick. */
-#shootout-board { position:fixed; z-index:5; left:24px; top:90px; padding:10px 14px; background:var(--surface); color:var(--text); border-radius:4px; opacity:var(--stadium-reveal,1); pointer-events:none; }
-body:not(.stadium-playing) #shootout-board { display:none; }
+#shootout-hud { display:flex; align-items:flex-start; gap:12px; margin-bottom:16px; opacity:var(--stadium-reveal,1); }
+#shootout-hud:has(#shootout-board[hidden]):has(#leave[hidden]) { display:none; }
+body.stadium-playing #shootout-hud { position:fixed; z-index:5; left:24px; top:90px; max-width:calc(100% - 48px); margin:0; }
+#shootout-board { min-width:0; padding:10px 14px; background:var(--surface); color:var(--text); border-radius:4px; pointer-events:none; }
+#shootout-hud #leave { --control-fill:#ff6f61; --control-text:#111; --control-border:#111; --control-radius:999px; flex:none; min-height:44px; padding:10px 18px; font-size:14px; font-weight:700; line-height:1.2; }
+#shootout-hud #leave:hover:not(:disabled) { --control-fill:#ff867c; }
+/* Hide both controls while Three.js loads. A failed renderer must still allow
+ * the player to end the game, so the normal-flow fallback remains usable. */
+body:not(.stadium-playing):not(:has(#stadium-unavailable:not([hidden]))) #shootout-hud { display:none; }
 .shootout-team { display:grid; grid-template-columns:76px 22px auto; gap:10px; align-items:center; min-height:30px; font-size:13px; }
 .shootout-team strong { font-size:18px; text-align:center; font-variant-numeric:tabular-nums; }
 .shootout-kicks { display:flex; gap:7px; }
 .shootout-kick { display:block; width:19px; height:19px; flex:0 0 19px; color:#f2f4ec; }
-.shootout-kick.goal,.shootout-kick.miss { background:#fff url('/trivia-assets/icons/football.svg?v=2') center/contain no-repeat; border-radius:50%; }
+.shootout-kick.goal,.shootout-kick.miss { background:#fff url('/trivia-assets/icons/football.svg?v=3') center/contain no-repeat; border-radius:50%; }
 /* Multiply recolors white panels only; the ink outline stays black on misses. */
 .shootout-kick.miss { background-color:#ff6f61; background-blend-mode:multiply; }
 .shootout-kick.miss { color:var(--coral); }
@@ -17,12 +24,14 @@ body.stadium-playing:has(#shootout-board:not([hidden])) #stadium-outcome { displ
 /* Results stay hidden while the camera returns to midfield, then share its fade. */
 .stadium-ending #stadium-layer { opacity:calc(1 - var(--stadium-result,0)); }
 .stadium-ending .solo-questions { position:fixed; left:50%; right:auto; top:50%; bottom:auto; width:min(760px,calc(100% - 32px)); max-height:calc(100dvh - 40px); height:auto; overflow:auto; border:0; border-radius:6px; padding:28px; opacity:var(--stadium-result,0); transform:translate(-50%,-50%) translateY(calc((1 - var(--stadium-result,0))*24px)); mask-image:linear-gradient(to bottom,#000 calc(var(--stadium-result,0)*160% - 60%),transparent calc(var(--stadium-result,0)*160%)); }
-.stadium-ending #shootout-board,.stadium-ending #stadium-controls,.stadium-ending .solo-score,.stadium-ending #stadium-outcome { display:none; }
+.stadium-ending #shootout-hud,.stadium-ending #stadium-controls,.stadium-ending .solo-score,.stadium-ending #stadium-outcome { display:none; }
 .stadium-ending .solo-questions h2 { margin-top:0; }
 @media(max-width:800px) {
-  #shootout-board { left:10px; top:72px; padding:7px 10px; }
+  body.stadium-playing #shootout-hud { left:10px; top:72px; max-width:calc(100% - 20px); gap:8px; }
+  #shootout-board { padding:7px 10px; }
+  #shootout-hud #leave { padding:10px 12px; font-size:12px; }
   body.stadium-playing:has(#shootout-board:not([hidden])) #stadium-framing { top:170px; }
-  .shootout-team { grid-template-columns:58px 20px auto; gap:6px; min-height:25px; font-size:11px; }
+  .shootout-team { grid-template-columns:minmax(0,58px) 20px auto; gap:6px; min-height:25px; font-size:11px; }
   .shootout-kicks { gap:5px; }
   .shootout-kick { width:15px; height:15px; flex-basis:15px; }
   .stadium-ending .solo-questions { left:50%; top:50%; bottom:auto; width:calc(100% - 24px); height:auto; padding:20px; }

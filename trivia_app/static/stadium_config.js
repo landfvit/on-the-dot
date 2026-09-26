@@ -7,7 +7,7 @@ export const V6_WORLD = {
   maxPixelRatio: 1.75,
   outlineOnly: false, // Plne tribuny zakryvaji zadni konstrukci i behem rozostreni.
   pitchMarkings: { width: 0.22, elevation: 0.012, centreSpotRadius: 0.30 }, // Football markings stay white; structure outlines are black.
-  structure: { lineRadius:.035, postRadius:.075, netOpacity:.62 }, // Black stadium outlines and goal-frame thickness in metres.
+  structure: { lineRadius:.035, postRadius:.075, goalOutline:.008, netOpacity:.90 }, // Thin goal outline in metres; frame and net stay white.
   ground: { turfY: -0.025, tunnelFloorY: 0 },
   tunnel: {
     halfWidth: 4.25, height: 5.4, startZ: 40, endZ: 80,
@@ -38,8 +38,9 @@ export const V6_WORLD = {
     boots: 0x111111,
     skin: 0xf6f3eb,
     hair: 0x111111,
-    ballWhite: 0xf6f3eb,
-    ballBlack: 0x111111,
+    ballWhite: 0xffffff,
+    ballBlack: 0x000000,
+    goal: 0xffffff, // Posts, crossbar, rear supports and net stay white in both themes.
     markings: 0xffffff,
     strikerShirt: 0x92a8d1,
     stands: 0xebe7de,

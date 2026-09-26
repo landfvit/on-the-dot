@@ -23,7 +23,7 @@ function start(){run={run_id:'layout-test',server_now:Date.now(),phase:'ANSWERIN
 
 async function geometry(page){
   return page.evaluate(()=>{
-    const ids=['question-title','choices','feedback','next','leave'];
+    const ids=['question-title','choices','feedback','next','leave','shootout-board','stadium-controls'];
     const rect=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height,bottom:r.bottom};};
     const boxes=Object.fromEntries(ids.map(id=>[id,rect(document.getElementById(id))]));
     const overflow=[];
@@ -36,7 +36,15 @@ async function geometry(page){
   });
 }
 function stable(a,b){for(const id of ['question-title','choices','next','leave'])for(const key of ['x','y','width','height'])assert(Math.abs(a.boxes[id][key]-b.boxes[id][key])<1,`${id} moved: ${JSON.stringify([a.boxes[id],b.boxes[id]])}`);}
-function fits(g){assert.deepEqual(g.overflow,[],JSON.stringify(g));assert(!g.bodyOverflow);assert(g.textFits);assert(g.boxes.leave.bottom<=g.viewport[1]);assert(g.camera.height>50&&g.camera.width>100);}
+function fits(g){
+  assert.deepEqual(g.overflow,[],JSON.stringify(g));assert(!g.bodyOverflow);assert(g.textFits);
+  const button=g.boxes.leave,board=g.boxes['shootout-board'];
+  assert(button.height>=44);assert(button.x>=board.x+board.width+4,'Forfeit must sit beside the score');
+  assert(Math.abs(button.y-board.y)<1,'Forfeit and score share a top edge');
+  assert(button.x+button.width<=g.viewport[0]&&button.bottom<=g.viewport[1]);
+  assert(button.y>=g.boxes['stadium-controls'].bottom,'Forfeit must not overlap the top toolbar');
+  assert(g.camera.height>50&&g.camera.width>100);
+}
 
 (async()=>{
   const browser=await chromium.launch({channel:process.env.PLAYWRIGHT_CHANNEL||'chrome',headless:true,args:['--enable-unsafe-swiftshader','--use-angle=swiftshader']});
@@ -62,10 +70,23 @@ function fits(g){assert.deepEqual(g.overflow,[],JSON.stringify(g));assert(!g.bod
       await route.fulfill({status,json:{...data,...(data===run?{server_now:Date.now()}:{})}});
     });
     for(const [width,height] of [[320,568],[360,640],[375,667],[390,664],[390,844],[430,932],[768,1024],[568,320],[667,375],[844,390]]){
-      start();await page.setViewportSize({width,height});await page.goto(origin+'/penalties');
+      start();
+      if(width===320||width===568){run.shootout.kicks={player:9,opponent:9};run.shootout.sudden_death=true;}
+      await page.setViewportSize({width,height});await page.goto(origin+'/penalties');
       await page.waitForFunction(()=>window.PointsStadium?.inspect().active&&!window.PointsStadium.inspect().entering);
       await page.waitForTimeout(250);
       const before=await geometry(page);fits(before);
+      assert.equal(await page.locator('#leave').textContent(),'Forfeit');
+      assert.equal(await page.locator('#question-panel #leave').count(),0);
+      assert.equal(await page.locator('#leave').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(255, 111, 97)');
+      assert.equal(await page.locator('.run-meta,#run-category,#run-xp,.solo-score,#penalty-score').count(),0);
+      assert.equal(await page.locator('#motion-toggle').getAttribute('aria-pressed'),'false');
+      assert(await page.locator('#motion-toggle').isDisabled(),'Respect system reduced motion');
+      const centers=await page.locator('#stadium-controls .icon-button').evaluateAll(es=>es.map(e=>{
+        const a=e.getBoundingClientRect(),b=e.querySelector('img').getBoundingClientRect();
+        return [Math.abs(a.x+a.width/2-b.x-b.width/2),Math.abs(a.y+a.height/2-b.y-b.height/2),a.width,a.height];
+      }));
+      assert(centers.length===3&&centers.every(([x,y,w,h])=>x<1&&y<1&&w===h),JSON.stringify(centers));
       if(width===390&&height===664){
         await page.locator('#stadium-controls [data-theme-toggle]').click();
         assert.equal(await page.evaluate(()=>PointsStadium.inspect().theme),'dark');
@@ -79,8 +100,14 @@ function fits(g){assert.deepEqual(g.overflow,[],JSON.stringify(g));assert(!g.bod
       await page.waitForFunction(()=>!document.getElementById('next').hidden&&!document.getElementById('next').disabled);
       await page.waitForTimeout(150);
       const after=await geometry(page);fits(after);stable(before,after);
+      assert.equal(await page.locator('#feedback').textContent(),'');
+      assert.equal(await page.locator('.answer-selection').count(),0);
+      const chosen=page.locator('#choices button.chosen');
+      assert.equal(await chosen.evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(136, 176, 75)');
+      assert.equal(await chosen.evaluate(e=>getComputedStyle(e).color),'rgb(17, 17, 17)');
+      assert.equal(await chosen.evaluate(e=>getComputedStyle(e).borderRadius),'6px');
       if(await page.locator('#feedback-expand').isVisible()){
-        await page.locator('#feedback-expand').click();assert((await page.locator('#feedback-full').textContent()).includes(explanation));
+        await page.locator('#feedback-expand').click();assert.equal(await page.locator('#feedback-full').textContent(),run.question.options[0].text);
         await page.locator('#feedback-close').click();stable(after,await geometry(page));
       }
       await page.screenshot({path:`${artifacts}/${width}x${height}-review.png`});
@@ -89,6 +116,16 @@ function fits(g){assert.deepEqual(g.overflow,[],JSON.stringify(g));assert(!g.bod
       // No scroll movement after attempting a touch/wheel-style scroll.
       await page.mouse.wheel(0,350);await page.waitForTimeout(50);stable(next,await geometry(page));
       assert.equal(await page.evaluate(()=>scrollY),0);
+      if(width===320||width===568){
+        await page.evaluate(()=>{
+          document.getElementById('shootout-board').dataset.mode='friend';
+          document.getElementById('name-player').textContent='w'.repeat(24);
+          document.getElementById('name-opponent').textContent='friend_with_a_long_name';
+        });
+        fits(await geometry(page));
+        assert(await page.locator('#shootout-board').evaluate(e=>e.scrollWidth<=e.clientWidth+1));
+        await page.screenshot({path:`${artifacts}/forfeit-long-names-${width}.png`});
+      }
       console.log(`PASS ${width}x${height}: question, answers, review and Next stay fixed`);
     }
     // A server error must retain the grid and offer a reachable Reconnect.
@@ -100,14 +137,38 @@ function fits(g){assert.deepEqual(g.overflow,[],JSON.stringify(g));assert(!g.bod
     await page.locator('#another').click();assert(await page.locator('#selection').isVisible());
     assert.equal(await page.locator('#shootout-board').isVisible(),false);
     // Desktop remains a normal side panel, not the mobile grid.
-    await page.setViewportSize({width:1440,height:900});start();await page.goto(origin+'/penalties');
+    await page.setViewportSize({width:1440,height:900});start();run.deadline=Date.now()+15000;await page.goto(origin+'/penalties');
     await page.waitForFunction(()=>window.PointsStadium?.inspect().active);
     assert.equal(await page.locator('#question-panel').evaluate(e=>getComputedStyle(e).display),'block');
+    assert.equal(await page.locator('#stadium-clock,#stadium-score,#stadium-role').count(),0);
+    assert.match(await page.locator('#seconds').textContent(),/^\d+ s$/);
+    const beforeTime=await page.locator('#timer').evaluate(e=>e.value);
+    async function greenBarPixels(){
+      const {data,info}=await sharp(await page.locator('#timer').screenshot()).removeAlpha().raw().toBuffer({resolveWithObject:true});
+      let green=0;for(let i=0;i<data.length;i+=info.channels)if(Math.abs(data[i]-136)<8&&Math.abs(data[i+1]-176)<8&&Math.abs(data[i+2]-75)<8)green++;
+      return green;
+    }
+    const beforePixels=await greenBarPixels();assert(beforePixels>100,'Timer must be visibly green');
+    await page.waitForTimeout(1800);
+    assert((await page.locator('#timer').evaluate(e=>e.value))<beforeTime-1);
+    assert((await greenBarPixels())<beforePixels*.96,'Rendered green bar must shrink, not just its value');
+    for(const theme of ['dark','light']){
+      await page.evaluate(theme=>{document.documentElement.dataset.theme=theme;},theme);
+      assert.equal(await page.locator('#choices button').first().evaluate(e=>getComputedStyle(e).backgroundColor),'rgba(0, 0, 0, 0)');
+      assert.equal(await page.locator('#choices button').first().evaluate(e=>getComputedStyle(e).color),theme==='dark'?'rgb(246, 243, 235)':'rgb(17, 17, 17)');
+      assert.equal(await page.locator('#leave').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(255, 111, 97)');
+      assert.equal(await page.locator('#leave').evaluate(e=>getComputedStyle(e).borderRadius),'999px');
+      assert((await greenBarPixels())>100);
+    }
+    console.log('PASS integer seconds, no duplicate HUD, shrinking green timer, red Forfeit pill in both themes');
     await page.screenshot({path:`${artifacts}/desktop.png`});
+    run.deadline=Date.now()+120000;
     // Verify pixels in the actual 3D framing region, including a moving shot.
     await page.setViewportSize({width:390,height:844});
     await page.emulateMedia({reducedMotion:'no-preference'});
-    await page.evaluate(async()=>{document.getElementById('motion-toggle').checked=true;await PointsStadium.enter('keeper',{intro:false});});
+    await page.waitForFunction(()=>!document.getElementById('motion-toggle').disabled);
+    assert.equal(await page.locator('#motion-toggle').getAttribute('aria-pressed'),'true');
+    await page.evaluate(async()=>{await PointsStadium.enter('keeper',{intro:false});});
     const frame=await page.locator('#stadium-framing').boundingBox();
     const clip={x:Math.ceil(frame.x),y:Math.ceil(frame.y),width:Math.floor(frame.width),height:Math.floor(frame.height)};
     const still=await page.screenshot({clip});

@@ -3,11 +3,12 @@ const script=fs.readFileSync(require('node:path').join(__dirname,'../trivia_app/
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 function setup({stored=null,supported=true,broken=false}={}){
  const events={},windowEvents={},contexts=[],storage=new Map(stored?[['onthedot.audio',stored]]:[]),sources=[];
- const param=()=>({value:0,setValueAtTime(){},exponentialRampToValueAtTime(){},setTargetAtTime(value){this.value=value;}});
+ const param=()=>({value:0,setValueAtTime(){},linearRampToValueAtTime(){},exponentialRampToValueAtTime(){},setTargetAtTime(value){this.value=value;}});
  const node=()=>({connect(){},disconnect(){}});
  class Audio{
   constructor(){if(broken)throw Error('Audio unavailable');this.state='suspended';this.sampleRate=48000;this.currentTime=10;this.destination={};contexts.push(this);}
   async resume(){this.state='running';}async suspend(){this.state='suspended';}async close(){this.state='closed';}
+  async decodeAudioData(){return {duration:2.5};}
   createGain(){return {...node(),gain:param()};}
   createDynamicsCompressor(){return {...node(),threshold:param(),knee:param(),ratio:param(),attack:param(),release:param()};}
   createBuffer(channels,length,rate){const data=Array.from({length:channels},()=>new Float32Array(length));return {duration:length/rate,getChannelData:c=>data[c]};}
@@ -17,7 +18,7 @@ function setup({stored=null,supported=true,broken=false}={}){
  }
  const doc={hidden:false,querySelectorAll:()=>[],addEventListener(name,fn){(events[name]??=[]).push(fn);}};
  const win={AudioContext:supported?Audio:undefined,addEventListener(name,fn){(windowEvents[name]??=[]).push(fn);}};
- vm.runInNewContext(script,{window:win,document:doc,localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)}});
+ vm.runInNewContext(script,{window:win,document:doc,fetch:async()=>({ok:true,arrayBuffer:async()=>new ArrayBuffer(4)}),localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)}});
  return {audio:win.PointsAudio,doc,contexts,sources,storage,
    emit(name,event={}){for(const fn of events[name]||[])fn(event);},
    emitWindow(name,event={}){for(const fn of windowEvents[name]||[])fn(event);}};
@@ -35,8 +36,8 @@ test('touch release and trusted clicks can unlock audio independently',async()=>
  }
 });
 test('every requested cue has a bounded local recipe and ended voices disconnect',async()=>{
- for(const name of ['click','kick','catch','net','win','loss','crowd-cheer','crowd-groan']){
-  const s=setup();s.emit('keydown',{isTrusted:true});await flush();
+ for(const name of ['click','kick','catch','net','win','loss','level-up','crowd-cheer','crowd-groan']){
+  const s=setup();s.audio.setCrowdActive(true);s.emit('keydown',{isTrusted:true});await flush();
   assert.equal(s.audio.play(name),true,name);assert(s.audio.inspect().activeVoices>0);
   for(const source of s.sources){assert(source.starts[0]>=10);assert(source.stops[0]<13);source.onended?.();}
   assert.equal(s.audio.inspect().activeVoices,0);
@@ -81,15 +82,16 @@ test('missing audio support, constructor failure and malformed storage never blo
  }
 });
 
-test('stadium ambience respects gesture, mute, hiding, navigation and repeated renders',async()=>{
+test('recorded crowd reactions never loop and respect mute, hiding and navigation',async()=>{
  const s=setup();s.audio.setCrowdActive(true);assert.equal(s.sources.length,0);
  s.emit('pointerup',{isTrusted:true});await flush();
- assert(s.audio.inspect().ambiencePlaying);assert.equal(s.sources.length,1);assert(s.sources[0].loop);
- s.audio.setCrowdActive(true);assert.equal(s.sources.length,1);
+ assert(!s.audio.inspect().ambiencePlaying);assert.equal(s.sources.length,0);assert(s.audio.inspect().crowdReady);
+ s.audio.setCrowdActive(true);assert.equal(s.sources.length,0);
  s.audio.setEnabled(false);assert.equal(s.audio.inspect().activeVoices,0);
- s.audio.setEnabled(true);assert(s.audio.inspect().ambiencePlaying);
+ s.audio.setEnabled(true);assert(!s.audio.inspect().ambiencePlaying);
  s.audio.play('crowd-cheer');s.doc.hidden=true;s.emit('visibilitychange');assert.equal(s.audio.inspect().activeVoices,0);
  s.doc.hidden=false;s.emit('visibilitychange');assert(!s.audio.inspect().ambiencePlaying);
- s.emit('keydown',{isTrusted:true});await flush();assert(s.audio.inspect().ambiencePlaying);
+ s.emit('keydown',{isTrusted:true});await flush();assert(!s.audio.inspect().ambiencePlaying);
+ assert(s.audio.play('crowd-groan'));assert.equal(s.sources.at(-1).loop,false);
  s.audio.setCrowdActive(false);assert(!s.audio.inspect().ambiencePlaying);assert.equal(s.audio.inspect().activeVoices,0);
 });

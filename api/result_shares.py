@@ -68,6 +68,13 @@ def snapshot(conn,body,user):
             'daily_pool_exhausted':'Daily pool completed','daily_reset':'Daily reset',
             'question_pool_exhausted':'Question pool exhausted','time_limit':'Session expired'}.get(s.get('reason') or s.get('end_reason'),'')
     label={'solo':'Solo penalties','daily':'Daily Challenge','friend':'Friend Duel'}[body.mode]
+    if body.mode=='daily' and challenge_engine.daily_survival(s):
+        ranked=s['rules']['ranked']
+        return dict(player=player,opponent='',score=[correct,0],correct=correct,total=len(s['history']),
+            xp=xp,guest=False,mode='daily',format='daily_survival',ranked=ranked,difficulty=s['difficulty'],
+            status='Daily score' if ranked else 'Practice',label='Daily Challenge',reason=reason,
+            attempts=[[],[]],title=f'{player}: {correct} goals | ON THE DOT.',
+            description=f'Daily Challenge · {correct} goals · {len(s["history"])-correct} lives lost'+(' · Practice (not ranked)' if not ranked else ''))
     # Explicit allowlist. The persisted question deck and answer history must
     # never enter a public snapshot, HTML response or social crawler image.
     return dict(player=player,opponent=opponent,score=score,correct=correct,total=len(s['history']),
@@ -130,16 +137,23 @@ def card_image(serialized=''):
     else:
         text(data['label'].upper(),(1150,78),24,blue,'rm',440)
         text((data['status']+(' / '+data['reason'] if data.get('reason') else '')).upper(),(600,162),28,green)
-        text(data['player'],(256,240),32,width=380)
-        text(data['opponent'],(944,240),32,width=380)
-        text(f"{data['score'][0]} : {data['score'][1]}",(600,285),90,width=300)
+        if data.get('format')=='daily_survival':
+            text(data['player'],(600,220),32,width=800)
+            text(f"{data['correct']} GOALS",(600,290),74,width=950)
+        else:
+            text(data['player'],(256,240),32,width=380)
+            text(data['opponent'],(944,240),32,width=380)
+            text(f"{data['score'][0]} : {data['score'][1]}",(600,285),90,width=300)
         for side,shots in enumerate(data['attempts']):
             # Long sudden death keeps the five opening kicks and latest pair.
             visible=shots if len(shots)<=7 else shots[:5]+shots[-2:]
             for i,goal in enumerate(visible):
                 x=(256 if side==0 else 944)+(i-(len(visible)-1)/2)*38;y=315
-                draw.ellipse((x-12,y-12,x+12,y+12),fill=fg if goal else coral)
-                draw.regular_polygon((x,y,5),5,fill=bg)
+                ball=Image.open(ROOT/'trivia_app/static/icons/football.png').convert('RGBA').resize((28,28),Image.Resampling.LANCZOS)
+                if not goal:
+                    from PIL import ImageChops
+                    alpha=ball.getchannel('A');ball=ImageChops.multiply(ball,Image.new('RGBA',ball.size,'#ff6f61'));ball.putalpha(alpha)
+                canvas.paste(ball,(round(x-14),round(y-14)),ball)
         draw.line((48,380,1152,380),fill=fg,width=4)
         text(f"{data['correct']} / {data['total']}",(315,440),42)
         text('CORRECT ANSWERS',(315,486),20,blue)

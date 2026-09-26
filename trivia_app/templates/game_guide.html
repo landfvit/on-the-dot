@@ -1,23 +1,23 @@
 {% extends 'trivia_base.html' %}
 {% block title %}How to play · ON THE DOT.{% endblock %}
-{% block styles %}<link rel="stylesheet" href="/trivia-assets/shootout.css?v=5"><link rel="stylesheet" href="/trivia-assets/game_guide.css?v=1">{% endblock %}
+{% block styles %}<link rel="stylesheet" href="/trivia-assets/shootout.css?v=6"><link rel="stylesheet" href="/trivia-assets/game_guide.css?v=1">{% endblock %}
 {% block content %}
 <main class="game-guide">
-  <header class="guide-heading brand-heading"><img class="home-logo" src="/trivia-assets/brand/logo-transparent.png?v=2" width="432" height="432" alt="ON THE DOT." fetchpriority="high"><h1>How to play</h1><a class="primary-link" href="/penalties">Play penalties <img src="/trivia-assets/icons/arrow-right.svg" alt=""></a></header>
-  <p class="guide-intro">One question. One penalty. You shoot first, then defend the opponent's kick.</p>
-  <nav class="guide-jump" aria-label="Game rules"><a href="#shootout">The shootout</a><a href="#rewards">XP &amp; streaks</a><a href="#teams">Your team</a></nav>
+  <header class="guide-heading"><h1>How to play</h1><a class="primary-link" href="/penalties">Play penalties <img src="/trivia-assets/icons/arrow-right.svg" alt=""></a></header>
+  <p class="guide-intro">One question. One penalty. {{ rules.answer_ms // 1000 }} seconds to answer.</p>
+  <nav class="guide-jump" aria-label="Game rules"><a href="#shootout">Solo</a><a href="#daily">Daily Challenge</a><a href="#friends">Friend Duel</a><a href="#rewards">XP &amp; streaks</a><a href="#teams">Your team</a></nav>
 
   <section id="shootout" class="guide-section" aria-labelledby="shootout-title">
-    <div class="guide-section-heading"><h2 id="shootout-title">Shoot. Save. Repeat.</h2><span class="guide-timer">{{ rules.answer_ms // 1000 }} seconds / answer</span></div>
+    <div class="guide-section-heading"><h2 id="shootout-title">Solo</h2><span class="guide-timer">{{ rules.answer_ms // 1000 }} seconds / answer</span></div>
     <div class="guide-roles">
-      <figure><img class="guide-scene" src="/trivia-assets/guide/shooter.png?v=4" width="900" height="600" alt="The game's penalty spot, football and goalkeeper facing your shot.">
-        <figcaption><h3>Your kick</h3><p><strong>Correct answer: goal.</strong><br>Wrong answer: saved. Time runs out: missed.</p></figcaption>
+      <figure><img class="guide-scene" src="/trivia-assets/guide/shooter.png?v=5" width="900" height="600" alt="The game's penalty spot, football and goalkeeper facing your shot.">
+        <figcaption><h3>Shoot</h3><p>Correct: goal. Wrong or too late: no goal.</p></figcaption>
       </figure>
-      <figure><img class="guide-scene" src="/trivia-assets/guide/keeper.png?v=4" width="900" height="600" alt="The game's goalkeeper holding the ball after saving a penalty.">
-        <figcaption><h3>Your save</h3><p><strong>Correct answer: save.</strong><br>A wrong answer or timeout gives the opponent a goal.</p></figcaption>
+      <figure><img class="guide-scene" src="/trivia-assets/guide/keeper.png?v=5" width="900" height="600" alt="The game's goalkeeper holding the ball after saving a penalty.">
+        <figcaption><h3>Save</h3><p>Correct: save. Wrong or too late: opponent scores.</p></figcaption>
       </figure>
     </div>
-    <p>{{ rules.initial_kicks }} penalties each, unless the winner is decided earlier. A tie goes to sudden death: a lead wins only after both sides have taken the same number of kicks.</p>
+    <p>{{ rules.initial_kicks }} kicks each. Win early if your lead is unbeatable. Tied? Keep going until one side leads after equal kicks.</p>
     <fieldset class="guide-scenarios" hidden><legend class="sr-only">Shootout examples</legend>
       {% for example in examples %}<label><input type="radio" name="guide-scenario" value="{{ example.code }}" aria-controls="example-{{ example.code }}" {% if loop.first %}checked{% endif %}><span>{{ example.title }}</span></label>{% endfor %}
     </fieldset>
@@ -37,55 +37,47 @@
       {% endfor %}
     </div>
     <div class="guide-kick-legend"><span><i class="shootout-kick goal" aria-hidden="true"></i>Goal</span><span><i class="shootout-kick miss" aria-hidden="true"></i>No goal</span><span><i class="shootout-kick pending" aria-hidden="true"></i>Not taken</span></div>
-    <p class="guide-note">Ending a shootout early counts as a loss. Win rate = wins &divide; (wins + losses).</p>
+    <p class="guide-note">Ending a shootout early counts as a loss.</p>
   </section>
 
   <section id="rewards" class="guide-section" aria-labelledby="rewards-title">
-    <h2 id="rewards-title">Every correct answer earns XP</h2>
-    <p>Correct answers earn XP when shooting <em>and</em> saving. A win multiplies the XP from that shootout. A perfect score is not required.</p>
+    <h2 id="rewards-title">XP &amp; streaks</h2>
+    <p>Correct answers earn XP. Win a Solo shootout to multiply it.</p>
     <table class="guide-rewards"><caption class="sr-only">XP rewards by difficulty</caption><thead><tr><th scope="col">Difficulty</th><th scope="col">Correct answer</th><th scope="col">Win multiplier</th></tr></thead><tbody>
       {% for difficulty in ['easy','medium','hard'] %}<tr><th scope="row">{{ difficulty|title }}</th><td>{{ rules.xp_by_difficulty[difficulty] }} XP</td><td>&times;{{ rules.win_multipliers[difficulty] }}</td></tr>{% endfor %}
     </tbody></table>
-    <div class="guide-xp-example"><img src="/trivia-assets/icons/trophy.svg" width="28" height="28" alt=""><div><span>Example: {{ reward_example.correct }} correct answers, Medium win</span><strong>{{ reward_example.correct }} &times; {{ rules.xp_by_difficulty.medium }} &times; {{ reward_example.multiplier }} = {{ reward_example.total_xp }} XP</strong></div></div>
-    <p>Without a win, you keep base XP only. Saved XP builds your level. The player leaderboard ranks XP, current streak, wins or win rate.</p>
+    <p>XP builds your level. No win? You still keep your base XP.</p>
     <div class="guide-progress-rules">
       <section><h3>Daily streak</h3><div class="guide-streak" aria-label="Example of a three-day streak">{% for day in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] %}<span><i class="{{ 'complete' if loop.index <= 3 else '' }}" aria-hidden="true"></i>{{ day }}</span>{% endfor %}</div>
-        <p>Finish a shootout and answer every question before time runs out. Winning is not required. A timeout or ending early does not extend the streak. Each day resets at 00:00 UTC.</p></section>
-      <section><h3>Fresh questions</h3><p>Registered players do not receive the same question again within a week. The question pool resets every Monday at 00:00 UTC.</p><p>Choose Easy, Medium or Hard. Every new shootout mixes teams and topics at your chosen difficulty. Questions and answer options are shuffled.</p></section>
+        <p>Finish Solo or Daily with no timeouts each day to build your streak. You don't have to win. Days reset at 00:00 UTC.</p></section>
+      <section><h3>Fresh questions</h3><p>Choose Easy, Medium or Hard, with mixed teams and topics. Registered players get no repeats until Monday's reset.</p></section>
     </div>
-    <div class="guide-guest"><h3>Guest or registered?</h3><p>Guest Solo games and Friend Duels are open to everyone. An account saves XP, levels, streaks and your match record, unlocks Daily Challenge and lets you add friends. Guest results stay separate and do not transfer to a new account.</p><a href="/account?mode=register">Create account</a></div>
+    <div class="guide-guest"><h3>Save your progress</h3><p>Solo and Friend Duels need no account. Register to save XP and streaks, play Daily Challenge and add friends. Guest results aren't saved.</p><a href="/account?mode=register">Create account</a></div>
   </section>
 
   <section id="daily" class="guide-section" aria-labelledby="daily-title">
     <h2 id="daily-title">Daily Challenge</h2>
-    <p>Registered players share a new pool at 00:00 UTC: 10 Easy, 20 Medium and 20 Hard questions. Play the usual shootout, not a fixed 50-question quiz. Correct answers earn 10, 20 or 30 XP, without a win multiplier.</p>
-    <p>Win the shootout or use the remaining daily pool before a winner is decided to earn one Daily win. An already decided loss stays a loss. An empty pool before starting never awards a win. You can earn at most one Daily win per UTC day.</p>
-    <p>Only questions you actually open are excluded from later games until Monday's weekly reset. Unopened questions stay available. Daily wins have their own leaderboard and do not count as Solo wins.</p>
+    <p>Shoot only. Three lives. Score as many goals as you can; wrong or late answers cost a life.</p>
+    <p>Only your first attempt each day counts, even if you quit. Later games are practice. The leaderboard tracks your all-time best. Resets at 00:00 UTC.</p>
+    <p>Mixed difficulties. Correct answers earn XP, including in practice, with no win bonus. Account required.</p>
     <a class="primary-link" href="/daily">Play Daily Challenge</a>
   </section>
 
   <section id="friends" class="guide-section" aria-labelledby="friends-title">
     <h2 id="friends-title">Challenge a friend</h2>
-    <p>Create an invitation and send the link to a friend. Neither player needs an account. Choose a difficulty and get ready together. Friend Duels award no XP, rating or streak credit and never change Solo statistics.</p>
+    <p>Send an invite link, choose a difficulty and press Ready. You both answer the same question. No account needed; no XP or rating.</p>
     <table class="guide-rewards"><caption class="sr-only">Friend Duel answer rules</caption><thead><tr><th>Shooter</th><th>Keeper</th><th>Result</th></tr></thead><tbody>
       <tr><td>Correct</td><td>Incorrect</td><td>Goal</td></tr><tr><td>Incorrect</td><td>Correct</td><td>Save</td></tr>
       <tr><td>Correct</td><td>Correct</td><td>Faster correct answer wins</td></tr><tr><td>Incorrect</td><td>Incorrect</td><td>Replay with a new question</td></tr>
     </tbody></table>
-    <p>You both receive the same question and have 15 seconds. Correct answers less than 150 ms apart also replay the kick. Replays do not use a penalty or switch roles. Server receipt time decides speed.</p>
-    <p>Five penalties each, early clinches and paired sudden death. Leaving forfeits the duel. A player missing two answers in a row, or disconnected for over 30 seconds between kicks, forfeits. If both players are absent, the match ends without a winner. Sessions expire after 30 minutes.</p>
+    <p>Near-simultaneous correct answers replay the kick too. Same five-kick format as Solo. Leaving or staying inactive forfeits the duel.</p>
     <a class="primary-link" href="/friends">Create a Friend Duel</a>
   </section>
 
   <section id="teams" class="guide-section" aria-labelledby="teams-title">
-    <h2 id="teams-title">Your team, your badge</h2>
+    <h2 id="teams-title">Your team</h2>
     <div class="guide-team-identity"><span>your_username</span><img class="club-badge" src="/trivia-assets/clubs/33.png" width="40" height="40" alt="Manchester United example badge"><small>Example identity</small></div>
-    <p>Joining a team adds its badge beside your name on your profile and the player leaderboard. It is an optional way to show which club you support.</p>
-    <div class="guide-team-rules">
-      <section><h3>Club identity</h3><p>Your team gives no XP bonus and does not change your questions or difficulty. Your XP and record stay yours. After joining, switching or leaving a team, you must wait 3 days before changing again.</p></section>
-      <section><h3>Any club, every game</h3><p>Everyone plays from the mixed question pool at their chosen difficulty. Supporting Manchester United does not limit your questions to Manchester United.</p></section>
-    </div>
-    <p class="guide-note">The team leaderboard adds up current members' XP, levels, wins and current streaks. Team win rate is the average of members' win rates; members with no recorded win or loss in the selected period are excluded from that average. When you change teams, your stats move with you. XP, wins and win rate can be filtered by period; levels and current streaks are not limited to that period.</p>
-    <p><a href="/leaderboard">View leaderboards</a></p>
+    <p>Pick a club in your profile. Wear its badge and contribute your stats to the team leaderboard. No gameplay bonuses; change teams once every 3 days.</p>
     <a class="primary-link" href="/account">Your profile <img src="/trivia-assets/icons/user-round.svg" alt=""></a>
   </section>
   <div class="guide-end"><a class="primary-link" href="/penalties">Play penalties <img src="/trivia-assets/icons/arrow-right.svg" alt=""></a></div>

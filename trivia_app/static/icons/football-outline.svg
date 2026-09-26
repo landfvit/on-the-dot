@@ -1,0 +1,6 @@
+<!-- Original football outline, matched to the adjacent 24px Lucide icons. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="9"/>
+  <path d="m12 7 4.76 3.45-1.82 5.6H9.06l-1.82-5.6Z"/>
+  <path d="M12 7V3m4.76 7.45 3.8-1.23m-5.62 6.83 2.35 3.23m-8.23-3.23-2.35 3.23m.53-8.83-3.8-1.23"/>
+</svg>

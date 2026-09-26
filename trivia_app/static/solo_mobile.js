@@ -31,7 +31,7 @@
         if(!active)return;
         fit(title,12);
         for(const button of choices.children)fit(button,12);
-        // A long explanation can be opened in full without shifting any game
+        // A long answer can be opened in full without shifting any game
         // controls. The question and answer options themselves are never cut.
         expand.hidden=feedback.scrollHeight<=feedback.clientHeight+1;
     }

@@ -11,10 +11,6 @@
 .page-return [data-share-game] { margin-left:auto; }
 .page-return img { width:18px; height:18px; filter:invert(1); }
 .back-arrow { transform:rotate(180deg); }
-.header-sound { position:relative; flex:none; }
-.header-sound summary { list-style:none; cursor:pointer; width:44px; height:44px; }
-.header-sound summary::-webkit-details-marker { display:none; }
-.header-sound .sound-settings { position:absolute; z-index:20; top:calc(100% + 6px); right:0; width:256px; max-width:calc(100vw - 32px); padding:16px; margin:0; background:var(--surface); border:1px solid var(--border); border-radius:6px; box-shadow:0 8px 24px #0004; }
 .shell-dialog { width:min(560px,calc(100% - 24px)); max-height:calc(100svh - 24px); padding:20px; border:1px solid var(--border); border-radius:8px; background:var(--surface); color:var(--text); }
 .shell-dialog::backdrop { background:#191a1ecc; backdrop-filter:blur(4px); }
 body:is(.stadium-playing,.stadium-ending):has(.solo-penalties) .page-return,body:has(.shootout-finished) .page-return { display:none; }

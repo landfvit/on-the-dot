@@ -7,11 +7,12 @@ XP={'easy':10,'medium':20,'hard':30}
 TERMINAL=('FINISHED','ABANDONED')
 
 
-def daily_create(deck,now,expires_at):
-    if not deck or len(deck)>50 or len({q['question_id'] for q in deck})!=len(deck):
+def daily_create(deck,now,expires_at,ranked=True):
+    if not deck or len({q['question_id'] for q in deck})!=len(deck):
         raise solo.SoloError('A daily challenge needs unused questions')
-    rules={**deepcopy(solo.RULES),'version':'daily-v1','xp_per_correct':10,
-           'win_multipliers':{'mixed':1},'perfect_multipliers':{'mixed':1},'questions':50}
+    rules={**deepcopy(solo.RULES),'version':'daily-survival-v2','format':'daily_survival',
+           'lives':3,'ranked':ranked,'xp_per_correct':10,'bonus_mode':'none',
+           'win_multipliers':{'mixed':1},'perfect_multipliers':{'mixed':1},'questions':len(deck)}
     return {'deck':deepcopy(deck),'difficulty':'mixed','category':{'code':'ALL','label':'Daily Challenge','topic_label':'All clubs'},
             'rules':rules,'phase':'READY','position':0,'deadline':None,'opened_at':None,
             'created_at':now,'expires_at':expires_at,'finished_at':None,'history':[]}
@@ -21,8 +22,42 @@ def daily_tick(s,now):
     if s['phase'] in TERMINAL:return
     if now>=s['expires_at']:
         s.update(phase='ABANDONED',finished_at=s['expires_at'],end_reason='daily_reset');return
-    solo.tick(s,now)
+    if daily_survival(s):
+        if s['phase']=='ANSWERING' and now>=s['deadline']:
+            daily_resolve(s,None,None,s['deadline'])
+    else:solo.tick(s,now)
     daily_exhaust(s,now)
+
+
+def daily_survival(s):
+    return s['rules'].get('format')=='daily_survival'
+
+
+def daily_resolve(s,option,request_id,now):
+    q=s['deck'][s['position']-1]
+    correct=option is not None and option==q['correct']
+    s['history'].append(dict(position=s['position'],option_id=option,request_id=request_id,
+        correct=correct,elapsed_ms=min(s['rules']['answer_ms'],max(0,now-s['opened_at'])),
+        answered_at=now,role='shooter',outcome='goal' if correct else 'miss' if option is None else 'save'))
+    s['phase']='REVIEW'
+    if sum(not a['correct'] for a in s['history'])>=s['rules']['lives']:
+        s.update(phase='FINISHED',finished_at=now,end_reason='lives_exhausted')
+    daily_exhaust(s,now)
+
+
+def daily_answer(s,position,option,request_id,now):
+    # Legacy, already-started games retain their frozen shootout rules.
+    if not daily_survival(s):
+        solo.answer(s,position,option,request_id,now);daily_exhaust(s,now);return
+    for entry in s['history']:
+        if entry['request_id']==request_id:
+            if entry['position']==position and entry['option_id']==option:return
+            raise solo.SoloError('Request ID already used for another answer')
+    if s['phase']!='ANSWERING' or position!=s['position'] or not s['opened_at']<=now<s['deadline']:
+        raise solo.SoloError('The answer window is closed')
+    if option not in {o['id'] for o in s['deck'][position-1]['options']}:
+        raise solo.SoloError('Unknown answer option')
+    daily_resolve(s,option,request_id,now)
 
 
 def daily_exhaust(s,now):
@@ -36,9 +71,15 @@ def daily_view(s,now):
     result=solo.view(s,now)
     correct=sum(a['correct'] for a in s['history'])
     total=sum(XP[s['deck'][a['position']-1]['difficulty']] for a in s['history'] if a['correct'])
-    if s.get('end_reason')=='daily_pool_exhausted':result['shootout']['winner']='player'
+    if daily_survival(s):
+        mistakes=len(s['history'])-correct
+        result.update(role='shooter',answered=len(s['history']),survival={
+            'goals':correct,'mistakes':mistakes,'lives':max(0,s['rules']['lives']-mistakes),
+            'max_lives':s['rules']['lives'],'ranked':s['rules']['ranked'],
+            'next_role':'shooter','attempts':[{'goal':a['correct'],'number':a['position']} for a in s['history']]})
+    elif s.get('end_reason')=='daily_pool_exhausted':result['shootout']['winner']='player'
     result.update(correct=correct,base_xp=total,total_xp=total,bonus_xp=0,multiplier=1,
-                  won=s['phase']=='FINISHED' and result['shootout']['winner']=='player',mode='daily')
+                  won=not daily_survival(s) and s['phase']=='FINISHED' and result['shootout']['winner']=='player',mode='daily')
     if s['position']:result['rules']['xp_per_correct']=XP[s['deck'][s['position']-1]['difficulty']]
     for a in result['review']:a['xp']=XP[s['deck'][a['position']-1]['difficulty']] if a['is_correct'] else 0
     return result

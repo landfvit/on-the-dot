@@ -1,4 +1,9 @@
 /* Mode navigation lives only in the pre-game view, never over the stadium. */
+.daily-life{display:block;width:18px;height:18px;flex:0 0 18px;border:2px solid var(--ink,#111);border-radius:50%;background:var(--brand-green,#88b04b)}
+.daily-life.lost{background:var(--coral,#ff6f61);position:relative}
+.daily-life.lost::after{content:'';position:absolute;left:2px;right:2px;top:6px;height:2px;background:#111;transform:rotate(-45deg)}
+#shootout-board.daily-survival-board .shootout-team{grid-template-columns:56px 38px auto}
+.daily-survival-board .shootout-team[hidden]{display:none}
 .game-mode-tabs{display:flex;flex-wrap:wrap;gap:8px 20px;border-bottom:1px solid var(--border,#41524e);margin-bottom:24px;padding-bottom:10px}
 .game-mode-tabs a{padding:6px 0;text-decoration:none;font-weight:650}
 .game-mode-tabs a[aria-current]{color:var(--accent,#88b04b);box-shadow:0 3px var(--accent,#88b04b)}
@@ -30,16 +35,23 @@
 #forfeit-dialog button{padding:10px 12px;font-size:14px}
 #forfeit-dialog #forfeit-confirm{background:var(--coral,#ff6f61);border-color:var(--coral,#ff6f61);color:#222326;font-weight:700}
 @media(max-width:800px),(max-height:540px) and (max-width:1100px){
-  #shootout-board[data-mode="friend"] .shootout-team{grid-template-columns:120px 20px auto}
-  #shootout-board[data-mode="friend"] .shootout-team>span{font-size:10px;line-height:10px}
+  #shootout-board[data-mode="friend"] .shootout-team{grid-template-columns:minmax(0,120px) 20px auto}
+  #shootout-board .shootout-team>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #shootout-board[data-mode="friend"] .shootout-team>span{font-size:10px;line-height:14px}
+}
+@media(max-width:400px){
+  #shootout-hud .shootout-kicks{gap:3px}
+  #shootout-hud .shootout-kick{width:12px;height:12px;flex-basis:12px}
 }
 @media(prefers-reduced-motion:reduce){.friend-waiting img{animation:none}}
 /* Narrow landscape camera lanes stack each name above its kicks. */
 @media(max-height:540px) and (min-width:480px) and (max-width:1100px){
-  body.stadium-playing:not(.stadium-ending) #shootout-board[data-mode="friend"]{width:min(360px,calc(100% - var(--stadium-panel-width) - 20px))}
-  #shootout-board[data-mode="friend"] .shootout-team{grid-template-columns:20px minmax(0,1fr);grid-template-rows:20px 20px;gap:0 6px}
-  #shootout-board[data-mode="friend"] .shootout-team>span{grid-column:1/-1}
-  #shootout-board[data-mode="friend"] .shootout-kicks{gap:3px}
-  #shootout-board[data-mode="friend"] .shootout-kick{width:12px;height:12px;flex-basis:12px}
-  body.stadium-playing:not(.stadium-ending):has(#shootout-board[data-mode="friend"]) #stadium-framing{top:calc(var(--play-header-height) + 112px);height:auto}
+  body.stadium-playing:not(.stadium-ending) #shootout-hud{max-width:calc(100% - var(--stadium-panel-width) - 20px);gap:6px}
+  body.stadium-playing:not(.stadium-ending) #shootout-board{padding:4px;flex:1;min-width:0}
+  #shootout-hud #leave{padding:8px;font-size:11px}
+  #shootout-hud #shootout-board .shootout-team{grid-template-columns:16px minmax(0,1fr);grid-template-rows:18px 16px;gap:0 3px}
+  #shootout-hud .shootout-team>span{grid-column:1/-1}
+  #shootout-hud .shootout-kicks{gap:2px}
+  #shootout-hud .shootout-kick{width:9px;height:9px;flex-basis:9px}
+  body.stadium-playing:not(.stadium-ending):has(#shootout-board) #stadium-framing{top:calc(var(--play-header-height) + 112px);height:auto}
 }

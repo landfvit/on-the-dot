@@ -37,18 +37,22 @@ class GameGuideTests(unittest.TestCase):
         with patch('psycopg.connect', side_effect=AssertionError('Rulebook must not connect to DB')):
             response = TestClient(app).get('/how-to-play')
         self.assertEqual(response.status_code, 200)
-        for value in ('example-early', 'example-last', 'example-sudden', '15 seconds / answer', '360 XP'):
+        for value in ('example-early', 'example-last', 'example-sudden', '15 seconds / answer', 'Win multiplier'):
             self.assertIn(value, response.text)
-        self.assertNotIn('data-ad-slot=', response.text)
+        for slot in ('sidebar-left', 'sidebar-right'):
+            self.assertIn(f'data-ad-slot="{slot}" aria-label="Advertisement" hidden', response.text)
+        self.assertNotIn('adsbygoogle', response.text)
         self.assertNotIn('stadium_intro.js', response.text)
         self.assertNotIn('id="stadium-layer"', response.text)
 
     def test_team_and_progress_copy_matches_current_capabilities(self):
         html = TestClient(app).get('/how-to-play').text
-        for text in ('Your team gives no XP bonus', "The team leaderboard adds up current members' XP",
-                     'you must wait 3 days before changing again',
-                     'Guest Solo games and Friend Duels are open to everyone', 'every Monday at 00:00 UTC',
-                     'A timeout or ending early does not extend the streak', 'Ending a shootout early counts as a loss'):
+        for text in ('No gameplay bonuses', 'contribute your stats to the team leaderboard',
+                     'change teams once every 3 days',
+                     'Solo and Friend Duels need no account', "Monday's reset",
+                     'Finish Solo or Daily with no timeouts', 'Ending a shootout early counts as a loss',
+                     'Only your first attempt each day counts', 'Later games are practice',
+                     'leaderboard tracks your all-time best', 'Three lives'):
             self.assertIn(text, html)
         self.assertIn('/how-to-play#teams', TestClient(app).get('/account').text)
         self.assertIn('class="game-rules-link"', TestClient(app).get('/penalties').text)
@@ -58,8 +62,8 @@ class GameGuideTests(unittest.TestCase):
         for path in ('/how-to-play',):
             with self.subTest(path=path):
                 html = client.get(path).text
-                self.assertIn('Choose Easy, Medium or Hard.', html)
-                self.assertIn('Every new shootout mixes teams and topics', html)
+                self.assertIn('Choose Easy, Medium or Hard,', html)
+                self.assertIn('with mixed teams and topics', html)
                 self.assertNotIn('Team / scope', html)
                 self.assertNotIn('Question availability:', html)
 

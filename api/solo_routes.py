@@ -11,7 +11,7 @@ from psycopg.types.json import Jsonb
 from api.database import get_connection
 from api import solo_engine as game
 from api.numeric_choices import refresh as refresh_numeric_choices
-from api.player_accounts import account,profile,COOKIE as ACCOUNT_COOKIE
+from api.player_accounts import account,profile,xp_transition,COOKIE as ACCOUNT_COOKIE
 from api.solo_trials import trial_player
 from api.solo_history import week_window
 from api import solo_topics as topics
@@ -233,6 +233,7 @@ def action(run_id,request,command='view',body=None):
         if s['phase'] in ('FINISHED','ABANDONED') and not row['is_trial']:
             p=profile(conn,user)
             result['player_progress']={key:p[key] for key in ('total_xp','level','level_xp','next_level_xp')}
+            result['xp_transition']=xp_transition(conn,user['account_id'],run_id,result['player_progress'])
     if failure:raise HTTPException(409,failure)
     return result
 

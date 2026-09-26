@@ -7,7 +7,7 @@
   const period=()=>document.querySelector('input[name="period"]:checked')?.value||'today';
   const metric=()=>document.querySelector('input[name="metric"]:checked')?.value||'xp';
   const board=()=>document.querySelector('input[name="board"]:checked')?.value||'players';
-  const labels={xp:'XP',streak:'Streak',wins:'Wins',win_rate:'Win rate',level:'Levels',daily_wins:'Daily wins'};
+  const labels={xp:'XP',streak:'Streak',wins:'Wins',win_rate:'Win rate',level:'Levels',daily_highscore:'Daily high score'};
   const requestedMetric=new URLSearchParams(location.search||'').get('metric');
   if(ranking&&Object.hasOwn(labels,requestedMetric)){const input=document.querySelector(`input[name="metric"][value="${requestedMetric}"]`);if(input)input.checked=true;}
   const rate=n=>n===null||n===undefined?'–':`${Number(n).toFixed(1)}%`;
@@ -34,7 +34,8 @@
       const a=node('a',data.signed_in?(teams?'Your profile':'Play penalties'):'Sign in');a.href=data.signed_in&&!teams?'/penalties':'/account';$('ranking-self').append(a);
     }
     const noun=teams?'team':'player';
-    $('distribution').hidden=!data.participants||selected==='daily_wins';$('participant-count').textContent=`${number(data.participants)} ${noun}${data.participants===1?'':'s'}`;
+    $('distribution').hidden=!data.participants||selected==='daily_highscore';$('participant-count').textContent=`${number(data.participants)} ${noun}${data.participants===1?'':'s'}`;
+    if(teams)$('team-ranking-note').textContent=selected==='daily_highscore'?'Sum of current members\' personal Daily high scores.':'Totals for XP, levels, streaks and wins. Win rate is the average of members\' win rates.';
     const maximum=Math.max(1,...data.distribution.map(b=>b.count));
     $('distribution-bars').replaceChildren(...data.distribution.map(b=>{
       const col=node('div',undefined,'distribution-column'),bar=node('div',undefined,'distribution-bar');
@@ -67,7 +68,7 @@
     if(ranking){$('ranking-table').hidden=true;$('distribution').hidden=true;$('ranking-self').hidden=true;}
     else $('history-list').replaceChildren();
     try {
-      const currentOnly=['level','streak'].includes(metric());
+      const currentOnly=['level','streak','daily_highscore'].includes(metric());
       if(ranking){
         document.querySelectorAll('input[name="period"]').forEach(input=>{input.disabled=currentOnly;if(currentOnly)input.checked=input.value==='all';});
       }

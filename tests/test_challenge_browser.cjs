@@ -13,12 +13,9 @@ const origin='http://127.0.0.1:8015',out='/tmp/on-the-dot-challenges';fs.mkdirSy
     assert.equal(await anonymous.locator('#quiz-start').isVisible(),false);
     assert((await anonymous.locator('#mode-register').getAttribute('href')).includes('next=/daily'));
     await anonymous.screenshot({path:out+'/daily-guest.png'});
-    for(const [ctx,identifier,password] of [[host,'player@example.com','test-only-password-1234'],[guest,'friend@example.com','test-password-1234']]){
-      const r=await ctx.request.post(origin+'/api/players/login',{data:{identifier,password}});assert.equal(r.status(),200,await r.text());
-    }
-    const hostName='w'.repeat(24),guestName='friend_with_a_long_name';
+    const stamp=Date.now().toString(),hostName='w'.repeat(18)+stamp.slice(-6),guestName='friend_with_long_'+stamp.slice(-7);
     for(const [ctx,username] of [[host,hostName],[guest,guestName]]){
-      const r=await ctx.request.patch(origin+'/api/players/me',{data:{username}});assert.equal(r.status(),200,await r.text());
+      const r=await ctx.request.post(origin+'/api/players/register',{data:{username,email:username+'@example.com',password:'test-only-password-1234'}});assert.equal(r.status(),201,await r.text());
     }
     const a=await host.newPage(),b=await guest.newPage();let forfeits=0;
     a.on('request',r=>{if(r.method()==='POST'&&r.url().endsWith('/leave'))forfeits++;});
@@ -36,6 +33,9 @@ const origin='http://127.0.0.1:8015',out='/tmp/on-the-dot-challenges';fs.mkdirSy
     await a.locator('#question-title').filter({hasText:'Waiting for '+guestName}).waitFor();
     await a.locator('#run-position').filter({hasText:'Ready'}).waitFor();
     assert(await a.locator('.friend-waiting').isVisible());
+    await a.waitForFunction(()=>PointsStadium.inspect().active&&!PointsStadium.inspect().entering);
+    assert(await a.locator('#shootout-board').isVisible(),'Waiting still shows score together with Forfeit');
+    assert(await a.locator('#leave').isVisible());
     await a.screenshot({path:out+'/friend-waiting-desktop.png'});
     assert.equal(await a.locator('.friend-waiting img').evaluate(e=>getComputedStyle(e).animationName),'none');
     await a.emulateMedia({reducedMotion:'no-preference'});
@@ -71,8 +71,16 @@ const origin='http://127.0.0.1:8015',out='/tmp/on-the-dot-challenges';fs.mkdirSy
     await a.locator('#feedback').filter({hasText:'Answer locked'}).waitFor();
     assert.equal(await b.locator('#choices .correct').count(),0);
     await b.locator('#choices button').nth(1).click();
-    await a.waitForFunction(()=>/Goal|Saved|Replay/.test(document.getElementById('feedback').textContent));
-    await b.waitForFunction(()=>/Goal|Saved|Replay/.test(document.getElementById('feedback').textContent));
+    await a.waitForFunction(()=>document.querySelector('#choices .correct')&&document.getElementById('feedback').textContent==='');
+    await b.waitForFunction(()=>document.querySelector('#choices .correct')&&document.getElementById('feedback').textContent==='');
+    let wrongAnswers=0;
+    for(const p of [a,b]){
+      assert.equal(await p.locator('#choices .correct').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(136, 176, 75)');
+      const wrong=p.locator('#choices .incorrect');wrongAnswers+=await wrong.count();
+      if(await wrong.count())assert.equal(await wrong.evaluate(e=>getComputedStyle(e).backgroundColor),await p.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--coral').trim()==='#ff867c'?'rgb(255, 134, 124)':'rgb(165, 44, 39)'));
+      assert.equal(await p.locator('#choices button').first().evaluate(e=>getComputedStyle(e).borderRadius),'6px');
+    }
+    assert(wrongAnswers>=1,'Different choices must visibly mark at least one wrong answer');
     for(const p of [a,b])await p.waitForFunction(()=>PointsStadium.inspect().lastOutcome!==null);
     for(const p of [a,b])assert.equal(await p.evaluate(()=>PointsStadium.inspect().markingsColor),0xffffff);
     const before=await host.request.get(origin+'/api/players/me');const xp=(await before.json()).total_xp;
@@ -91,7 +99,7 @@ const origin='http://127.0.0.1:8015',out='/tmp/on-the-dot-challenges';fs.mkdirSy
     await a.locator('#next:not([hidden]):enabled').waitFor();await a.locator('#next').click();
     await a.locator('#choices button:enabled').first().waitFor();await a.screenshot({path:out+'/daily-desktop.png'});
     await a.locator('#leave').click();await a.locator('#summary:not([hidden])').waitFor();
-    await a.goto(origin+'/leaderboard?metric=daily_wins');assert(await a.locator('input[value="daily_wins"]').isChecked());
+    await a.goto(origin+'/leaderboard?metric=daily_highscore');assert(await a.locator('input[value="daily_highscore"]').isChecked());
     assert.deepEqual(errors,[]);console.log('PASS: registered Daily, real two-player invitation/answers, private answers, zero Friend XP, mobile/desktop geometry, nonblank stadium, results and Daily leaderboard');
   }catch(e){for(const ctx of browser.contexts())for(const [i,p] of ctx.pages().entries())await p.screenshot({path:out+'/error-'+ctx.pages().length+'-'+i+'.png'}).catch(()=>{});throw e;}
   finally{await browser.close();}

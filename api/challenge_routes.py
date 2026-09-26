@@ -9,7 +9,7 @@ from fastapi import APIRouter,Depends,HTTPException,Request,Response
 from psycopg.types.json import Jsonb
 
 from api.database import get_connection
-from api.player_accounts import account,profile,COOKIE as ACCOUNT_COOKIE
+from api.player_accounts import account,profile,xp_transition,COOKIE as ACCOUNT_COOKIE
 from api.solo_trials import trial_player
 from api.penalty_routes import now_ms,rate_limit
 from api.solo_routes import active_releases,Answer,Next
@@ -77,18 +77,17 @@ def daily_pool(conn,now):
     day,reset=day_window(now)
     # One immutable global pool per UTC day, even across concurrent workers.
     conn.execute('SELECT pg_advisory_xact_lock(%s,%s)',(47001,day.toordinal()))
-    row=conn.execute('SELECT deck FROM game_daily_pools WHERE day=%s',(day,)).fetchone()
-    if row:return row['deck'],day,reset
-    recent={r['id'] for r in conn.execute("""SELECT q->>'question_id' id FROM game_daily_pools,
-        LATERAL jsonb_array_elements(deck) q WHERE day>=%s AND day<%s""",(week_window(now)[0],day)).fetchall()}
-    eligible=[r for r in candidates(conn) if str(r['question_id']) not in recent]
-    rows=[]
-    for difficulty,count in [('easy',10),('medium',20),('hard',20)]:
-        group=[r for r in eligible if r['difficulty']==difficulty]
-        if len(group)<count:raise HTTPException(503,'Daily Challenge is unavailable: not enough approved questions.')
-        rows.extend(RANDOM.sample(group,count))
-    deck=snapshots(conn,rows)
-    conn.execute('INSERT INTO game_daily_pools(day,deck) VALUES(%s,%s)',(day,Jsonb(deck)))
+    row=conn.execute('SELECT deck,version FROM game_daily_pools WHERE day=%s',(day,)).fetchone()
+    if row and row['version']==2:return row['deck'],day,reset
+    existing=row['deck'] if row else []
+    ids={q['question_id'] for q in existing}
+    eligible=[r for r in candidates(conn) if str(r['question_id']) not in ids]
+    # Reserve many more than 50, but do not mark unseen questions as played.
+    # Personal weekly history is filtered when each run starts.
+    deck=existing+snapshots(conn,RANDOM.sample(eligible,min(len(eligible),max(0,1000-len(existing)))))
+    if not deck:raise HTTPException(503,'Daily Challenge is unavailable: no approved questions.')
+    if row:conn.execute('UPDATE game_daily_pools SET deck=%s,version=2 WHERE day=%s',(Jsonb(deck),day))
+    else:conn.execute('INSERT INTO game_daily_pools(day,deck,version) VALUES(%s,%s,2)',(day,Jsonb(deck)))
     return deck,day,reset
 
 
@@ -128,6 +127,10 @@ def persist(conn,row,now):
                     VALUES(%s,%s,%s,%s,'correct_answer') ON CONFLICT DO NOTHING""",
                     (ident,run,a['position'],game.XP[s['deck'][a['position']-1]['difficulty']]))
         result=game.daily_view(s,now)
+        if game.daily_survival(s) and s['rules']['ranked'] and s['phase'] in game.TERMINAL:
+            conn.execute('''INSERT INTO game_daily_scores(run_id,account_id,day,goals,penalties)
+                VALUES(%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING''',
+                (run,ident,row['day'],result['correct'],len(s['history'])))
         if result['won']:
             conn.execute('INSERT INTO game_daily_wins(account_id,day,run_id) VALUES(%s,%s,%s) ON CONFLICT DO NOTHING',(ident,row['day'],run))
         if s['phase']=='FINISHED' and s['history'] and all(a['option_id'] is not None for a in s['history']):
@@ -143,6 +146,10 @@ def daily_public(conn,row,now,user):
     if row['state']['phase'] in game.TERMINAL:
         p=profile(conn,user)
         result['player_progress']={k:p[k] for k in ('total_xp','level','level_xp','next_level_xp')}
+        result['xp_transition']=xp_transition(conn,user['account_id'],row['run_id'],result['player_progress'])
+        if game.daily_survival(row['state']):
+            result['highscore']=conn.execute('SELECT COALESCE(max(goals),0) best FROM game_daily_scores WHERE account_id=%s',
+                (user['account_id'],)).fetchone()['best']
     return result
 
 
@@ -151,9 +158,11 @@ def daily_catalog(request:Request):
     with get_connection() as conn:
         user=account(conn,request);now=now_ms(conn);deck,day,reset=daily_pool(conn,now)
         used=used_questions(conn,[user['account_id']],now)
-        won=bool(conn.execute('SELECT 1 FROM game_daily_wins WHERE account_id=%s AND day=%s',(user['account_id'],day)).fetchone())
-        return {'remaining':sum(q['question_id'] not in used for q in deck),'won_today':won,'day':day,
-                'resets_at':reset,'rules':game.daily_create(deck,now,int(reset.timestamp()*1000))['rules']}
+        ranked=not conn.execute('SELECT 1 FROM game_daily_attempts WHERE account_id=%s AND day=%s',(user['account_id'],day)).fetchone()
+        remaining=sum(q['question_id'] not in used for q in deck) if ranked else sum(str(q['question_id']) not in used for q in candidates(conn))
+        best=conn.execute('SELECT COALESCE(max(goals),0) best FROM game_daily_scores WHERE account_id=%s',(user['account_id'],)).fetchone()['best']
+        return {'remaining':remaining,'ranked_available':ranked,'highscore':best,'day':day,
+                'resets_at':reset,'rules':game.daily_create(deck,now,int(reset.timestamp()*1000),ranked=ranked)['rules']}
 
 
 @router.get('/api/daily/active')
@@ -176,17 +185,26 @@ def daily_start(body:Start,request:Request):
         if row:
             if row['mode']!='daily':raise HTTPException(409,'Request ID belongs to another mode')
             game.daily_tick(row['state'],now);persist(conn,row,now);return daily_public(conn,row,now,user)
+        # Expired runs cannot block tomorrow's attempt, even if the player
+        # starts directly without first polling the active-run endpoint.
+        active=conn.execute("""SELECT r.* FROM game_mode_runs r JOIN game_mode_members m USING(run_id)
+            WHERE m.account_id=%s AND m.active AND r.mode='daily' FOR UPDATE OF r""",(ident,)).fetchone()
+        if active:game.daily_tick(active['state'],now);persist(conn,active,now)
         ensure_free(conn,ident)
         pool,day,reset=daily_pool(conn,now)
-        if conn.execute('SELECT 1 FROM game_daily_wins WHERE account_id=%s AND day=%s',(ident,day)).fetchone():
-            raise HTTPException(409,'Today\'s Daily Challenge is already won. Come back after 00:00 UTC.')
+        ranked=not conn.execute('SELECT 1 FROM game_daily_attempts WHERE account_id=%s AND day=%s',(ident,day)).fetchone()
         used=used_questions(conn,[ident],now)
-        deck=[q for q in pool if q['question_id'] not in used]
-        if not deck:raise HTTPException(409,'No unused daily questions remain. No win is awarded without playing.')
-        state=game.daily_create(deck,now,int(reset.timestamp()*1000))
+        if ranked:deck=deepcopy([q for q in pool if q['question_id'] not in used])
+        else:
+            rows=[q for q in candidates(conn) if str(q['question_id']) not in used]
+            deck=snapshots(conn,RANDOM.sample(rows,min(len(rows),1000)))
+        if not deck:raise HTTPException(409,'No unused questions remain. Try again after the question pool resets.')
+        RANDOM.shuffle(deck)
+        state=game.daily_create(deck,now,int(reset.timestamp()*1000),ranked=ranked)
         row=conn.execute('''INSERT INTO game_mode_runs(run_id,mode,owner_id,start_request_id,day,state)
             VALUES(%s,'daily',%s,%s,%s,%s) RETURNING *''',(uuid4(),ident,body.request_id,day,Jsonb(state))).fetchone()
         conn.execute('INSERT INTO game_mode_members(run_id,account_id,seat) VALUES(%s,%s,0)',(row['run_id'],ident))
+        if ranked:conn.execute('INSERT INTO game_daily_attempts(account_id,day,run_id) VALUES(%s,%s,%s)',(ident,day,row['run_id']))
         return daily_public(conn,row,now,user)
 
 
@@ -198,7 +216,7 @@ def daily_action(run_id,request,command='view',body=None):
         if not row:raise HTTPException(404,'Daily Challenge not found')
         now=now_ms(conn);s=row['state'];mark_seen(conn,row,now);game.daily_tick(s,now)
         try:
-            if command=='answer':game.solo.answer(s,body.position,body.option_id,str(body.request_id),now);game.daily_exhaust(s,now)
+            if command=='answer':game.daily_answer(s,body.position,body.option_id,str(body.request_id),now)
             if command=='next':game.solo.advance(s,body.previous,now)
             if command=='leave' and s['phase'] not in game.TERMINAL:s.update(phase='ABANDONED',finished_at=now,end_reason='resigned')
         except game.solo.SoloError as exc:failure=str(exc)

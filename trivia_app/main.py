@@ -25,6 +25,7 @@ from api.trivia_writer import router as trivia_writer
 from api.game_community import router as game_community
 from api.challenge_routes import router as challenges
 from api.social_routes import router as social
+from api.developer_dashboard import router as developer_dashboard
 from api.result_shares import router as result_shares, shared_result, public_origin
 from trivia_app.game_guide import guide_context
 
@@ -57,14 +58,15 @@ app.mount('/trivia-assets', TriviaAssets(directory=ROOT / 'trivia_app' / 'static
     public_files=('app.css','penalties.css','penalty_scene.js','solo.css','solo.js',
                   'stadium.css','stadium_intro.js','stadium_scene.js','stadium_config.js','stadium_v6_world.js','stadium_motion.js','crowd_reaction.js','penalty_shots.js','points_theme.css','redesign.css','home.css','home.js','theme.js','dark_mode.css','icons/sun.svg','icons/moon.svg',
                   'community.css','community.js','shell.js','shootout.css','result_share.js','solo_mobile.css','solo_mobile.js','solo_results.css','friends.js','game_modes.css',
-                  'account_settings.css','account_settings.js','public_ui.css','public_ui.js','social.css','social.js','mode_intro.js',
-                  'audio.css','audio.js','icons/volume-2.svg','icons/volume-x.svg',
+                  'account_settings.css','account_settings.js','profile.css','xp_progress.css','xp_progress.js','public_ui.css','public_ui.js','social.css','social.js','mode_intro.js',
+                  'audio.css','audio.js','icons/volume-2.svg','icons/volume-x.svg','icons/monitor.svg','icons/monitor-off.svg',
                   'game_guide.css','game_guide.js','guide/shooter.png','guide/keeper.png','icons/circle-help.svg',
                   'brand/logo.png','brand/mark.png','brand/favicon.png','brand/favicon.svg','brand/logo-transparent.png','brand/logo.svg','brand/icon-180.png',
                   'icons/eye.svg','icons/eye-off.svg',
                   *(f'clubs/{club["team_id"]}.png' for club in public_metadata['clubs']),
                   'icons/menu.svg','icons/x.svg','icons/user-round.svg','icons/trophy.svg','icons/history.svg',
-                  'icons/arrow-right.svg','icons/share-2.svg','icons/football.svg','icons/copy.svg','icons/download.svg','icons/LICENSE',
+                  'icons/arrow-right.svg','icons/share-2.svg','icons/football.svg','icons/football-outline.svg','icons/copy.svg','icons/download.svg','icons/LICENSE',
+                  'sounds/crowd-cheer.wav','sounds/crowd-groan.wav','sounds/LICENSE.md',
                   'vendor/three/three.module.min.js','vendor/three/three.core.min.js','vendor/three/LICENSE')), name='trivia-assets')
 app.include_router(questions,dependencies=[Depends(require_editor)])
 app.include_router(quizzes,dependencies=[Depends(require_editor)])
@@ -79,6 +81,7 @@ app.include_router(game_community)
 app.include_router(challenges)
 app.include_router(social)
 app.include_router(result_shares)
+app.include_router(developer_dashboard)
 
 
 @app.get('/s/{token}',response_class=HTMLResponse)
@@ -102,6 +105,8 @@ async def privacy_headers(request, call_next):
 
 @app.exception_handler(HTTPException)
 async def errors(request, exc):
+    if exc.status_code == 401 and request.url.path == '/internal/dashboard':
+        return RedirectResponse('/login?next=/internal/dashboard', status_code=303)
     if exc.status_code == 401 and (request.url.path.startswith('/internal/trivia') or request.url.path in ('/trivia','/quizzes')):
         return RedirectResponse('/login', status_code=303)
     return JSONResponse({'detail': exc.detail}, status_code=exc.status_code, headers=exc.headers)
@@ -111,7 +116,8 @@ async def errors(request, exc):
 def login_page(request: Request):
     if not os.getenv('TRIVIA_EDITOR_USERNAME') or len(os.getenv('TRIVIA_EDITOR_PASSWORD', '')) < 16:
         raise HTTPException(404, 'Editor is not configured')
-    return templates.TemplateResponse(request=request, name='login.html')
+    destination = '/internal/dashboard' if request.query_params.get('next') == '/internal/dashboard' else '/internal/trivia'
+    return templates.TemplateResponse(request=request, name='login.html', context={'destination': destination})
 
 
 login_failures = {}
@@ -119,7 +125,8 @@ login_lock = Lock()
 
 
 @app.post('/login', dependencies=[Depends(same_origin)])
-def login(request: Request, username: str = Form(max_length=200), password: str = Form(max_length=512)):
+def login(request: Request, username: str = Form(max_length=200), password: str = Form(max_length=512), next: str = Form('/internal/trivia', max_length=200)):
+    destination = '/internal/dashboard' if next == '/internal/dashboard' else '/internal/trivia'
     expected_user, expected_password = os.getenv('TRIVIA_EDITOR_USERNAME', ''), os.getenv('TRIVIA_EDITOR_PASSWORD', '')
     if not expected_user or len(expected_password) < 16:
         raise HTTPException(404, 'Editor is not configured')
@@ -134,11 +141,11 @@ def login(request: Request, username: str = Form(max_length=200), password: str 
         valid_password = secrets.compare_digest(password.encode(), expected_password.encode())
         if not (valid_user and valid_password):
             start, count = login_failures.get(key, (now, 0)); login_failures[key] = (start, count + 1)
-            return templates.TemplateResponse(request=request, name='login.html', context={'error': 'Invalid username or password.'}, status_code=401)
+            return templates.TemplateResponse(request=request, name='login.html', context={'error': 'Invalid username or password.', 'destination': destination}, status_code=401)
         login_failures.pop(key, None)
     request.session.clear()
     request.session.update({'editor': username, 'credential_tag': credential_tag(request)})
-    return RedirectResponse('/internal/trivia', status_code=303)
+    return RedirectResponse(destination, status_code=303)
 
 
 @app.post('/logout', dependencies=[Depends(same_origin)])
@@ -222,6 +229,11 @@ def player_page(username:str,request:Request):
 @app.get('/internal/trivia/difficulty',response_class=HTMLResponse,dependencies=[Depends(require_editor)])
 def difficulty_page(request:Request):
     return templates.TemplateResponse(request=request,name='difficulty.html',context={'active_page':'difficulty','private_navigation':True})
+
+
+@app.get('/internal/dashboard',response_class=HTMLResponse,dependencies=[Depends(require_editor)])
+def dashboard_page(request:Request):
+    return templates.TemplateResponse(request=request,name='developer_dashboard.html')
 
 
 @app.get('/internal/trivia', response_class=HTMLResponse, dependencies=[Depends(require_editor)])

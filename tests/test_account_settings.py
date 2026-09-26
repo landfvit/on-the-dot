@@ -1,5 +1,6 @@
 """Security regressions use disposable PostgreSQL schemas and mocked email."""
 from datetime import datetime,timezone,timedelta
+from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import os
 import unittest
@@ -34,16 +35,47 @@ class AccountSettingsTests(unittest.TestCase):
         self.assertEqual(other.post('/api/players/login',json={'identifier':'player@example.com','password':'updated-password'}).status_code,200)
         self.assertEqual(other.get('/api/players/me').json()['total_xp'],100)
 
-    def test_preferences_and_username_are_private_and_validated(self):
+    def test_preferences_are_private_and_bio_remains_editable(self):
         r=self.client.put('/api/players/preferences',json={'animations':False,'reduced_motion':True})
         self.assertEqual(r.status_code,200)
-        r=self.client.patch('/api/players/me',json={'username':'NEW_NAME','bio':'New bio'})
-        self.assertEqual(r.status_code,200,r.text);self.assertEqual(r.json()['username'],'new_name')
+        r=self.client.patch('/api/players/me',json={'bio':'New bio'})
+        self.assertEqual(r.status_code,200,r.text);self.assertEqual(r.json()['username'],'test_player')
+        self.assertEqual(r.json()['bio'],'New bio')
         self.assertEqual(r.json()['preferences'],{'animations':False,'reduced_motion':True})
-        self.assertEqual(self.client.get('/api/players/profiles/test_player').status_code,404)
-        public=self.client.get('/api/players/profiles/new_name').json()
+        public=self.client.get('/api/players/profiles/test_player').json()
         for field in ['email','preferences','password_hash','deleted_at']:self.assertNotIn(field,public)
-        self.assertEqual(self.client.patch('/api/players/me',json={'username':'deleted_fake'}).status_code,409)
+
+    def test_username_is_immutable_even_through_direct_api_requests(self):
+        before=self.client.get('/api/players/me').json()
+        for username in ['new_name','TEST_PLAYER','test_player','deleted_fake',None,'']:
+            with self.subTest(username=username):
+                response=self.client.patch('/api/players/me',json={'username':username,'bio':'Must not be applied'})
+                self.assertEqual(response.status_code,422,response.text)
+                after=self.client.get('/api/players/me').json()
+                self.assertEqual(after['username'],before['username'])
+                self.assertEqual(after['bio'],before['bio'])
+        self.assertEqual(self.client.get('/api/players/profiles/test_player').status_code,200)
+        self.assertEqual(self.client.get('/api/players/profiles/new_name').status_code,404)
+
+    def test_username_unique_with_different_emails_and_case(self):
+        for index,username in enumerate(['test_player','TEST_PLAYER','Test_Player']):
+            response=TestClient(app).post('/api/players/register',json={
+                'username':username,'email':f'duplicate{index}@example.com','password':'test-only-password'})
+            self.assertEqual(response.status_code,409,response.text)
+        with self.connection() as conn:
+            self.assertEqual(conn.execute("SELECT count(*) n FROM game_accounts WHERE username='test_player'").fetchone()['n'],1)
+
+    def test_concurrent_registrations_cannot_claim_the_same_username(self):
+        def register(index):
+            with TestClient(app) as client:
+                return client.post('/api/players/register',json={
+                    'username':['new_player','NEW_PLAYER'][index],
+                    'email':f'new{index}@example.com','password':'test-only-password'})
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            responses=list(pool.map(register,[0,1]))
+        self.assertEqual(sorted(r.status_code for r in responses),[201,409])
+        with self.connection() as conn:
+            self.assertEqual(conn.execute("SELECT count(*) n FROM game_accounts WHERE username='new_player'").fetchone()['n'],1)
 
     def test_deletion_erases_identity_not_frozen_games(self):
         ident,_=self.complete('easy');old=self.client.cookies.get(COOKIE)

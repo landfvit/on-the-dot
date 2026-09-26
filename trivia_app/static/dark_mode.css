@@ -5,22 +5,16 @@
   --paper:#191c1a; --ink:#f6f3eb;
   --surface-raised:#292e2a; --muted:#b9bcb2;
   --brand-coral:#ff867c; --brand-pink:#ff867c;
-  --accent-hover:#e3dfd5; --selection:#314327; --error-surface:#482927;
+  --accent-hover:#e3dfd5; --selection:#343a35; --error-surface:#482927;
 }
-/* Green controls need black text in BOTH themes, not the themed ink token. */
-.play-button,#start,#summary .result-actions #another,.solo-choices .chosen.correct { color:#111; }
-.play-button { border-color:#111; }
 .shootout-kick.pending { background:#fff; border-color:#111; }
-[data-theme-toggle] { flex:none; width:44px; height:44px; padding:10px; }
+[data-theme-toggle] { display:grid; place-items:center; flex:none; width:44px; height:44px; padding:0; }
 [data-theme-toggle] img { width:20px; height:20px; display:block; }
-html[data-theme=dark] img[src*="/icons/"]:not([src*="football.svg"]) { filter:invert(1)!important; }
-html[data-theme=dark] :is(.primary-link,.primary) img[src*="/icons/"] { filter:none!important; }
-html[data-theme=dark] .solo-choices .incorrect { color:#ffb4aa; }
-html[data-theme=dark] .solo-choices .chosen.incorrect { color:#191c1a; }
+html[data-theme=dark] img[src*="/icons/"]:not([src*="football.svg"]) { filter:invert(1); }
 html[data-theme=dark] .shell-dialog,html[data-theme=dark] .result-dialog { box-shadow:6px 6px 0 #0008; }
 /* The extra theme control stays in the existing fixed mobile toolbar. */
 @media(max-width:380px) {
   #stadium-controls strong { font-size:16px; }
   #stadium-controls .stadium-actions { gap:4px; }
-  #stadium-controls [data-theme-toggle],#stadium-controls [data-sound-toggle] { width:40px; height:40px; padding:8px; min-width:40px; }
+  #stadium-controls .icon-button { width:40px; height:40px; padding:0; min-width:40px; }
 }

@@ -23,9 +23,8 @@
   body.stadium-playing:not(.stadium-ending) #stadium-controls > div { flex-wrap:nowrap; gap:8px; }
   body.stadium-playing:not(.stadium-ending) #stadium-role,
   body.stadium-playing:not(.stadium-ending) #stadium-score { display:none; }
-  body.stadium-playing:not(.stadium-ending) #shootout-board {
-    top:calc(var(--play-header-height) + 5px); left:10px; padding:4px 8px;
-  }
+  body.stadium-playing:not(.stadium-ending) #shootout-hud { top:calc(var(--play-header-height) + 5px); left:10px; max-width:calc(100% - 20px); gap:8px; }
+  body.stadium-playing:not(.stadium-ending) #shootout-board { padding:4px 8px; }
   body.stadium-playing:not(.stadium-ending) .shootout-team { min-height:20px; }
   body.stadium-playing:not(.stadium-ending) #shootout-round { margin-top:2px; font-size:10px; }
   body.stadium-playing:not(.stadium-ending):has(#shootout-board) #stadium-framing {
@@ -43,16 +42,9 @@
     height:100%; min-height:0; display:grid; gap:4px;
     /* Fixed tracks prevent changes in question length, selection badges or
      * feedback from moving the answer buttons and the next-shot action. */
-    grid-template-rows:32px 16px minmax(0,1.2fr) minmax(96px,1fr) 44px 44px;
+    grid-template-rows:16px minmax(0,1.2fr) minmax(96px,1fr) 44px 44px;
   }
   body.stadium-playing:not(.stadium-ending) #question-panel > * { min-width:0; min-height:0; }
-  body.stadium-playing:not(.stadium-ending) .run-meta {
-    display:grid; grid-template-columns:minmax(0,1fr) auto; grid-template-rows:14px 14px;
-    gap:0 8px; padding:0; border:0; font-size:11px; line-height:14px;
-  }
-  body.stadium-playing:not(.stadium-ending) .run-meta #run-category {
-    grid-column:1/-1; width:auto; font-size:11px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
-  }
   body.stadium-playing:not(.stadium-ending) .clock { margin:0; gap:8px; font-size:11px; }
   /* Keep hidden clock/Next in their slots but inaccessible to clicks and focus. */
   body.stadium-playing:not(.stadium-ending) #question-panel .clock[hidden],
@@ -82,19 +74,19 @@
   }
   #feedback-expand img { width:18px; height:18px; filter:invert(1); }
   body.stadium-playing:not(.stadium-ending) #question-panel > .actions {
-    display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); grid-auto-rows:44px; gap:6px;
+    display:grid; grid-template-columns:minmax(0,1fr); grid-auto-rows:44px; gap:6px;
   }
-  body.stadium-playing:not(.stadium-ending) #question-panel > .actions:has(#retry:not([hidden])) { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  body.stadium-playing:not(.stadium-ending) #question-panel > .actions:has(#retry:not([hidden])) { grid-template-columns:repeat(2,minmax(0,1fr)); }
   body.stadium-playing:not(.stadium-ending) #question-panel > .actions button {
     min-width:0; min-height:44px; padding:6px 8px; font-size:12px; line-height:1.2; justify-content:center; align-items:center;
   }
-  /* Connection notices replace metadata without resizing the playing grid.
+  /* Connection notices replace the clock without resizing the playing grid.
    * Reconnect remains reachable in the action row. */
   body.stadium-playing:not(.stadium-ending) .solo-questions > :is(#error,#notice):not(:empty) {
     position:absolute; z-index:1; left:12px; right:12px; top:10px; margin:0; padding:0;
     background:var(--surface); font-size:11px; line-height:14px;
   }
-  body.stadium-playing:not(.stadium-ending) .solo-questions:has(#error:not([hidden]):not(:empty)) .run-meta { visibility:hidden; }
+  body.stadium-playing:not(.stadium-ending) .solo-questions:has(#error:not([hidden]):not(:empty)) .clock { visibility:hidden; }
 }
 
 /* Landscape phones use the existing side-by-side camera, with the same stable
@@ -107,7 +99,7 @@
     padding:6px 10px max(6px,env(safe-area-inset-bottom,0px)); border-top:0; border-left:1px solid var(--border);
   }
   body.stadium-playing:not(.stadium-ending) #question-panel {
-    gap:4px; grid-template-rows:28px 12px minmax(0,1.2fr) minmax(92px,1fr) 32px 44px;
+    gap:4px; grid-template-rows:12px minmax(0,1.2fr) minmax(92px,1fr) 32px 44px;
   }
   body.stadium-playing:not(.stadium-ending) #feedback { -webkit-line-clamp:2; }
   body.stadium-playing:not(.stadium-ending):has(#shootout-board) #stadium-framing {
@@ -120,9 +112,7 @@
 @media (max-height:360px) and (min-width:480px) and (max-width:1100px) {
   body.stadium-playing:not(.stadium-ending) { --stadium-panel-width:64vw; --play-header-height:44px; }
   body.stadium-playing:not(.stadium-ending) .solo-questions { padding:4px 8px; }
-  body.stadium-playing:not(.stadium-ending) #question-panel { gap:2px; grid-template-rows:14px 6px minmax(0,1fr) 92px 44px 44px; }
-  body.stadium-playing:not(.stadium-ending) .run-meta { grid-template-rows:14px; }
-  body.stadium-playing:not(.stadium-ending) .run-meta #run-category { display:none; }
+  body.stadium-playing:not(.stadium-ending) #question-panel { gap:2px; grid-template-rows:6px minmax(0,1fr) 92px 44px 44px; }
   body.stadium-playing:not(.stadium-ending) .clock output { display:none; }
   body.stadium-playing:not(.stadium-ending) #question-title { line-height:1.2; }
 }

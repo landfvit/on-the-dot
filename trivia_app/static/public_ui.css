@@ -36,12 +36,12 @@ body.stadium-playing:not(.stadium-ending) .ad-slot:not(.ad-gameplay) { display:n
   .ad-gameplay:not([hidden]) { display:block; width:320px; max-width:100%; margin:32px auto 0; padding-top:16px; }
   .ad-gameplay .ad-creative { height:50px; }
 }
-/* 820px is the existing content width. Both 160x600 rails stay 24px away
- * from that content, below the header, and disappear while the pitch is live. */
+/* Both 160x600 rails stay 24px away from the shared desktop column,
+ * below the header, and disappear while the pitch is live. */
 @media(min-width:1280px) and (min-height:780px) and (hover:hover) and (pointer:fine) {
   .ad-rail:not([hidden]) { display:block; position:fixed; z-index:1; top:120px; width:160px; margin:0; padding:0; border:0; }
   .ad-rail .ad-creative { height:600px; }
-  .ad-rail-left { left:calc((100% - 820px)/2 - 184px); }
-  .ad-rail-right { right:calc((100% - 820px)/2 - 184px); }
+  .ad-rail-left { left:calc((100% - var(--public-content-width,820px))/2 - 184px); }
+  .ad-rail-right { right:calc((100% - var(--public-content-width,820px))/2 - 184px); }
   body.stadium-ending .ad-rail { opacity:var(--stadium-result,0); }
 }

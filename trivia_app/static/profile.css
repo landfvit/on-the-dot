@@ -1,0 +1,37 @@
+/* Profile uses unframed rows; identity and XP remain visible in every tab. */
+#profile .profile-title { display:flex; align-items:center; gap:16px; margin:0 0 20px; }
+#profile .profile-title > div { min-width:0; }
+#profile-name { font-size:28px; line-height:1.2; margin:0; overflow-wrap:anywhere; }
+#profile-bio { margin:8px 0 0; font-size:14px; line-height:1.5; color:var(--muted); }
+#profile-team { margin:0; flex:none; }
+#profile-team:empty { display:none; }
+#profile-team .club-badge { width:56px; height:56px; display:block; }
+#profile .profile-progress { margin:0 0 24px; }
+#profile .xp-heading { font-size:14px; }
+#profile #profile-level { font-size:20px; }
+#profile-tabs { margin:0 0 24px; }
+#profile-stats .metrics { margin:0; padding:16px 0; border-top:0; border-bottom:2px solid var(--ink); gap:16px; }
+#profile-stats .metric strong { color:var(--ink); font-size:26px; }
+#profile .profile-record { margin:24px 0; border:0; }
+#profile .profile-record h3 { font-size:16px; margin:0; }
+#profile #profile-record { grid-template-columns:repeat(3,minmax(0,1fr)); }
+#profile #own-profile { display:block; }
+#profile [data-profile-panel] { max-width:none; }
+#profile .profile-club { padding:0; border:0; gap:12px; }
+#profile .profile-section-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+#profile .profile-section-heading h2 { font-size:18px; }
+#profile .profile-links { display:flex; flex-wrap:wrap; gap:8px; padding-top:16px; }
+#profile [data-profile-panel=settings] { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 24px; align-items:start; }
+#profile [data-profile-panel=settings] > details { min-width:0; padding:10px 0; }
+#profile [data-profile-panel=settings] summary { font-size:14px; }
+#profile #public-friend-status:empty { display:none; }
+#profile .friend-add { max-width:640px; }
+@media(max-width:600px) {
+  #profile-name { font-size:24px; }
+  #profile .profile-title { gap:12px; margin-bottom:16px; }
+  #profile-team .club-badge { width:44px; height:44px; }
+  #profile-stats #profile-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #profile [data-profile-panel=settings] { grid-template-columns:minmax(0,1fr); }
+  #profile .profile-record { margin:20px 0; }
+  #profile-stats .metric strong { font-size:24px; }
+}

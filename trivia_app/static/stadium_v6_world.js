@@ -3,7 +3,7 @@
  * Tento modul neobsahuje demo UI, vyber vysledku ani herni casomiru.
  */
 import * as THREE from './vendor/three/three.module.min.js';
-import {V6_WORLD as CONFIG} from './stadium_config.js?v=13';
+import {V6_WORLD as CONFIG} from './stadium_config.js?v=14';
 
 export function createStadiumWorld(scene) {
   const v=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
@@ -259,10 +259,16 @@ export function createStadiumWorld(scene) {
   let net, netRest;
   function buildGoal() {
     const x = CONFIG.penalty.goalX, back = x+2, z = 3.66;
-    const posts = surface(CONFIG.colors.outline);
+    const posts = new THREE.MeshBasicMaterial({color:CONFIG.colors.goal});
     continuousFrame(x,z,2.44,CONFIG.structure.postRadius,posts,'goal-frame-continuous');
-    const supports = surface(CONFIG.colors.outline);
+    // A slightly larger back-facing shell gives a thin silhouette on both
+    // sides of each white post, including the corners and keeper camera view.
+    // Do not use stadium ink/theme here: this outline must remain black.
+    const border=new THREE.MeshBasicMaterial({color:0x111111,side:THREE.BackSide});
+    continuousFrame(x,z,2.44,CONFIG.structure.postRadius+CONFIG.structure.goalOutline,border,'goal-frame-outline');
+    const supports = new THREE.MeshBasicMaterial({color:CONFIG.colors.goal});
     continuousFrame(back,z,2.15,0.021,supports,'goal-rear-frame-continuous');
+    continuousFrame(back,z,2.15,0.024,border,'goal-rear-frame-outline');
     for (const s of [-1,1]) {
       tube([x,0.02,s*z],[back,0.02,s*z],0.021,supports);
       tube([x,2.44,s*z],[back,2.15,s*z],0.022,supports);
@@ -294,7 +300,7 @@ export function createStadiumWorld(scene) {
     geometry.setAttribute('position',new THREE.Float32BufferAttribute(points,3));
     netRest=new Float32Array(points);
     net=new THREE.LineSegments(geometry,new THREE.LineBasicMaterial({
-      color:CONFIG.colors.outline, transparent:true, opacity:CONFIG.structure.netOpacity, depthWrite:false,
+      color:CONFIG.colors.goal, transparent:true, opacity:CONFIG.structure.netOpacity, depthWrite:false,
     }));
     net.name='goal-net'; goal.add(net);
   }
@@ -472,8 +478,8 @@ export function createStadiumWorld(scene) {
         const u=polygon[0].clone().sub(center.clone().multiplyScalar(polygon[0].dot(center))).normalize();
         const w=center.clone().cross(u).normalize();
         const ordered=polygon.slice().sort((a,b)=>Math.atan2(a.dot(w),a.dot(u))-Math.atan2(b.dot(w),b.dot(u)));
-        // Jemná mezera mezi panely tvoří zapuštěný šev. Žádné drátěné hrany míče.
-        const inset=ordered.map((p)=>p.clone().lerp(center,0.018).normalize());
+        // Bold black seams match the flat football icon; the ball remains 3D.
+        const inset=ordered.map((p)=>p.clone().lerp(center,0.075).normalize());
         for(let i=0;i<inset.length;i++) triangle(center,inset[i],inset[(i+1)%inset.length],2);
       }
       const geometry=new THREE.BufferGeometry();
@@ -481,8 +487,8 @@ export function createStadiumWorld(scene) {
       geometry.setAttribute('normal',new THREE.Float32BufferAttribute(normals,3));
       geometry.computeBoundingSphere(); return geometry;
     }
-    const whites=new THREE.Mesh(panelGeometry(hexagons),surface(CONFIG.colors.ballWhite,{roughness:0.73}));
-    const blacks=new THREE.Mesh(panelGeometry(pentagons),surface(CONFIG.colors.ballBlack,{roughness:0.86}));
+    const whites=new THREE.Mesh(panelGeometry(hexagons),new THREE.MeshBasicMaterial({color:CONFIG.colors.ballWhite}));
+    const blacks=new THREE.Mesh(panelGeometry(pentagons),new THREE.MeshBasicMaterial({color:CONFIG.colors.ballBlack}));
     root.add(whites,blacks);
     root.userData.panels={pentagons:pentagons.length,hexagons:hexagons.length};
     scene.add(root); return root;
@@ -631,5 +637,5 @@ export function createStadiumWorld(scene) {
     dispose:()=>{textures.forEach(t=>t.dispose());},
     inspect:()=>({focus:fadeUniform.value,environmentVisible:environment.visible,
       standsSolid:fadeUniform.value===0&&fills.visible&&fills.children.every(o=>o.material.opacity===1&&o.material.depthWrite),
-      panels:ball.userData.panels,theme,markingsColor:markingMaterial.color.getHex(),reference:'v6'})};
+      panels:ball.userData.panels,theme,markingsColor:markingMaterial.color.getHex(),goalColor:CONFIG.colors.goal,netColor:net.material.color.getHex(),goalOutline:CONFIG.structure.goalOutline,reference:'v6'})};
 }

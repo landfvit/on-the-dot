@@ -12,7 +12,7 @@
 {% block content %}
 <main class="public-result">
   <p>{{ result.label }}</p><h1>{{ result.status }}</h1>{% if result.reason %}<p>{{ result.reason }}</p>{% endif %}
-  <div class="public-score"><span>{{ result.player }}</span><strong>{{ result.score[0] }} : {{ result.score[1] }}</strong><span>{{ result.opponent }}</span></div>
+  <div class="public-score"><span>{{ result.player }}</span><strong>{% if result.format|default('') == 'daily_survival' %}{{ result.correct }} goals{% else %}{{ result.score[0] }} : {{ result.score[1] }}{% endif %}</strong><span>{{ result.opponent }}</span></div>
   <p>{{ result.correct }} / {{ result.total }} correct answers{% if result.mode != 'friend' %} · {{ result.xp }} {{ 'guest XP' if result.guest else 'XP' }}{% endif %}</p>
   <img src="{{ share_url }}/image.png" width="1200" height="630" alt="{{ result.description }}">
   <a href="{{ '/friends' if result.mode == 'friend' else '/daily' if result.mode == 'daily' else '/penalties' }}" class="primary-link">Play {{ result.label }}</a>

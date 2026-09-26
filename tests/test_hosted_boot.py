@@ -13,7 +13,7 @@ import sys
 
 class NoLocalPackages(importlib.abc.MetaPathFinder):
     def find_spec(self, fullname, path=None, target=None):
-        if fullname.split('.')[0] in {'PIL', 'mwparserfromhell', 'mlx', 'mlx_lm'}:
+        if fullname.split('.')[0] in {'mwparserfromhell', 'mlx', 'mlx_lm'}:
             raise ImportError('Local-only dependency requested')
 sys.meta_path.insert(0, NoLocalPackages())
 
@@ -29,6 +29,7 @@ for path in ['/', '/penalties', '/account', '/leaderboard', '/trivia-assets/solo
              '/trivia-assets/icons/volume-2.svg', '/trivia-assets/icons/volume-x.svg',
              '/trivia-assets/clubs/33.png']:
     assert client.get(path).status_code == 200, path
+assert client.get('/share/brand.png').status_code == 200
 assert client.get('/trivia-assets/public_metadata.json').status_code in (401, 404)
 '''
         result = subprocess.run([sys.executable, '-c', script],

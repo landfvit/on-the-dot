@@ -2,20 +2,19 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const source=fs.readFileSync(require('node:path').join(__dirname,'../trivia_app/static/community.js'),'utf8');
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 function setup(view='leaderboard') {
-  const nodes=new Map(),requests=[],selected={value:'today'},metric={value:'wins'},board={value:'players'};
+  const nodes=new Map(),requests=[],metric={value:'wins'},board={value:'players'};
   const element=tag=>({tag,children:[],style:{},hidden:false,handlers:{},textContent:'',append(...items){this.children.push(...items);},replaceChildren(...items){this.children=items;},setAttribute(k,v){this[k]=v;},addEventListener(k,fn){this.handlers[k]=fn;}});
   const get=id=>{if(!nodes.has(id))nodes.set(id,element('div'));return nodes.get(id);};
-  const tabs=[get('today'),get('week'),get('all')];
   vm.runInNewContext(source,{document:{getElementById:get,createElement:element,
-    querySelector:s=>s==='.community-page'?{dataset:{view}}:s.includes('metric')?metric:s.includes('board')?board:selected,
-    querySelectorAll:s=>s.includes('metric')?[get('xp'),get('streak'),get('level'),get('wins'),get('win_rate')]:s.includes('board')?[get('players'),get('teams')]:tabs},
+    querySelector:s=>s==='.community-page'?{dataset:{view}}:s.includes('metric')?metric:s.includes('board')?board:null,
+    querySelectorAll:s=>s.includes('metric')?[get('xp'),get('streak'),get('level'),get('wins'),get('win_rate'),get('daily_highscore')]:s.includes('board')?[get('players'),get('teams')]:[]},
     AbortController,Date,encodeURIComponent,URLSearchParams,location:{search:''},
     PointsUI:{badge:club=>club?.team_id&&club?.name?.trim()?Object.assign(element('img'),{alt:club.name}):null},
     fetch:(url,options)=>new Promise(resolve=>requests.push({url,options,resolve}))});
-  return {get,requests,selected,metric,board};
+  return {get,requests,metric,board};
 }
 const player={rank:1,username:'<script>player</script>',accent:'blue',level:2,xp:100,total_xp:220};
-const board={entries:[player],me:player,participants:1,signed_in:true,period:'today',since:'2026-09-22T00:00:00Z',as_of:'2026-09-22T12:00:00Z',distribution:[{minimum:100,label:'100-249',count:1}]};
+const board={entries:[player],me:player,participants:1,signed_in:true,period:'all',since:null,as_of:'2026-09-22T12:00:00Z',distribution:[{minimum:100,label:'100-249',count:1}]};
 const reply=(r,data,status=200)=>r.resolve({ok:status<400,status,json:async()=>data});
 test('ranks, profile links and distribution use server data as text',async()=>{
   const s=setup();reply(s.requests[0],board);await flush();
@@ -25,8 +24,8 @@ test('ranks, profile links and distribution use server data as text',async()=>{
   assert.equal(s.get('participant-count').textContent,'1 player');
   assert.equal(s.get('distribution-bars').children[0].children[1].style.height,'100%');
 });
-test('rapid period changes abort stale requests and cannot replace the new rank',async()=>{
-  const s=setup();s.selected.value='all';s.get('all').handlers.change();
+test('rapid metric changes abort stale requests and keep all-time rankings',async()=>{
+  const s=setup();s.metric.value='xp';s.get('xp').handlers.change();
   assert(s.requests[0].options.signal.aborted);assert.match(s.requests[1].url,/period=all/);
   reply(s.requests[1],{...board,period:'all',since:null});await flush();
   reply(s.requests[0],{...board,entries:[]});await flush();
@@ -77,10 +76,9 @@ test('team ranking uses returned totals and badges, never averages them again',a
   assert.equal(s.get('participant-count').textContent,'1 team');
 });
 
-test('player levels use server values, disable periods and survive board changes',async()=>{
+test('player levels use server values and survive board changes',async()=>{
   const s=setup();s.metric.value='level';s.get('level').handlers.change();
   assert.match(s.requests.at(-1).url,/period=all&metric=level&board=players/);
-  for(const tab of ['today','week','all'])assert.equal(s.get(tab).disabled,true);
   reply(s.requests.at(-1),{...board,board:'players',metric:'level',period:'all',since:null});await flush();
   assert.equal(s.get('rank-value').textContent,'Levels');
   assert.equal(s.get('ranking-rows').children[0].children[2].textContent,'2');
@@ -90,13 +88,65 @@ test('player levels use server values, disable periods and survive board changes
   s.board.value='players';s.get('players').handlers.change();
   assert.match(s.requests.at(-1).url,/period=all&metric=level&board=players/);
   s.metric.value='xp';s.get('xp').handlers.change();
-  for(const tab of ['today','week','all'])assert.equal(s.get(tab).disabled,false);
+  assert.match(s.requests.at(-1).url,/period=all&metric=xp/);
 });
 
-test('current streak ignores the period filter and shows days',async()=>{
+test('current streak stays all-time and shows its current-day meaning',async()=>{
   const s=setup();s.metric.value='streak';s.get('streak').handlers.change();
   assert.match(s.requests.at(-1).url,/period=all&metric=streak/);
   reply(s.requests.at(-1),{...board,metric:'streak',period:'all',since:null,entries:[{...player,streak:7}]});await flush();
   assert.equal(s.get('ranking-rows').children[0].children[2].textContent,'7');
-  assert.match(s.get('ranking-period').textContent,/Current streak.*days/);
+  assert.match(s.get('ranking-period').textContent,/All time.*current streak.*days/);
+});
+
+test('every player and team metric always requests all time and 25 rows',()=>{
+  const s=setup();
+  for(const name of ['players','teams']){
+    s.board.value=name;s.get(name).handlers.change();
+    for(const name of ['xp','streak','wins','win_rate','level','daily_highscore']){
+      s.metric.value=name;s.get(name).handlers.change();
+      assert.match(s.requests.at(-1).url,/period=all&metric=/);
+      assert.match(s.requests.at(-1).url,/offset=0&limit=25$/);
+    }
+  }
+});
+
+const entries=(start,count)=>Array.from({length:count},(_,i)=>({...player,rank:start+i+1,username:'player_'+(start+i+1)}));
+test('ranges are always visible and next pages exist only above each 25-player boundary',async()=>{
+  for(const total of [0,1,25,26,50,51]){
+    const s=setup();
+    for(let offset=0;offset<Math.max(1,total);offset+=25){
+      const count=Math.min(25,total-offset);
+      assert.match(s.requests.at(-1).url,new RegExp(`offset=${offset}&limit=25$`));
+      reply(s.requests.at(-1),{...board,participants:total,entries:entries(offset,count)});await flush();
+      assert.equal(s.get('ranking-rows').children.length,count);
+      assert.equal(s.get('community-pagination').hidden,false);
+      assert.equal(s.get('page-number').textContent,`${count?offset+1:0} - ${offset+count} of ${total}`);
+      assert.equal(s.get('previous-page').disabled,offset===0);
+      assert.equal(s.get('next-page').disabled,offset+25>=total);
+      const before=s.requests.length;s.get('next-page').handlers.click();
+      assert.equal(s.requests.length,before+(offset+25<total?1:0));
+      if(offset+25<total){s.get('next-page').handlers.click();assert.equal(s.requests.length,before+1);}
+    }
+    if(total>25){s.get('previous-page').handlers.click();assert.match(s.requests.at(-1).url,new RegExp(`offset=${Math.floor((total-1)/25)*25-25}&limit=25$`));}
+  }
+});
+
+test('changing boards or metrics resets to the first page',async()=>{
+  const s=setup();
+  for(const kind of ['metric','board']){
+    reply(s.requests.at(-1),{...board,participants:50,entries:entries(0,25)});await flush();
+    s.get('next-page').handlers.click();reply(s.requests.at(-1),{...board,participants:50,entries:entries(25,25)});await flush();
+    if(kind==='metric'){s.metric.value='xp';s.get('xp').handlers.change();}
+    else{s.board.value='teams';s.get('teams').handlers.change();}
+    assert.match(s.requests.at(-1).url,/offset=0&limit=25$/);
+  }
+});
+
+test('a shrinking leaderboard returns to its last existing page',async()=>{
+  const s=setup();reply(s.requests[0],{...board,participants:26,entries:entries(0,25)});await flush();
+  s.get('next-page').handlers.click();reply(s.requests.at(-1),{...board,participants:12,entries:[]});await flush();
+  assert.match(s.requests.at(-1).url,/offset=0&limit=25$/);
+  reply(s.requests.at(-1),{...board,participants:12,entries:entries(0,12)});await flush();
+  assert.equal(s.get('page-number').textContent,'1 - 12 of 12');assert.equal(s.get('next-page').disabled,true);
 });

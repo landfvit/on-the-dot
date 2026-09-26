@@ -45,7 +45,9 @@
     const returnTo=next&&/^\/(daily|penalties|friends(?:\/[A-Za-z0-9_-]{32,64})?)$/.test(next)?next:null;
     const publicName=page.dataset.username;
     if(publicName){showProfile(await api('/api/players/profiles/'+encodeURIComponent(publicName)),false);return;}
-    const user=await currentUser();if(user&&returnTo){location.href=returnTo;return;}if(user)showProfile(user,true);else{$('notice').textContent='';$('authentication').hidden=false;}
+    let user=null,blockedMessage='';
+    try{user=await currentUser();}catch(e){if(e.status!==403)throw e;blockedMessage=e.message;}
+    if(user&&returnTo){location.href=returnTo;return;}if(user)showProfile(user,true);else{$('notice').textContent='';$('authentication').hidden=false;}
     setInterval(()=>{if(!$('own-profile').hidden)teamChangeStatus();},60000);
     function authMode(){
       const register=document.querySelector('input[name="auth-mode"]:checked').value==='register';
@@ -55,7 +57,7 @@
     }
     document.querySelectorAll('input[name="auth-mode"]').forEach(input=>input.addEventListener('change',authMode));
     if(params.get('mode')==='register')document.querySelector('input[name="auth-mode"][value="register"]').checked=true;
-    authMode();globalThis.PointsAccountSettings?.resetView();
+    authMode();globalThis.PointsAccountSettings?.resetView();if(blockedMessage)error(blockedMessage);
     $('auth-form').addEventListener('submit',async e=>{
       e.preventDefault();error('');$('authenticate').disabled=true;
       try{const mode=document.querySelector('input[name="auth-mode"]:checked').value;

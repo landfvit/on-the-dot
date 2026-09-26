@@ -11,7 +11,7 @@ const profile={username:'long_username_for_test',email:'example@example.com',bio
  const browser=await chromium.launch({channel:'chrome',headless:true});
  try{
   const page=await browser.newPage(),errors=[],starts=[],rankRequests=[];page.on('pageerror',e=>errors.push(e.message));
-  let locked=false,exhausted=false;
+  let locked=false,exhausted=false,totalPlayers=3;
   await page.route('**/api/**',async route=>{
    const url=new URL(route.request().url()),path=url.pathname;let data,status=200;
    if(path==='/api/players/me')data={...profile,team_change:{can_change:!locked,next_change_at:locked?new Date(Date.now()+72*3600000).toISOString():null}};
@@ -27,9 +27,11 @@ const profile={username:'long_username_for_test',email:'example@example.com',bio
     data={detail:'No new shootout is available for this selection right now. Try a different difficulty.'};
    }else if(path==='/api/community/leaderboard'){
     const board=url.searchParams.get('board'),metric=url.searchParams.get('metric'),period=url.searchParams.get('period');rankRequests.push({board,metric,period});
-    const item={rank:1,xp:1234567,total_xp:1234567,level:23,streak:123,wins:321,win_rate:62.5,members:15};
+    const item={rank:1,xp:1234567,total_xp:1234567,level:23,streak:123,wins:321,win_rate:62.5,members:15,daily_highscore:42};
     const entry=board==='teams'?{...item,...club}:{...item,username:profile.username,club};
-    data={board,metric,period,since:null,as_of:new Date().toISOString(),entries:[entry],me:entry,participants:1,signed_in:true,distribution:[{minimum:1000,label:'1,000+',count:1}]};
+    const count=board==='teams'?1:totalPlayers,offset=Number(url.searchParams.get('offset')),limit=Number(url.searchParams.get('limit'));
+    const entries=Array.from({length:Math.max(0,Math.min(limit,count-offset))},(_,i)=>({...entry,rank:offset+i+1,...(board==='players'?{username:offset+i?`player_${offset+i+1}`:profile.username}:{})}));
+    data={board,metric,period,since:null,as_of:new Date().toISOString(),entries,me:entry,participants:count,signed_in:true,distribution:metric==='daily_highscore'?[]:[{minimum:0,label:'<100',count:0},{minimum:100,label:'100-249',count:0},{minimum:250,label:'250-499',count:0},{minimum:500,label:'500-999',count:0},{minimum:1000,label:'1,000+',count}]};
    }else throw Error('Unexpected API '+path);
    await route.fulfill({status,json:data});
   });
@@ -49,18 +51,19 @@ const profile={username:'long_username_for_test',email:'example@example.com',bio
    await page.locator('input[name=difficulty][value=medium]').check();assert(await page.locator('#start').isEnabled());
    await page.goto(origin+'/leaderboard');await page.waitForSelector('#ranking-table:not([hidden])');
    assert.equal(rankRequests.at(-1).metric,'xp');assert.equal(rankRequests.at(-1).board,'players');
+   assert.equal(await page.locator('input[name=period]').count(),0);
+   assert.equal(await page.locator('#ranking-period').textContent(),'All time');
+   assert.equal(await page.locator('#page-number').textContent(),'1 - 3 of 3');
+   assert(await page.locator('#next-page').isDisabled());
    assert(await page.locator('#level-choice').isVisible());
    for(const board of ['players','teams']){
     await page.locator(`input[name=board][value=${board}]`).check();
-    for(const metric of ['xp','streak','wins','win_rate','level']){
+    for(const metric of ['xp','streak','wins','win_rate','daily_highscore','level']){
      await page.locator(`input[name=metric][value=${metric}]`).check();
-     await page.waitForFunction(metric=>document.getElementById('ranking-table').dataset.metric===metric&&!document.getElementById('ranking-table').hidden,metric);
+     await page.waitForFunction(({metric,board})=>{const t=document.getElementById('ranking-table');return t.dataset.metric===metric&&t.dataset.board===board&&!t.hidden;},{metric,board});
      assert.equal(await page.locator('#ranking-rows tr:first-child td').count(),3);
      assert.equal(rankRequests.at(-1).board,board);
-     if(['level','streak'].includes(metric)){
-      assert.equal(rankRequests.at(-1).period,'all');
-      assert.equal(await page.locator('input[name=period]:disabled').count(),3);
-     }
+     assert.equal(rankRequests.at(-1).period,'all');
      if(metric==='level'){
       assert.equal(await page.locator('#ranking-rows tr:first-child td:last-child').textContent(),'23');
       assert.equal(await page.locator('#rank-value').textContent(),'Levels');
@@ -68,13 +71,44 @@ const profile={username:'long_username_for_test',email:'example@example.com',bio
      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
      const overflow=await page.locator('#ranking-table').evaluate(e=>e.scrollWidth>e.clientWidth+1);assert(!overflow);
     }
-    await page.screenshot({path:`${output}/${board}-${width}.png`,fullPage:true});
+    for(const theme of ['light','dark']){
+     await page.emulateMedia({colorScheme:theme});
+     await page.waitForFunction(theme=>document.documentElement.dataset.theme===theme,theme);
+     const layout=await page.locator('.community-page').evaluate(root=>{
+      const box=selector=>root.querySelector(selector).getBoundingClientRect(),tabs=box('.ranking-tabs');
+      const buttons=[...root.querySelectorAll('.ranking-tabs span')].map(e=>{const r=e.getBoundingClientRect();return {x:r.x,right:r.right,width:r.width,height:r.height,overflow:e.scrollWidth>e.clientWidth||e.scrollHeight>e.clientHeight};});
+      return {width:tabs.width,left:tabs.left,right:tabs.right,buttons,boardGap:box('.board-tabs').top-box('#community-pagination').bottom,headingGap:tabs.top-box('.community-heading').bottom,boardWidth:box('.board-tabs').width,
+       selected:getComputedStyle(root.querySelector('.ranking-tabs :checked+span')).backgroundColor,
+       bars:[...root.querySelectorAll('.distribution-bar')].map(e=>getComputedStyle(e).backgroundColor)};
+     });
+     const columns=width<=600?2:3;
+     assert.equal(layout.buttons.length,6);assert(layout.headingGap>=24);assert(layout.boardGap>=20);
+     assert(Math.abs(layout.boardWidth-layout.width)<1);
+     for(const b of layout.buttons){assert(!b.overflow);assert(b.height>=44);assert(Math.abs(b.width-(layout.width-(columns-1)*8)/columns)<1);}
+     assert(Math.abs(layout.buttons[0].x-layout.left)<1);assert(Math.abs(layout.buttons[columns-1].right-layout.right)<1);
+     assert.equal(layout.selected,theme==='dark'?'rgb(246, 243, 235)':'rgb(17, 17, 17)');
+     assert(layout.bars.every(color=>color==='rgb(136, 176, 75)'));
+     await page.screenshot({path:`${output}/${board}-${width}-${theme}.png`,fullPage:true});
+    }
    }
    await page.locator('input[name=board][value=players]').check();
    await page.waitForFunction(()=>document.getElementById('rank-name').textContent==='Player'&&document.getElementById('ranking-table').dataset.metric==='level'&&!document.getElementById('ranking-table').hidden);
    assert(await page.locator('input[name=metric][value=level]').isChecked());
    assert.equal(rankRequests.at(-1).board,'players');
-   console.log(`PASS ${width}: difficulty-only selection, mixed payload, all ranking metrics, no overflow`);
+   totalPlayers=53;await page.reload();await page.waitForFunction(()=>document.getElementById('page-number').textContent==='1 - 25 of 53');
+   assert.equal(await page.locator('#ranking-rows tr').count(),25);assert(await page.locator('#previous-page').isDisabled());
+   await page.locator('#next-page').click();await page.waitForFunction(()=>document.getElementById('page-number').textContent==='26 - 50 of 53');
+   assert.equal(await page.locator('#ranking-rows tr').count(),25);
+   await page.locator('#next-page').click();await page.waitForFunction(()=>document.getElementById('page-number').textContent==='51 - 53 of 53');
+   assert.equal(await page.locator('#ranking-rows tr').count(),3);assert(await page.locator('#next-page').isDisabled());
+   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+   await page.screenshot({path:`${output}/last-page-${width}.png`,fullPage:true});
+   await page.locator('#previous-page').click();await page.waitForFunction(()=>document.getElementById('page-number').textContent==='26 - 50 of 53');
+   await page.locator('input[name=metric][value=wins]').check();await page.waitForFunction(()=>document.getElementById('page-number').textContent==='1 - 25 of 53');
+   totalPlayers=25;await page.reload();await page.waitForFunction(()=>document.getElementById('page-number').textContent==='1 - 25 of 25');assert(await page.locator('#next-page').isDisabled());
+   totalPlayers=0;await page.reload();await page.waitForFunction(()=>document.getElementById('page-number').textContent==='0 - 0 of 0');assert(await page.locator('#community-pagination').isVisible());assert(await page.locator('#next-page').isDisabled());
+   totalPlayers=3;
+   console.log(`PASS ${width}: all-time metrics, full-width controls, green charts, both themes and 25-row pagination`);
   }
   locked=true;await page.goto(origin+'/account');await page.waitForSelector('#own-profile:not([hidden])');
   assert(await page.locator('#add-team').isDisabled());assert.match(await page.locator('#team-change-note').textContent(),/change teams again.*UTC/);

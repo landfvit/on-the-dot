@@ -1,10 +1,9 @@
 (function(){
   'use strict';
   const $=id=>document.getElementById(id),page=document.querySelector('.community-page'),ranking=page.dataset.view==='leaderboard';
-  let offset=0,request=0,controller;
+  let offset=0,request=0,controller,hasMore=false;
   const size=ranking?25:20,number=n=>Number(n).toLocaleString('en-US');
   const node=(tag,text,cls)=>{const el=document.createElement(tag);if(text!==undefined)el.textContent=text;if(cls)el.className=cls;return el;};
-  const period=()=>document.querySelector('input[name="period"]:checked')?.value||'today';
   const metric=()=>document.querySelector('input[name="metric"]:checked')?.value||'xp';
   const board=()=>document.querySelector('input[name="board"]:checked')?.value||'players';
   const labels={xp:'XP',streak:'Streak',wins:'Wins',win_rate:'Win rate',level:'Levels',daily_highscore:'Daily high score'};
@@ -28,6 +27,7 @@
     }));
     $('ranking-self').hidden=false;$('ranking-self').replaceChildren();
     $('ranking-table').setAttribute('data-metric',selected);
+    $('ranking-table').setAttribute('data-board',teams?'teams':'players');
     if(data.me)$('ranking-self').append(node('strong',`${teams?'Your team':'Your rank'} #${number(data.me.rank)}`),node('span',`${value(data.me)} ${selected==='win_rate'?'':labels[selected]}`.trim()),identity(data.me));
     else {
       $('ranking-self').append(node('strong',data.signed_in?(teams?'Add a team to join this leaderboard.':'Complete a shootout to enter this leaderboard.'):'Sign in to join the leaderboard.'));
@@ -43,11 +43,10 @@
       col.append(node('span',number(b.count)),bar,node('small',b.label));
       col.setAttribute('aria-label',`${b.label} XP: ${b.count} ${noun}${b.count===1?'':'s'}`);return col;
     }));
-    const day=s=>new Date(s).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
-    $('ranking-period').textContent=selected==='streak'?'Current streak · days · UTC':(data.since?`${day(data.since)}${data.period==='week'?' - '+day(data.as_of):''} · UTC`:'All time');
-    $('community-status').textContent=data.participants?'':'No scores yet in this period.';
+    $('ranking-period').textContent=selected==='streak'?'All time · current streak · days · UTC':'All time';
+    $('community-status').textContent=data.participants?'':'No scores yet.';
     $('community-play').hidden=Boolean(data.participants);
-    return offset+data.entries.length<data.participants;
+    return offset+size<data.participants;
   }
   function renderHistory(data){
     $('history-list').replaceChildren(...data.items.map(item=>{
@@ -62,32 +61,34 @@
     return data.has_more;
   }
   async function load(){
-    const own=++request;controller?.abort();controller=new AbortController();
+    const own=++request;controller?.abort();controller=new AbortController();hasMore=false;
     $('community-status').textContent='Loading...';$('community-retry').hidden=true;$('community-signin').hidden=true;$('community-play').hidden=true;
     $('community-pagination').hidden=true;
+    $('previous-page').disabled=true;$('next-page').disabled=true;
     if(ranking){$('ranking-table').hidden=true;$('distribution').hidden=true;$('ranking-self').hidden=true;}
     else $('history-list').replaceChildren();
     try {
-      const currentOnly=['level','streak','daily_highscore'].includes(metric());
-      if(ranking){
-        document.querySelectorAll('input[name="period"]').forEach(input=>{input.disabled=currentOnly;if(currentOnly)input.checked=input.value==='all';});
-      }
-      const response=await fetch(`/api/community/${ranking?'leaderboard?period='+(currentOnly?'all':period())+'&metric='+metric()+'&board='+board():'history?'}&offset=${offset}&limit=${size}`,{signal:controller.signal});
+      const response=await fetch(`/api/community/${ranking?'leaderboard?period=all&metric='+metric()+'&board='+board():'history?'}&offset=${offset}&limit=${size}`,{signal:controller.signal});
       if(own!==request)return;
       if(response.status===401){$('community-status').textContent='Sign in to see your shootout history.';$('community-signin').hidden=false;return;}
       if(!response.ok)throw new Error('Unable to load results. Please try again.');
       const data=await response.json();if(own!==request)return;
+      // Accounts can disappear between requests. Return to the last real page
+      // instead of displaying an empty page beyond the current player count.
+      if(ranking&&offset>0&&offset>=data.participants){
+        offset=Math.max(0,Math.floor((data.participants-1)/size)*size);return load();
+      }
       const more=ranking?renderRanking(data):renderHistory(data);
-      $('community-pagination').hidden=!offset&&!more;$('previous-page').disabled=!offset;$('next-page').disabled=!more;
-      $('page-number').textContent=`Page ${Math.floor(offset/size)+1}`;
+      hasMore=more;
+      $('community-pagination').hidden=!ranking&&!offset&&!more;$('previous-page').disabled=!offset;$('next-page').disabled=!more;
+      $('page-number').textContent=ranking?`${data.entries.length?number(offset+1):0} - ${number(offset+data.entries.length)} of ${number(data.participants)}`:`Page ${Math.floor(offset/size)+1}`;
     }catch(e){if(own!==request||e.name==='AbortError')return;$('community-status').textContent=e.message;$('community-retry').hidden=false;}
   }
-  document.querySelectorAll('input[name="period"]').forEach(input=>input.addEventListener('change',()=>{offset=0;load();}));
   document.querySelectorAll('input[name="metric"]').forEach(input=>input.addEventListener('change',()=>{offset=0;load();}));
   document.querySelectorAll('input[name="board"]').forEach(input=>input.addEventListener('change',()=>{
     offset=0;load();
   }));
-  $('previous-page').addEventListener('click',()=>{offset=Math.max(0,offset-size);load();});
-  $('next-page').addEventListener('click',()=>{offset+=size;load();});
+  $('previous-page').addEventListener('click',()=>{if($('previous-page').disabled)return;offset=Math.max(0,offset-size);load();});
+  $('next-page').addEventListener('click',()=>{if(!hasMore||$('next-page').disabled)return;offset+=size;load();});
   $('community-retry').addEventListener('click',load);load();
 })();

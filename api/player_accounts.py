@@ -20,6 +20,7 @@ from api import account_email
 
 router=APIRouter(prefix='/api/players',tags=['player accounts'])
 COOKIE='points_account'
+BLOCKED_MESSAGE='This account is blocked. You cannot play on this account. Contact support.'
 
 
 def password_hash(password,salt=None):
@@ -128,12 +129,18 @@ def account(conn,request,lock=False):
     row=conn.execute('''SELECT a.* FROM game_accounts a JOIN game_sessions s USING(account_id)
         WHERE s.token_hash=%s AND s.expires_at>clock_timestamp() AND NOT a.is_guest AND a.deleted_at IS NULL''',
         (hashlib.sha256(token.encode()).hexdigest(),)).fetchone()
-    if not row:raise HTTPException(401,'Your session has expired. Sign in again.')
-    if row.get('blocked_at'):raise HTTPException(403,'This account is blocked. Contact support.')
+    if not row:
+        notice=conn.execute('''SELECT a.blocked_at,a.deleted_at FROM game_session_notices n
+            JOIN game_accounts a USING(account_id) WHERE n.token_hash=%s AND n.expires_at>clock_timestamp()''',
+            (hashlib.sha256(token.encode()).hexdigest(),)).fetchone()
+        if notice and notice['blocked_at']:raise HTTPException(403,BLOCKED_MESSAGE)
+        if notice and notice['deleted_at']:raise HTTPException(401,'This account has been deleted.')
+        raise HTTPException(401,'Your session has expired. Sign in again.')
+    if row.get('blocked_at'):raise HTTPException(403,BLOCKED_MESSAGE)
     if lock:
         row=conn.execute('SELECT * FROM game_accounts WHERE account_id=%s AND deleted_at IS NULL FOR UPDATE',(row['account_id'],)).fetchone()
         if not row:raise HTTPException(401,'Your session has expired. Sign in again.')
-        if row.get('blocked_at'):raise HTTPException(403,'This account is blocked. Contact support.')
+        if row.get('blocked_at'):raise HTTPException(403,BLOCKED_MESSAGE)
         # Password changes revoke sessions while holding the same account lock.
         if not conn.execute('SELECT 1 FROM game_sessions WHERE token_hash=%s AND expires_at>clock_timestamp()',
                             (hashlib.sha256(token.encode()).hexdigest(),)).fetchone():
@@ -146,9 +153,28 @@ def new_session(conn,ident,request,response):
     if old:conn.execute('DELETE FROM game_sessions WHERE token_hash=%s',(hashlib.sha256(old.encode()).hexdigest(),))
     token=secrets.token_urlsafe(32)
     conn.execute('DELETE FROM game_sessions WHERE expires_at<=clock_timestamp()')
+    conn.execute('DELETE FROM game_session_notices WHERE expires_at<=clock_timestamp()')
     conn.execute('INSERT INTO game_sessions(token_hash,account_id) VALUES(%s,%s)',(hashlib.sha256(token.encode()).hexdigest(),ident))
     response.set_cookie(COOKIE,token,max_age=30*86400,httponly=True,samesite='strict',path='/',
                         secure=request.url.scheme=='https' or os.getenv('TRIVIA_HTTPS_ONLY')=='1')
+
+
+def revoke_sessions(conn,ident,remember=False):
+    """Caller holds the account lock; notices cannot be used to sign in."""
+    if remember:
+        conn.execute('''INSERT INTO game_session_notices(token_hash,account_id,expires_at)
+            SELECT token_hash,account_id,expires_at FROM game_sessions
+            WHERE account_id=%s AND expires_at>clock_timestamp() ON CONFLICT DO NOTHING''',(ident,))
+    conn.execute('DELETE FROM game_sessions WHERE account_id=%s',(ident,))
+
+
+def anonymize_account(conn,ident):
+    """Remove login/profile data without rewriting immutable game history."""
+    revoke_sessions(conn,ident,remember=True)
+    conn.execute('DELETE FROM game_password_resets WHERE account_id=%s',(ident,))
+    conn.execute("""UPDATE game_accounts SET username=%s,email=NULL,password_hash='!',bio='',club_id=NULL,
+        accent='green',animations=true,reduced_motion=false,deleted_at=clock_timestamp() WHERE account_id=%s""",
+        ('deleted_'+secrets.token_hex(8),ident))
 
 
 def xp_progress(conn,total):
@@ -207,7 +233,7 @@ def login(body:Login,request:Request,response:Response):
             (email=%s OR (email IS NULL AND username=%s)) FOR UPDATE''',(body.identifier,body.identifier)).fetchone()
         valid=verify_password(body.password,row['password_hash'] if row else DUMMY_HASH)
         if not row or not valid:raise HTTPException(401,'Invalid email or password')
-        if row.get('blocked_at'):raise HTTPException(403,'This account is blocked. Contact support.')
+        if row.get('blocked_at'):raise HTTPException(403,BLOCKED_MESSAGE)
         new_session(conn,row['account_id'],request,response)
         return private_profile(conn,row)
 
@@ -280,7 +306,7 @@ def update_email(body:EmailUpdate,request:Request,response:Response):
 def public_profile(username:str):
     if len(username)>24:raise HTTPException(404,'Player not found')
     with get_connection() as conn:
-        row=conn.execute('SELECT * FROM game_accounts WHERE username=%s AND NOT is_guest AND deleted_at IS NULL',(username.lower(),)).fetchone()
+        row=conn.execute('SELECT * FROM game_accounts WHERE username=%s AND NOT is_guest AND deleted_at IS NULL AND blocked_at IS NULL',(username.lower(),)).fetchone()
         if not row:raise HTTPException(404,'Player not found')
         return profile(conn,row)
 
@@ -319,11 +345,7 @@ def delete_account(body:AccountDeletion,request:Request,response:Response):
     with get_connection() as conn:
         row=account(conn,request,lock=True)
         if not verify_password(body.password,row['password_hash']):raise HTTPException(401,'Incorrect password')
-        conn.execute('DELETE FROM game_sessions WHERE account_id=%s',(row['account_id'],))
-        conn.execute('DELETE FROM game_password_resets WHERE account_id=%s',(row['account_id'],))
-        conn.execute("""UPDATE game_accounts SET username=%s,email=NULL,password_hash='!',bio='',club_id=NULL,
-            accent='green',animations=true,reduced_motion=false,deleted_at=clock_timestamp() WHERE account_id=%s""",
-            ('deleted_'+secrets.token_hex(8),row['account_id']))
+        anonymize_account(conn,row['account_id'])
     response.delete_cookie(COOKIE,path='/')
     return {'deleted':True}
 

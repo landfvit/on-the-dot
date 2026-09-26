@@ -43,7 +43,7 @@ class TeamLeaderboardDatabaseTests(unittest.TestCase):
                 CREATE TABLE game_clubs(team_id int PRIMARY KEY,name text,season int);
                 INSERT INTO game_clubs VALUES (33,'Manchester United',2026),(40,'Liverpool',2026),(50,'Manchester City',2026);
                 CREATE TABLE game_accounts(account_id uuid PRIMARY KEY,username text,club_id int REFERENCES game_clubs,
-                    is_guest bool DEFAULT false,deleted_at timestamptz,email text DEFAULT 'test@example.com',
+                    is_guest bool DEFAULT false,deleted_at timestamptz,blocked_at timestamptz,email text DEFAULT 'test@example.com',
                     bio text DEFAULT '',accent text DEFAULT 'green',animations bool DEFAULT true,reduced_motion bool DEFAULT false);
                 CREATE TABLE game_sessions(token_hash text,account_id uuid,expires_at timestamptz DEFAULT clock_timestamp()+INTERVAL '1 day');
                 CREATE TABLE game_levels(level int,minimum_xp int);
@@ -123,6 +123,16 @@ class TeamLeaderboardDatabaseTests(unittest.TestCase):
         self.assertFalse(anon['signed_in']);self.assertIsNone(anon['me'])
         for query in ('board=invalid','metric=invalid','offset=-1'):
             self.assertEqual(self.client.get('/api/community/leaderboard?'+query).status_code,422)
+
+    def test_blocked_member_is_removed_from_every_team_aggregate(self):
+        with self.connection() as conn:
+            conn.execute('UPDATE game_accounts SET blocked_at=now() WHERE account_id=%s',(self.ids['bob'],))
+        for metric,expected in [('xp',130),('level',3),('streak',3),('wins',1),('win_rate',50)]:
+            players=self.board(metric=metric)
+            self.assertNotIn('bob',[p['username'] for p in players['entries']])
+            self.assertEqual(sum(b['count'] for b in players['distribution']),players['participants'])
+            team=next(t for t in self.board(board='teams',metric=metric)['entries'] if t['team_id']==33)
+            self.assertEqual(team[metric],expected);self.assertEqual(team['members'],2)
 
     def test_join_switch_and_leave_are_locked_for_72_hours(self):
         response=self.client.put('/api/players/me/team',json={'team_id':40})

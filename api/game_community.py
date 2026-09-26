@@ -28,7 +28,7 @@ def leaderboard(request: Request, period: Literal['today', 'week', 'all'] = 'tod
                 user = account(conn, request)
                 username, team_id = user['username'], user['club_id']
             except HTTPException as exc:
-                if exc.status_code != 401: raise
+                if exc.status_code not in (401,403): raise
         now = conn.execute('SELECT clock_timestamp() AS now').fetchone()['now']
         if metric=='daily_highscore':
             return daily_highscores(conn,board,username,team_id,offset,limit,now)
@@ -80,7 +80,7 @@ def leaderboard(request: Request, period: Literal['today', 'week', 'all'] = 'tod
                 CASE WHEN c.team_id IS NOT NULL THEN jsonb_build_object('team_id',c.team_id,'name',c.name) END club
             FROM game_accounts a LEFT JOIN points p USING(account_id) LEFT JOIN matches m USING(account_id)
             LEFT JOIN streaks s USING(account_id) LEFT JOIN daily d USING(account_id)
-            LEFT JOIN game_clubs c ON c.team_id=a.club_id WHERE NOT a.is_guest AND a.deleted_at IS NULL
+            LEFT JOIN game_clubs c ON c.team_id=a.club_id WHERE NOT a.is_guest AND a.deleted_at IS NULL AND a.blocked_at IS NULL
         ), levels AS (
             SELECT *,
                    (SELECT level FROM game_levels WHERE minimum_xp<=total_xp
@@ -115,12 +115,12 @@ def daily_highscores(conn,board,username,team_id,offset,limit,now):
         a.username=%(username)s is_me,
         CASE WHEN c.team_id IS NOT NULL THEN jsonb_build_object('team_id',c.team_id,'name',c.name) END club
         FROM best b JOIN game_accounts a USING(account_id)
-        LEFT JOIN game_clubs c ON c.team_id=a.club_id WHERE NOT a.is_guest AND a.deleted_at IS NULL'''
+        LEFT JOIN game_clubs c ON c.team_id=a.club_id WHERE NOT a.is_guest AND a.deleted_at IS NULL AND a.blocked_at IS NULL'''
     if board=='teams':
         source='''SELECT c.team_id,c.name,sum(b.goals)::bigint daily_highscore,c.name sort_name,
             c.team_id=%(team_id)s is_me,count(*) members FROM best b
             JOIN game_accounts a USING(account_id) JOIN game_clubs c ON c.team_id=a.club_id
-            WHERE NOT a.is_guest AND a.deleted_at IS NULL GROUP BY c.team_id,c.name'''
+            WHERE NOT a.is_guest AND a.deleted_at IS NULL AND a.blocked_at IS NULL GROUP BY c.team_id,c.name'''
     result=conn.execute('''WITH best AS (
         SELECT account_id,max(goals) goals FROM game_daily_scores WHERE recorded_at<=%(now)s GROUP BY account_id
     ), competitors AS ('''+source+'''), ranked AS (

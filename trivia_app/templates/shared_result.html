@@ -4,17 +4,17 @@
 <meta property="og:title" content="{{ result.title }}">
 <meta property="og:description" content="{{ result.description }}">
 <meta property="og:url" content="{{ share_url }}">
-<meta property="og:image" content="{{ share_url }}/image.png">
+<meta property="og:image" content="{{ share_url }}/image.png?v=2">
 <meta property="og:image:alt" content="{{ result.description }}">
 <meta name="twitter:title" content="{{ result.title }}">
-<meta name="twitter:image" content="{{ share_url }}/image.png">
+<meta name="twitter:image" content="{{ share_url }}/image.png?v=2">
 {% endblock %}
 {% block content %}
 <main class="public-result">
   <p>{{ result.label }}</p><h1>{{ result.status }}</h1>{% if result.reason %}<p>{{ result.reason }}</p>{% endif %}
   <div class="public-score"><span>{{ result.player }}</span><strong>{% if result.format|default('') == 'daily_survival' %}{{ result.correct }} goals{% else %}{{ result.score[0] }} : {{ result.score[1] }}{% endif %}</strong><span>{{ result.opponent }}</span></div>
   <p>{{ result.correct }} / {{ result.total }} correct answers{% if result.mode != 'friend' %} · {{ result.xp }} {{ 'guest XP' if result.guest else 'XP' }}{% endif %}</p>
-  <img src="{{ share_url }}/image.png" width="1200" height="630" alt="{{ result.description }}">
+  <img src="{{ share_url }}/image.png?v=2" width="1200" height="630" alt="{{ result.description }}">
   <a href="{{ '/friends' if result.mode == 'friend' else '/daily' if result.mode == 'daily' else '/penalties' }}" class="primary-link">Play {{ result.label }}</a>
 </main>
 {% endblock %}

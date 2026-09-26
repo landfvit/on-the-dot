@@ -92,7 +92,13 @@
   document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>{
     state.action=b.dataset.action;state.pending=null;$('action-form').reset();$('action-form').hidden=false;
     $('action-title').textContent=b.textContent;
-    $('action-impact').textContent=state.action==='block'?'The account will be signed out and cannot sign in or continue playing while blocked. Existing results and XP stay unchanged.':state.action==='unblock'?'The player can sign in again. Previous sessions stay revoked.':'Every signed-in device will need to sign in again. Existing results and XP stay unchanged.';
+    $('action-impact').textContent={
+      block:'The player will be signed out, cannot play on this account and will be hidden from all leaderboards. Their email cannot be used for another account, even after deletion.',
+      unblock:'The player can sign in again and return to the leaderboards. Previous sessions stay revoked.',
+      revoke_sessions:'Every signed-in device will need to sign in again. Existing results and XP stay unchanged.',
+      delete:'Permanently remove this account and its sign-in and profile details. Game history and the admin audit remain. A blocked email stays reserved. This cannot be undone.'
+    }[state.action];
+    $('confirm-action').textContent=state.action==='delete'?'Permanently delete':'Confirm';
     $('confirmation-label').textContent='Type '+state.player.username+' to confirm';$('action-reason').focus();
   });
   $('cancel-action').onclick=()=>{$('action-form').hidden=true;state.action=null;state.pending=null;};
@@ -102,7 +108,12 @@
     // A network retry reuses its id, preventing duplicate moderation entries.
     const signature=JSON.stringify([id,payload]);if(state.pending?.signature!==signature)state.pending={signature,id:crypto.randomUUID()};
     $('confirm-action').disabled=true;$('cancel-action').disabled=true;error('player-error','');
-    try{await api('/players/'+id+'/actions',{...payload,request_id:state.pending.id});await openPlayer(id);load();}
+    try{
+      await api('/players/'+id+'/actions',{...payload,request_id:state.pending.id});
+      if(payload.action==='delete'){$('player-dialog').close();state.player=null;state.players=0;}
+      else await openPlayer(id);
+      load();
+    }
     catch(e){error('player-error',e.message);}
     finally{$('confirm-action').disabled=false;$('cancel-action').disabled=false;}
   };

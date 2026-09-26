@@ -25,13 +25,28 @@ it pauses while a player dialog is open. Failed refreshes mark previous data sta
 
 ## Account Actions
 
-Block, unblock and sign out all devices require a reason, exact username and
+Block, unblock, sign out all devices and delete require a reason, exact username and
 explicit confirmation. Requests are idempotent and audited in the same database
 transaction. Blocking revokes sessions and reset tokens, prevents authentication
-and authenticated gameplay, and leaves scores/XP/results unchanged. Unblocking
+and authenticated gameplay. The player sees a blocked-account message, including
+on devices with a revoked session. Blocked players are excluded from every public
+player ranking, team aggregate and Daily high score. Stored scores/XP/results stay
+unchanged. Unblocking restores visibility and permits a fresh sign-in, but
 does not revive sessions. Guests cannot be moderated as registered accounts.
-Blocking an account does not ban a person from anonymous play or from registering
-another account. Existing public leaderboard/history entries are not removed.
+Blocking an account does not ban a person from anonymous play or using a different
+email. It prevents reuse of that same normalized email, including after an admin
+deletes the blocked account. One email belongs to one account; changing email also
+checks ownership. Reservations are enforced in PostgreSQL, including concurrent
+registrations, not only in the UI. Email aliases are not treated as equivalent.
+
+Deletion is irreversible: sign-in sessions, reset links and personal profile fields
+are removed; game history and the private admin audit remain. Frozen match snapshots
+may retain the in-game display name; the audit retains the confirmed username.
+A blocked email's SHA-256 digest stays
+reserved without retaining another copy of the address. Deleting an unblocked
+account releases its email. To lift a ban, unblock before deleting the account.
+Revoked-session notices contain hashes only, expire with the original session,
+are pruned on sign-in and can never authenticate a request.
 
 The dashboard never exposes passwords, token hashes, invite secrets or question
 decks/answers. Email addresses and audit reasons are private admin data. No
@@ -39,20 +54,23 @@ third-party analytics scripts, session recording or tracking cookies are added.
 
 ## Migration / Deployment
 
-Apply `050_developer_dashboard` before using the dashboard. This adds one nullable
-account column, an append-only audit table and two game-date indexes. Existing
-accounts are not blocked automatically; no games are deleted.
+Apply `050_developer_dashboard`, then `051_account_moderation` before deploying this
+version. Migration 051 extends the audit action types, adds atomic email ownership
+and blocked-email reservations, and adds revoked-session notices. Existing emails
+are backfilled, including already-blocked accounts. No existing account is deleted
+or newly blocked. Old sessions already revoked before this upgrade cannot acquire
+a notice retrospectively; a blocked login still returns the explicit message.
 
 Local (in the project directory, with local `.env`):
 
 ```sh
-.venv/bin/python -m tools.migrate_account_settings --migration 050_developer_dashboard
+.venv/bin/python -m tools.migrate_account_settings --migration 051_account_moderation
 ```
 
 Render, before deploying the new code:
 
 ```sh
-.venv/bin/python -m tools.migrate_account_settings --render --migration 050_developer_dashboard
+.venv/bin/python -m tools.migrate_account_settings --render --migration 051_account_moderation
 ```
 
 The Render helper prompts for the external database URL privately and creates a
@@ -65,6 +83,7 @@ Local and Render dashboards report on their own databases, not each other.
 
 `tests.test_developer_dashboard` includes authentication, CSRF, input bounds,
 isolated PostgreSQL reporting, session revocation, blocked gameplay, unblocking,
-concurrent retries, audit integrity, expired-run classification and privacy.
+concurrent retries, confirmed deletion, email uniqueness/reservation races, blocked
+leaderboard exclusion, audit integrity, expired-run classification and privacy.
 `tests.dashboard_preview` and `tests/test_developer_dashboard_browser.cjs` provide
 an isolated browser fixture. They never moderate real player accounts.

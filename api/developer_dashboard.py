@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import Field, field_validator
 
 from api.database import get_connection
+from api.player_accounts import anonymize_account, revoke_sessions
 from api.solo_routes import active_releases
 from api.trivia_access import require_editor
 from api.trivia_models import StrictModel
@@ -52,8 +53,8 @@ def connection(readonly=True):
             conn.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
         conn.execute("SET LOCAL statement_timeout='8s'")
         conn.execute("SET LOCAL lock_timeout='3s'")
-        if not conn.execute("SELECT to_regclass('game_admin_audit') ready").fetchone()['ready']:
-            raise HTTPException(503, 'Apply migration 050_developer_dashboard first')
+        if not conn.execute("SELECT to_regclass('game_email_claims') ready").fetchone()['ready']:
+            raise HTTPException(503, 'Apply migration 051_account_moderation first')
         yield conn
 
 
@@ -158,7 +159,7 @@ def player(account_id: UUID):
 
 
 class Action(StrictModel):
-    action: Literal['block','unblock','revoke_sessions']
+    action: Literal['block','unblock','revoke_sessions','delete']
     reason: str = Field(min_length=3,max_length=500)
     confirmation: str = Field(min_length=3,max_length=24)
     request_id: UUID
@@ -176,24 +177,35 @@ def action(account_id: UUID, body: Action):
     with connection(readonly=False) as conn:
         # Account-first lock ordering matches login/password changes. Revocation,
         # blocking and the immutable audit entry either all commit or all roll back.
-        row = conn.execute('SELECT username,is_guest FROM game_accounts WHERE account_id=%s AND deleted_at IS NULL FOR UPDATE', (account_id,)).fetchone()
+        row = conn.execute('SELECT username,is_guest,deleted_at FROM game_accounts WHERE account_id=%s FOR UPDATE', (account_id,)).fetchone()
         if not row or row['is_guest']: raise HTTPException(404,'Registered player not found')
-        if body.confirmation != row['username']: raise HTTPException(422,'Type the exact username to confirm')
         actor = os.environ['TRIVIA_EDITOR_USERNAME']
-        inserted = conn.execute('''INSERT INTO game_admin_audit(request_id,account_id,action,reason,actor)
-            VALUES(%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING RETURNING request_id''',
-            (body.request_id,account_id,body.action,body.reason,actor)).fetchone()
-        if not inserted:
-            previous = conn.execute('SELECT * FROM game_admin_audit WHERE request_id=%s', (body.request_id,)).fetchone()
-            if (previous['account_id'],previous['action'],previous['reason'],previous['actor']) != (account_id,body.action,body.reason,actor):
-                raise HTTPException(409,'Request ID already used for a different action')
+        # Deletion changes the username. A retry must validate the original
+        # confirmation before rejecting an already-anonymized account.
+        previous = conn.execute('SELECT * FROM game_admin_audit WHERE request_id=%s', (body.request_id,)).fetchone()
+        if previous:
+            expected=(account_id,body.action,body.reason,actor,body.confirmation)
+            actual=(previous['account_id'],previous['action'],previous['reason'],previous['actor'],
+                    previous['target_username'] or row['username'])
+            if actual != expected: raise HTTPException(409,'Request ID already used for a different action')
             return {'ok':True,'request_id':body.request_id}
+        if row['deleted_at']: raise HTTPException(404,'Registered player not found')
+        if body.confirmation != row['username']: raise HTTPException(422,'Type the exact username to confirm')
+        inserted = conn.execute('''INSERT INTO game_admin_audit(request_id,account_id,action,reason,actor,target_username)
+            VALUES(%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING RETURNING request_id''',
+            (body.request_id,account_id,body.action,body.reason,actor,row['username'])).fetchone()
+        if not inserted:
+            # Same account retries serialize on its row; a conflict here belongs
+            # to a concurrent action on a different account.
+            raise HTTPException(409,'Request ID already used for a different action')
         if body.action == 'block':
             conn.execute('UPDATE game_accounts SET blocked_at=COALESCE(blocked_at,clock_timestamp()) WHERE account_id=%s',(account_id,))
         elif body.action == 'unblock':
             conn.execute('UPDATE game_accounts SET blocked_at=NULL WHERE account_id=%s',(account_id,))
+        elif body.action == 'delete':
+            anonymize_account(conn,account_id)
         if body.action in ('block','revoke_sessions'):
-            conn.execute('DELETE FROM game_sessions WHERE account_id=%s',(account_id,))
+            revoke_sessions(conn,account_id,remember=body.action=='block')
         if body.action == 'block':
             conn.execute('DELETE FROM game_password_resets WHERE account_id=%s',(account_id,))
     return {'ok':True,'request_id':body.request_id}
@@ -203,6 +215,6 @@ def action(account_id: UUID, body: Action):
 def audit(offset: int = Query(0,ge=0,le=100000)):
     with connection() as conn:
         total = conn.execute('SELECT count(*) n FROM game_admin_audit').fetchone()['n']
-        rows = conn.execute('''SELECT l.*,a.username FROM game_admin_audit l JOIN game_accounts a USING(account_id)
+        rows = conn.execute('''SELECT l.*,COALESCE(l.target_username,a.username) username FROM game_admin_audit l JOIN game_accounts a USING(account_id)
             ORDER BY created_at DESC,request_id LIMIT 25 OFFSET %s''',(offset,)).fetchall()
     return {'items':rows,'total':total,'offset':offset,'limit':25}

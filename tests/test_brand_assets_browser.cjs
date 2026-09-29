@@ -30,13 +30,13 @@ const output='/tmp/on-the-dot-brand';fs.mkdirSync(output,{recursive:true});
     const icon=page.locator('.brand-mark');assert((await icon.getAttribute('src')).includes('/brand/favicon.svg'));
     assert(await icon.evaluate(e=>e.naturalWidth>0));
     const nav=await page.locator('.top-navigation').boundingBox();
-    assert((await page.locator('.top-navigation a').first().locator('img').getAttribute('src')).includes('football-outline.svg'));
+    assert.equal(await page.locator('.top-navigation img[src*="football-outline.svg"]').count(),path==='/'?0:1);
     for(const theme of ['dark','light']){
      await page.evaluate(theme=>{document.documentElement.dataset.theme=theme;},theme);
-     const styles=await page.locator('.top-navigation a').evaluateAll(es=>es.map(e=>{
+     const styles=await page.locator('.top-navigation a,.top-navigation .nav-current').evaluateAll(es=>es.map(e=>{
       const s=getComputedStyle(e);return {selected:e.hasAttribute('aria-current'),bg:s.backgroundColor,radius:s.borderRadius,filter:getComputedStyle(e.querySelector('img')).filter};
      }));
-     assert(styles.every(s=>s.bg===(s.selected?(theme==='dark'?'rgb(246, 243, 235)':'rgb(17, 17, 17)'):'rgba(0, 0, 0, 0)')&&s.radius==='999px'&&s.filter===`invert(${s.selected?(theme==='dark'?0:1):(theme==='dark'?1:0)})`),JSON.stringify(styles));
+     assert(styles.every(s=>s.bg===(s.selected?(theme==='dark'?'rgb(246, 243, 235)':'rgb(17, 17, 17)'):(theme==='dark'?'rgb(52, 58, 53)':'rgb(226, 228, 222)'))&&s.radius==='999px'&&s.filter===`invert(${s.selected?(theme==='dark'?0:1):(theme==='dark'?1:0)})`),JSON.stringify(styles));
     }
     if(path==='/how-to-play')assert((await page.locator('main').innerText()).split(/\s+/).length<650,'Keep Full Rules concise');
     assert(box.x+box.width<=nav.x||box.y+box.height<=nav.y,JSON.stringify({width,box,nav}));

@@ -9,6 +9,7 @@ from fastapi import APIRouter,Depends,HTTPException,Request,Response
 from psycopg.types.json import Jsonb
 
 from api.database import get_connection
+from api.game_state import checkpoint,progress,QuestionWindow
 from api.player_accounts import account,profile,xp_transition,COOKIE as ACCOUNT_COOKIE
 from api.solo_trials import trial_player
 from api.penalty_routes import now_ms,rate_limit
@@ -22,6 +23,18 @@ from api import challenge_engine as game
 
 router=APIRouter(tags=['daily and friends'])
 RANDOM=secrets.SystemRandom()
+# Closed SQL projection, never derived from request input. JSONPath loads the
+# answered prefix plus current/next question, not ~1 MB of unseen snapshots.
+DAILY_COLUMNS="""r.run_id,r.mode,r.owner_id,r.day,r.state-'deck' AS state,
+    jsonb_array_length(r.state->'deck') AS deck_size,
+    jsonb_path_query_array(r.state->'deck','$[0 to $position]',
+        jsonb_build_object('position',(r.state->>'position')::int)) AS deck_prefix"""
+
+
+def daily_window(row):
+    if row is not None:
+        row['state']['deck']=QuestionWindow(row.pop('deck_prefix'),row.pop('deck_size'))
+    return row
 
 
 class Start(StrictModel):
@@ -75,7 +88,10 @@ def used_questions(conn,identities,now):
 
 def daily_pool(conn,now):
     day,reset=day_window(now)
-    # One immutable global pool per UTC day, even across concurrent workers.
+    # Existing pools are immutable: readers must not queue behind every start.
+    row=conn.execute('SELECT deck,version FROM game_daily_pools WHERE day=%s',(day,)).fetchone()
+    if row and row['version']==2:return row['deck'],day,reset
+    # Only creation/legacy upgrades serialize, with a recheck under the lock.
     conn.execute('SELECT pg_advisory_xact_lock(%s,%s)',(47001,day.toordinal()))
     row=conn.execute('SELECT deck,version FROM game_daily_pools WHERE day=%s',(day,)).fetchone()
     if row and row['version']==2:return row['deck'],day,reset
@@ -114,14 +130,21 @@ def mark_seen(conn,row,now):
             (m['account_id'],week,day,q['question_id'],q['release_id'],row['run_id'],position))
 
 
-def persist(conn,row,now):
+def persist(conn,row,now,before=None):
     s=row['state'];ident=row['owner_id'];run=row['run_id']
-    # Polling unchanged state must not rewrite a frozen question deck to WAL.
-    changed=conn.execute('UPDATE game_mode_runs SET state=%s WHERE run_id=%s AND state IS DISTINCT FROM %s',(Jsonb(s),run,Jsonb(s))).rowcount
+    if before is not None and before==(progress(s),len(s['deck'])):return
+    if before is not None and before[1]==len(s['deck']):
+        # Keep the frozen deck inside PostgreSQL instead of serializing and
+        # sending ~1 MB twice for each Daily answer, heartbeat or transition.
+        changed=conn.execute("UPDATE game_mode_runs SET state=jsonb_build_object('deck',state->'deck') || %s WHERE run_id=%s",
+                             (Jsonb(progress(s)),run)).rowcount
+    else:
+        changed=conn.execute('UPDATE game_mode_runs SET state=%s WHERE run_id=%s AND state IS DISTINCT FROM %s',(Jsonb(s),run,Jsonb(s))).rowcount
     if not changed:return
     mark_seen(conn,row,now)
     if row['mode']=='daily':
-        for a in s['history']:
+        previous=len(before[0]['history']) if before is not None else 0
+        for a in s['history'][previous:]:
             if a['correct']:
                 conn.execute("""INSERT INTO game_mode_xp(account_id,run_id,slot,amount,reason)
                     VALUES(%s,%s,%s,%s,'correct_answer') ON CONFLICT DO NOTHING""",
@@ -169,10 +192,10 @@ def daily_catalog(request:Request):
 def daily_active(request:Request):
     with get_connection() as conn:
         user=account(conn,request,lock=True);now=now_ms(conn)
-        row=conn.execute('''SELECT r.* FROM game_mode_runs r JOIN game_mode_members m USING(run_id)
-            WHERE m.account_id=%s AND m.active AND r.mode='daily' FOR UPDATE OF r''',(user['account_id'],)).fetchone()
+        row=daily_window(conn.execute('SELECT '+DAILY_COLUMNS+''' FROM game_mode_runs r JOIN game_mode_members m USING(run_id)
+            WHERE m.account_id=%s AND m.active AND r.mode='daily' FOR UPDATE OF r''',(user['account_id'],)).fetchone())
         if not row:return {'run':None}
-        game.daily_tick(row['state'],now);persist(conn,row,now)
+        before=checkpoint(row['state']);game.daily_tick(row['state'],now);persist(conn,row,now,before)
         return {'run':daily_public(conn,row,now,user)}
 
 
@@ -184,17 +207,18 @@ def daily_start(body:Start,request:Request):
         row=conn.execute('SELECT * FROM game_mode_runs WHERE owner_id=%s AND start_request_id=%s',(ident,body.request_id)).fetchone()
         if row:
             if row['mode']!='daily':raise HTTPException(409,'Request ID belongs to another mode')
-            game.daily_tick(row['state'],now);persist(conn,row,now);return daily_public(conn,row,now,user)
+            before=checkpoint(row['state']);game.daily_tick(row['state'],now);persist(conn,row,now,before);return daily_public(conn,row,now,user)
         # Expired runs cannot block tomorrow's attempt, even if the player
         # starts directly without first polling the active-run endpoint.
         active=conn.execute("""SELECT r.* FROM game_mode_runs r JOIN game_mode_members m USING(run_id)
             WHERE m.account_id=%s AND m.active AND r.mode='daily' FOR UPDATE OF r""",(ident,)).fetchone()
-        if active:game.daily_tick(active['state'],now);persist(conn,active,now)
+        if active:
+            before=checkpoint(active['state']);game.daily_tick(active['state'],now);persist(conn,active,now,before)
         ensure_free(conn,ident)
         pool,day,reset=daily_pool(conn,now)
         ranked=not conn.execute('SELECT 1 FROM game_daily_attempts WHERE account_id=%s AND day=%s',(ident,day)).fetchone()
         used=used_questions(conn,[ident],now)
-        if ranked:deck=deepcopy([q for q in pool if q['question_id'] not in used])
+        if ranked:deck=[q for q in pool if q['question_id'] not in used]
         else:
             rows=[q for q in candidates(conn) if str(q['question_id']) not in used]
             deck=snapshots(conn,RANDOM.sample(rows,min(len(rows),1000)))
@@ -212,15 +236,16 @@ def daily_action(run_id,request,command='view',body=None):
     failure=None
     with get_connection() as conn:
         user=account(conn,request,lock=True)
-        row=conn.execute("SELECT * FROM game_mode_runs WHERE run_id=%s AND owner_id=%s AND mode='daily' FOR UPDATE",(run_id,user['account_id'])).fetchone()
+        row=daily_window(conn.execute('SELECT '+DAILY_COLUMNS+" FROM game_mode_runs r WHERE run_id=%s AND owner_id=%s AND mode='daily' FOR UPDATE",
+                                     (run_id,user['account_id'])).fetchone())
         if not row:raise HTTPException(404,'Daily Challenge not found')
-        now=now_ms(conn);s=row['state'];mark_seen(conn,row,now);game.daily_tick(s,now)
+        now=now_ms(conn);s=row['state'];before=checkpoint(s);game.daily_tick(s,now)
         try:
             if command=='answer':game.daily_answer(s,body.position,body.option_id,str(body.request_id),now)
             if command=='next':game.solo.advance(s,body.previous,now)
             if command=='leave' and s['phase'] not in game.TERMINAL:s.update(phase='ABANDONED',finished_at=now,end_reason='resigned')
         except game.solo.SoloError as exc:failure=str(exc)
-        persist(conn,row,now);result=daily_public(conn,row,now,user)
+        persist(conn,row,now,before);result=daily_public(conn,row,now,user)
     if failure:raise HTTPException(409,failure)
     return result
 
@@ -314,7 +339,7 @@ def friend_action(code,request,command='view',body=None,response=None):
         ident=user['account_id'];pid=str(ident)
         row=conn.execute("SELECT * FROM game_mode_runs WHERE invite=%s AND mode='friend' FOR UPDATE",(code,)).fetchone()
         if not row:raise HTTPException(404,'Friend Duel not found')
-        s=row['state'];member=any(p['id']==pid for p in s['players'])
+        s=row['state'];before=checkpoint(s);member=any(p['id']==pid for p in s['players'])
         if not member and command!='join':raise HTTPException(403,'Join this invitation first')
         # Every route locks the match before participant accounts, in UUID order.
         # Solo/Daily only lock their own account, so cross-mode starts serialize.
@@ -343,7 +368,7 @@ def friend_action(code,request,command='view',body=None,response=None):
                 if s['cursor']>=len(s['deck']) and not replenish(conn,s,ids,now):game.friend_finish(s,now,'question_pool_exhausted')
                 else:game.penalty.schedule(s,now)
         except (game.penalty.GameError,HTTPException) as exc:failure=exc
-        persist(conn,row,now)
+        persist(conn,row,now,before)
         result=friend_public(row,user,now) if any(p['id']==pid for p in s['players']) else None
     if failure:
         if isinstance(failure,HTTPException):raise failure

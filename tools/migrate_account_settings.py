@@ -16,7 +16,7 @@ from tools.render_game_database import render_config, run_pg
 
 ROOT=Path(__file__).resolve().parents[1]
 NAME='045_account_settings'
-MIGRATIONS={NAME, '046_team_membership', '047_daily_friends', '048_social_play', '049_daily_survival', '050_developer_dashboard', '051_account_moderation'}
+MIGRATIONS={NAME, '046_team_membership', '047_daily_friends', '048_social_play', '049_daily_survival', '050_developer_dashboard', '051_account_moderation', '052_game_performance'}
 
 
 def apply(conn, name=NAME):

@@ -29,6 +29,23 @@
 .friend-waiting img{width:48px;height:48px;filter:invert(1);opacity:.8;animation:friend-waiting-spin 2.4s linear infinite}
 @keyframes friend-waiting-spin{to{transform:rotate(360deg)}}
 .friend-motion-off .friend-waiting img{animation:none}
+/* Use the existing feedback/unused Next space. Showing both response times
+ * must not move the question or answer buttons when the penalty resolves. */
+[data-mode="friend"] .feedback-slot{min-height:84px;width:100%}
+[data-mode="friend"] #question-panel .clock[hidden]{display:flex!important;visibility:hidden;pointer-events:none}
+.friend-round-result{width:100%;min-width:0;font-size:13px;line-height:1.3}
+.friend-answer-comparison{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.friend-answer{min-width:0;padding-left:8px;border-left:3px solid var(--border)}
+.friend-answer.is-winner{border-color:var(--brand-green,#88b04b)}
+.friend-answer-name{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.friend-answer-time{font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}
+#friend-final-result{grid-area:level;margin:8px 0}
+body.stadium-playing:not(.stadium-ending) [data-mode="friend"] #question-panel>.actions:not(:has(#retry:not([hidden]))){display:none}
+@media(max-width:800px),(max-height:540px) and (max-width:1100px){
+  body.stadium-playing:not(.stadium-ending) [data-mode="friend"] #question-panel{grid-template-rows:16px minmax(0,1.2fr) minmax(96px,1fr) 84px}
+  body.stadium-playing:not(.stadium-ending) [data-mode="friend"] #question-panel:has(#retry:not([hidden])){grid-template-rows:16px minmax(0,1.2fr) minmax(96px,1fr) 84px 44px}
+  body.stadium-playing:not(.stadium-ending) [data-mode="friend"] .feedback-slot{min-height:0;align-items:center}
+}
 #forfeit-dialog{width:min(440px,calc(100% - 24px))}
 #forfeit-description{font-size:14px;line-height:1.5;overflow-wrap:anywhere;margin:16px 0 20px}
 #forfeit-dialog .actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}

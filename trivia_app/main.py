@@ -1,8 +1,10 @@
 from pathlib import Path
+from contextlib import asynccontextmanager
 import os
 import secrets
 import json
 import time
+import re
 from threading import Lock
 
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
@@ -18,7 +20,9 @@ from api.sports_query_routes import router as sports_query
 from api.query_training import router as query_training
 from api.trivia_bank_routes import router as trivia_bank
 from api.player_accounts import router as player_accounts, account, COOKIE as ACCOUNT_COOKIE
-from api.database import get_connection
+from api.database import get_connection, start_pool, close_pool
+from psycopg_pool import PoolTimeout, TooManyRequests
+from starlette.concurrency import run_in_threadpool
 from api.solo_routes import router as solo
 from api.solo_difficulty import router as solo_difficulty
 from api.trivia_writer import router as trivia_writer
@@ -31,7 +35,18 @@ from trivia_app.game_guide import guide_context
 
 
 ROOT = Path(__file__).resolve().parents[1]
-app = FastAPI(title='ON THE DOT. Trivia', docs_url=None, redoc_url=None, openapi_url=None)
+
+
+@asynccontextmanager
+async def lifespan(app):
+    start_pool()
+    try:
+        yield
+    finally:
+        await run_in_threadpool(close_pool)
+
+
+app = FastAPI(title='ON THE DOT. Trivia', docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
 app.state.session_secret = os.getenv('TRIVIA_SESSION_SECRET') or secrets.token_urlsafe(48)
 app.add_middleware(SessionMiddleware, secret_key=app.state.session_secret, session_cookie='points_editor',
                    max_age=8*3600, same_site='strict', https_only=os.getenv('TRIVIA_HTTPS_ONLY') == '1')
@@ -47,6 +62,14 @@ class TriviaAssets(StaticFiles):
         self.public_files=frozenset(public_files)
 
     async def get_response(self,path,scope):
+        # A failed ES-module dependency remains cached for the page lifetime in
+        # Safari. A retry namespace gives the entire relative import graph fresh
+        # URLs, including vendored Three.js, while keeping the same allowlist.
+        if path.startswith('_retry/'):
+            match=re.fullmatch(r'_retry/[1-9][0-9]{0,5}/(.+)',path)
+            if not match or match[1] not in self.public_files:
+                raise HTTPException(404,'Asset not found')
+            path=match[1]
         if path not in self.public_files:
             request=Request(scope)
             require_editor(request,await basic(request))
@@ -110,6 +133,14 @@ async def errors(request, exc):
     if exc.status_code == 401 and (request.url.path.startswith('/internal/trivia') or request.url.path in ('/trivia','/quizzes')):
         return RedirectResponse('/login', status_code=303)
     return JSONResponse({'detail': exc.detail}, status_code=exc.status_code, headers=exc.headers)
+
+
+@app.exception_handler(PoolTimeout)
+@app.exception_handler(TooManyRequests)
+async def database_busy(request, exc):
+    # Never include connection strings or driver diagnostics in public errors.
+    return JSONResponse({'detail': 'The game is busy. Please try again shortly.'},
+                        status_code=503, headers={'Retry-After': '2', 'Cache-Control': 'no-store'})
 
 
 @app.get('/login', response_class=HTMLResponse)

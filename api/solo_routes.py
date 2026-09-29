@@ -9,6 +9,7 @@ from pydantic import Field
 from psycopg.types.json import Jsonb
 
 from api.database import get_connection
+from api.game_state import checkpoint,progress
 from api import solo_engine as game
 from api.numeric_choices import refresh as refresh_numeric_choices
 from api.player_accounts import account,profile,xp_transition,COOKIE as ACCOUNT_COOKIE
@@ -120,10 +121,12 @@ def load_deck(conn,ident,body,now,size=10,exclude=()):
                  'topic_code':body.topic,'topic_label':topics.label(body.topic)}
 
 
-def persist(conn,row):
+def persist(conn,row,before=None):
     s=row['state'];ident=row['account_id'];run=row['run_id']
+    if before is not None and before==(progress(s),len(s['deck'])):return
     conn.execute('UPDATE game_solo_runs SET state=%s WHERE run_id=%s',(Jsonb(s),run))
-    for answer in s['history']:
+    previous=len(before[0]['history']) if before is not None else 0
+    for answer in s['history'][previous:]:
         q=s['deck'][answer['position']-1]
         conn.execute('''INSERT INTO game_solo_answers(run_id,position,request_id,release_id,question_id,difficulty_revision,
             option_id,correct,elapsed_ms,answered_at) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,to_timestamp(%s/1000.0))
@@ -166,10 +169,10 @@ def start(body:Start,request:Request,response:Response):
             if (row['state']['category']['code']!=body.category or row['state']['difficulty']!=body.difficulty
                 or row['state']['category'].get('topic_code','ALL')!=body.topic):
                 raise HTTPException(409,'Request ID already used for another quiz')
-            game.tick(row['state'],now);persist(conn,row);return public(row,now)
+            before=checkpoint(row['state']);game.tick(row['state'],now);persist(conn,row,before);return public(row,now)
         active=conn.execute("SELECT * FROM game_solo_runs WHERE account_id=%s AND state->>'phase' NOT IN ('FINISHED','ABANDONED') FOR UPDATE",(ident,)).fetchone()
         if active:
-            game.tick(active['state'],now);persist(conn,active)
+            before=checkpoint(active['state']);game.tick(active['state'],now);persist(conn,active,before)
             if active['state']['phase'] not in ('FINISHED','ABANDONED'):
                 if active['state']['category'].get('topic_code','ALL')!=body.topic:
                     raise HTTPException(409,'Finish or end your active quiz before changing category.')
@@ -191,12 +194,12 @@ def active(request:Request):
             if not user:return {'run':None,'trial_available':True}
             row=conn.execute("SELECT * FROM game_solo_runs WHERE account_id=%s AND state->>'phase' NOT IN ('FINISHED','ABANDONED') FOR UPDATE",(user['account_id'],)).fetchone()
             if not row:return {'run':None,'trial_available':True}
-            now=now_ms(conn);game.tick(row['state'],now);persist(conn,row)
+            before=checkpoint(row['state']);now=now_ms(conn);game.tick(row['state'],now);persist(conn,row,before)
             return {'run':public(row,now) if row['state']['phase'] not in ('FINISHED','ABANDONED') else None,'trial_available':True}
         user=account(conn,request,lock=True)
         row=conn.execute("SELECT * FROM game_solo_runs WHERE account_id=%s AND state->>'phase' NOT IN ('FINISHED','ABANDONED') FOR UPDATE",(user['account_id'],)).fetchone()
         if not row:return {'run':None}
-        now=now_ms(conn);game.tick(row['state'],now);persist(conn,row)
+        before=checkpoint(row['state']);now=now_ms(conn);game.tick(row['state'],now);persist(conn,row,before)
         return {'run':public(row,now)}
 
 
@@ -206,7 +209,7 @@ def action(run_id,request,command='view',body=None):
         user=player_identity(conn,request)
         row=conn.execute('SELECT * FROM game_solo_runs WHERE run_id=%s AND account_id=%s FOR UPDATE',(run_id,user['account_id'])).fetchone()
         if not row:raise HTTPException(404,'Quiz not found')
-        now=now_ms(conn);s=row['state'];game.tick(s,now)
+        now=now_ms(conn);s=row['state'];before=checkpoint(s);game.tick(s,now)
         try:
             if command=='answer':game.answer(s,body.position,body.option_id,str(body.request_id),now)
             if command=='next':
@@ -227,7 +230,7 @@ def action(run_id,request,command='view',body=None):
                 if s['phase']!='ABANDONED':game.advance(s,body.previous,now)
             if command=='leave' and s['phase'] not in ('FINISHED','ABANDONED'):s.update(phase='ABANDONED',finished_at=now)
         except game.SoloError as error:failure=str(error)
-        persist(conn,row);result=public(row,now)
+        persist(conn,row,before);result=public(row,now)
         # Terminal summary and XP balance share the award transaction. The UI
         # never estimates levels or races a second request against XP commits.
         if s['phase'] in ('FINISHED','ABANDONED') and not row['is_trial']:

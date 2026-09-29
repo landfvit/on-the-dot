@@ -31,7 +31,6 @@
     if(data.me)$('ranking-self').append(node('strong',`${teams?'Your team':'Your rank'} #${number(data.me.rank)}`),node('span',`${value(data.me)} ${selected==='win_rate'?'':labels[selected]}`.trim()),identity(data.me));
     else {
       $('ranking-self').append(node('strong',data.signed_in?(teams?'Add a team to join this leaderboard.':'Complete a shootout to enter this leaderboard.'):'Sign in to join the leaderboard.'));
-      const a=node('a',data.signed_in?(teams?'Your profile':'Play penalties'):'Sign in');a.href=data.signed_in&&!teams?'/penalties':'/account';$('ranking-self').append(a);
     }
     const noun=teams?'team':'player';
     $('distribution').hidden=!data.participants||selected==='daily_highscore';$('participant-count').textContent=`${number(data.participants)} ${noun}${data.participants===1?'':'s'}`;
@@ -45,7 +44,6 @@
     }));
     $('ranking-period').textContent=selected==='streak'?'All time · current streak · days · UTC':'All time';
     $('community-status').textContent=data.participants?'':'No scores yet.';
-    $('community-play').hidden=Boolean(data.participants);
     return offset+size<data.participants;
   }
   function renderHistory(data){
@@ -57,12 +55,12 @@
       name.append(node('strong',item.category.topic_label||'Mixed topics'),node('span',`${item.category.label} · ${item.difficulty} · ${outcome}`));
       score.append(node('strong',item.shootout?`${item.shootout.player} : ${item.shootout.opponent}`:`${item.correct} / ${item.questions}`),node('span',`+${number(item.xp)} XP`));link.append(date,name,score);return link;
     }));
-    $('community-status').textContent=data.items.length?'':'No completed shootouts yet.';$('community-play').hidden=Boolean(data.items.length);
+    $('community-status').textContent=data.items.length?'':'No completed shootouts yet.';
     return data.has_more;
   }
   async function load(){
     const own=++request;controller?.abort();controller=new AbortController();hasMore=false;
-    $('community-status').textContent='Loading...';$('community-retry').hidden=true;$('community-signin').hidden=true;$('community-play').hidden=true;
+    $('community-status').textContent='Loading...';$('community-retry').hidden=true;
     $('community-pagination').hidden=true;
     $('previous-page').disabled=true;$('next-page').disabled=true;
     if(ranking){$('ranking-table').hidden=true;$('distribution').hidden=true;$('ranking-self').hidden=true;}
@@ -70,7 +68,7 @@
     try {
       const response=await fetch(`/api/community/${ranking?'leaderboard?period=all&metric='+metric()+'&board='+board():'history?'}&offset=${offset}&limit=${size}`,{signal:controller.signal});
       if(own!==request)return;
-      if(response.status===401){$('community-status').textContent='Sign in to see your shootout history.';$('community-signin').hidden=false;return;}
+      if(response.status===401){$('community-status').textContent='Sign in to see your shootout history.';return;}
       if(!response.ok)throw new Error('Unable to load results. Please try again.');
       const data=await response.json();if(own!==request)return;
       // Accounts can disappear between requests. Return to the last real page

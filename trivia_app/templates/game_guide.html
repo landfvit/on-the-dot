@@ -3,7 +3,7 @@
 {% block styles %}<link rel="stylesheet" href="/trivia-assets/shootout.css?v=6"><link rel="stylesheet" href="/trivia-assets/game_guide.css?v=1">{% endblock %}
 {% block content %}
 <main class="game-guide">
-  <header class="guide-heading"><h1>How to play</h1><a class="primary-link" href="/penalties">Play penalties <img src="/trivia-assets/icons/arrow-right.svg" alt=""></a></header>
+  <header class="guide-heading"><h1>How to play</h1></header>
   <p class="guide-intro">One question. One penalty. {{ rules.answer_ms // 1000 }} seconds to answer.</p>
   <nav class="guide-jump" aria-label="Game rules"><a href="#shootout">Solo</a><a href="#daily">Daily Challenge</a><a href="#friends">Friend Duel</a><a href="#rewards">XP &amp; streaks</a><a href="#teams">Your team</a></nav>
 
@@ -78,9 +78,7 @@
     <h2 id="teams-title">Your team</h2>
     <div class="guide-team-identity"><span>your_username</span><img class="club-badge" src="/trivia-assets/clubs/33.png" width="40" height="40" alt="Manchester United example badge"><small>Example identity</small></div>
     <p>Pick a club in your profile. Wear its badge and contribute your stats to the team leaderboard. No gameplay bonuses; change teams once every 3 days.</p>
-    <a class="primary-link" href="/account">Your profile <img src="/trivia-assets/icons/user-round.svg" alt=""></a>
   </section>
-  <div class="guide-end"><a class="primary-link" href="/penalties">Play penalties <img src="/trivia-assets/icons/arrow-right.svg" alt=""></a></div>
 </main>
 {% endblock %}
 {% block scripts %}<script src="/trivia-assets/game_guide.js?v=1" defer></script>{% endblock %}

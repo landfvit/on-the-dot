@@ -8,7 +8,8 @@ async function check(page){
   const failures=await page.locator(controls).evaluateAll(es=>es.filter(e=>e.checkVisibility({checkVisibilityCSS:true})).flatMap(e=>{
     const s=getComputedStyle(e),r=e.getBoundingClientRect(),errors=[];
     const rectangle=e.matches('.difficulty-options label,.solo-choices button');
-    if(s.borderRadius!==(rectangle?'6px':'999px')||parseFloat(s.borderTopWidth)<2)errors.push('wrong control shape');
+    if(s.borderRadius!==(rectangle?'6px':'999px'))errors.push('wrong control shape');
+    if(s.borderTopColor!=='rgba(0, 0, 0, 0)'||s.backgroundColor==='rgba(0, 0, 0, 0)')errors.push('control needs fill without a visible border');
     if(s.backgroundColor==='rgb(136, 176, 75)'&&!e.matches('.play-button,.solo-choices .correct'))errors.push('unexpected green fill');
     // Navigation tooltips intentionally extend outside the button box.
     if(!e.matches('.top-navigation a')&&(e.scrollWidth>e.clientWidth+1||e.scrollHeight>e.clientHeight+1))errors.push('overflow');
@@ -48,7 +49,7 @@ async function selected(page,selector){
         const playStyle=await page.locator('.play-button').evaluate(e=>{
           const s=getComputedStyle(e);return {border:s.borderTopColor,background:s.backgroundColor,color:s.color};
         });
-        assert.deepEqual(playStyle,{border:theme==='dark'?'rgb(246, 243, 235)':'rgb(17, 17, 17)',background:'rgb(136, 176, 75)',color:'rgb(17, 17, 17)'});
+        assert.deepEqual(playStyle,{border:'rgba(0, 0, 0, 0)',background:'rgb(136, 176, 75)',color:'rgb(17, 17, 17)'});
         assert(!await page.locator('.page-return [data-back]').isVisible(),'Home must not reveal hidden Back');
         await page.locator('#tab-daily').click();await selected(page,'#tab-daily');await check(page);
         await aligned(page,'.rule-tabs button');

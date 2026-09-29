@@ -4,8 +4,8 @@
  * Vzhled men v stadium_config.js; rozlozeni HTML prekryvu v stadium.css.
  */
 import * as THREE from './vendor/three/three.module.min.js';
-import {STADIUM as C} from './stadium_config.js?v=14';
-import {createStadiumWorld} from './stadium_v6_world.js?v=13';
+import {STADIUM as C} from './stadium_config.js?v=16';
+import {createStadiumWorld} from './stadium_v6_world.js?v=14';
 import {ballistic,bounceHeight} from './stadium_motion.js';
 import {reactionForShot} from './crowd_reaction.js?v=1';
 
@@ -13,7 +13,11 @@ export function createStadium(host, framing, onFailure, onReveal = () => {}) {
     const scene = new THREE.Scene();
 
     const camera = new THREE.PerspectiveCamera(C.camera.entryFov, 1, 0.07, 600);
-    const renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
+    // Some GPU/browser combinations reject a multisampled default framebuffer.
+    // Retry a plain WebGL context without changing the stadium or game state.
+    let renderer;
+    try { renderer=new THREE.WebGLRenderer({antialias:true,alpha:true}); }
+    catch { renderer=new THREE.WebGLRenderer({antialias:false,alpha:true}); }
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.setPixelRatio(Math.min(devicePixelRatio || 1, C.maxPixelRatio));
     renderer.domElement.setAttribute('aria-label', 'Penalty stadium');
@@ -27,7 +31,7 @@ export function createStadium(host, framing, onFailure, onReveal = () => {}) {
     let role = 'shooter', phase = 'idle', disposed = false, raf = 0, progress = 1;
     let completion = null, path = null, startEye = null, startAim = null,startQuaternion=null,startFov=66,startOffset={x:0,y:0};
     let pathLength=1,approachDistance=0;
-    let endingPose=null,endingProgress=0,focusAmount=0,blurReady=false;
+    let endingPose=null,endingProgress=0,focusAmount=0,blurReady=false,failed=false;
     let width = 1, height = 1, lastOutcome = null, lastPlan = null, caught = false;
     const abort = new AbortController();
     const on = (element, name, fn) => element.addEventListener(name, fn, {signal: abort.signal});
@@ -35,7 +39,7 @@ export function createStadium(host, framing, onFailure, onReveal = () => {}) {
     // Cela geometrie (tunel, hriste, sit, mic i obleceny brankar) je z v6.
     const world=createStadiumWorld(scene);
     world.setTheme(document.documentElement.dataset.theme);
-    on(window,'points-theme',()=>{world.setTheme(document.documentElement.dataset.theme);render();});
+    on(window,'points-theme',()=>guard(()=>{world.setTheme(document.documentElement.dataset.theme);render();}));
     const {ball,keeperRig,strikerRig}=world,shooter=strikerRig.group,keeper=keeperRig.group;
     shooter.position.set(spotX-1.25,.92,0);
     // Only the stadium background is downsampled/blurred; players, ball and goal
@@ -46,7 +50,8 @@ export function createStadium(host, framing, onFailure, onReveal = () => {}) {
     // Rasterize at the same resolution as the sharp view, then downsample with
     // mipmaps. Drawing thin seat lines directly at 1/6 size made them six times
     // thicker and brightened the stands as soon as the blur layer appeared.
-    const backdrop=new THREE.WebGLRenderTarget(1,1,{samples:4,generateMipmaps:true,minFilter:THREE.LinearMipmapLinearFilter});
+    const samples=renderer.getContext().getContextAttributes()?.antialias?4:0;
+    const backdrop=new THREE.WebGLRenderTarget(1,1,{samples,generateMipmaps:true,minFilter:THREE.LinearMipmapLinearFilter});
     const softBackdrop=new THREE.WebGLRenderTarget(1,1),blurScene=new THREE.Scene();
     const blurCamera=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
     const blurMaterial=new THREE.ShaderMaterial({transparent:true,depthTest:false,depthWrite:false,
@@ -173,6 +178,20 @@ export function createStadium(host, framing, onFailure, onReveal = () => {}) {
         cancelAnimationFrame(raf); raf=0;
         if(completion){const done=completion; completion=null; done();}
     }
+    // RAF errors occur after setView/shot return: their caller cannot catch
+    // them. Always release the pending animation before retiring the renderer,
+    // otherwise Next/Ready and the whole Duel presentation queue stay locked.
+    function fail(error) {
+        if(disposed||failed)return;
+        failed=true;phase='failed';stop();onFailure(error);
+    }
+    function guard(callback) {
+        if(disposed||failed)return;
+        try { callback(); } catch(error) { fail(error); }
+    }
+    function requestFrame(callback) {
+        raf=requestAnimationFrame(now=>guard(()=>callback(now)));
+    }
     function skip() {
         if(phase==='intro'){stop();phase='ready';focus(1);pose(1);}
         if(phase==='outro'){endingPose?.(1);phase='finished';stop();}
@@ -230,9 +249,9 @@ export function createStadium(host, framing, onFailure, onReveal = () => {}) {
                 const elapsed=now-started,t=clamp(elapsed/travelMs);
                 if(focusMs)focus(smooth((elapsed-travelMs)/focusMs));
                 pose(t);
-                if(elapsed>=duration){phase='ready';render();stop();}else raf=requestAnimationFrame(frame);
+                if(elapsed>=duration){phase='ready';render();stop();}else requestFrame(frame);
             }
-            raf=requestAnimationFrame(frame);
+            requestFrame(frame);
         });
     }
     function resetBall() {
@@ -252,7 +271,9 @@ export function createStadium(host, framing, onFailure, onReveal = () => {}) {
         skip();stop();resetBall();lastOutcome=outcome;lastPlan=plan;
         if(outcome==='replay'){render();return Promise.resolve();}
         phase='shot'; const start=performance.now();
-        const runUp=role==='keeper'?C.runUpMs:0,totalMs=C.shotMs+runUp+(role==='keeper'?C.keeperHoldMs:0)+C.resultHoldMs;
+        // Convert the real 400 ms result pause into simulation time. The same
+        // pause applies to both views; never add another wait before the camera.
+        const runUp=role==='keeper'?C.runUpMs:0,totalMs=C.shotMs+runUp+C.resultHoldMs*C.betweenShotSpeed;
         // +Z je prava strana obrazovky strelce (+X pohled), u brankare naopak.
         const targetZ=plan.target.side*(C.goal.width/2-C.shot.postInset);
         const targetY=plan.target.high?C.goal.height-C.shot.crossbarInset:ballHome.y;
@@ -331,8 +352,10 @@ export function createStadium(host, framing, onFailure, onReveal = () => {}) {
         if(!animated){shotPose(1);cue(outcome==='save'?'catch':outcome==='goal'?'net':'kick');cue(crowdCue);phase='ready';return Promise.resolve();}
         return new Promise(resolve=>{
             completion=resolve;
-            function frame(now){const t=clamp((now-start)/totalMs);shotPose(t);if(t<1)raf=requestAnimationFrame(frame);else{phase='ready';stop();}}
-            raf=requestAnimationFrame(frame);
+            // Scale playback, not gravity or individual phases: preserve the
+            // complete landing/catch trajectory and fire cues at visual contact.
+            function frame(now){const t=clamp((now-start)*C.betweenShotSpeed/totalMs);shotPose(t);if(t<1)requestFrame(frame);else{phase='ready';stop();}}
+            requestFrame(frame);
         });
     }
     function finish(duration=C.outroMs,onProgress=()=>{}) {
@@ -359,19 +382,21 @@ export function createStadium(host, framing, onFailure, onReveal = () => {}) {
         if(!duration){framePose(1);phase='finished';return Promise.resolve();}
         return new Promise(resolve=>{
             completion=resolve;
-            function frame(now){const t=clamp((now-started)/duration);framePose(t);if(t<1)raf=requestAnimationFrame(frame);else{phase='finished';stop();}}
-            raf=requestAnimationFrame(frame);
+            function frame(now){const t=clamp((now-started)/duration);framePose(t);if(t<1)requestFrame(frame);else{phase='finished';stop();}}
+            requestFrame(frame);
         });
     }
-    const observer=new ResizeObserver(resize);observer.observe(host);observer.observe(framing);
-    on(window,'resize',resize);
-    on(renderer.domElement,'webglcontextlost',event=>{event.preventDefault();stop();onFailure();});
+    const observer=new ResizeObserver(()=>guard(resize));observer.observe(host);observer.observe(framing);
+    on(window,'resize',()=>guard(resize));
+    on(renderer.domElement,'webglcontextlost',event=>{event.preventDefault();fail(new Error('WebGL context lost'));});
     function dispose(){
         if(disposed)return;stop();disposed=true;observer.disconnect();abort.abort();
         scene.traverse(object=>{if(object.geometry)resources.add(object.geometry);for(const m of [].concat(object.material||[]))resources.add(m);});
         world.dispose();resources.forEach(resource=>resource.dispose());
         backdrop.dispose();softBackdrop.dispose();blurQuad.geometry.dispose();blurMaterial.dispose();horizontalBlur.dispose();
-        renderer.dispose();renderer.domElement.remove();
+        // Release the browser's context slot immediately, not at the next GC.
+        // Repeated visits/retries otherwise compete with old detached canvases.
+        renderer.dispose();renderer.forceContextLoss();renderer.domElement.remove();
     }
     return {setView,skip,shot,reset,suspend,dispose,finish,
         inspect:()=>({role,phase,progress,endingProgress,...world.inspect(),focus:focusAmount,geometryFocus:world.inspect().focus,camera:camera.position.toArray(),ball:ball.position.toArray(),keeper:keeper.position.toArray(),hands:keeperRig.handCenter().toArray(),lastOutcome,lastPlan,caught,keeperVisible:keeper.visible,ballVisible:ball.visible,

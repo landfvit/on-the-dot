@@ -7,10 +7,25 @@ from api import challenge_engine as g
 def deck(size=50):
     return [dict(key=str(i),question_id=str(i),text='Question '+str(i),
                  options=[{'id':str(n),'text':str(n)} for n in range(4)],correct='0',
-                 explanation='Explanation',authority='database',difficulty=['easy','medium','hard'][i%3]) for i in range(size)]
+                 explanation='Explanation',authority='database',validation_status='verified',difficulty=['easy','medium','hard'][i%3]) for i in range(size)]
 
 
 class ChallengeEngineTests(unittest.TestCase):
+    def test_faster_presentation_keeps_full_answer_window_and_legacy_waits(self):
+        s=self.friend()
+        self.assertEqual(s['rules']['version'],'friend-shootout-v2')
+        self.assertEqual(s['rules']['countdown_ms'],3077)
+        self.assertEqual(s['rules']['result_ms'],4231)
+        self.assertEqual(s['round']['deadline']-s['round']['opens_at'],15000)
+        for player,option in [('a','0'),('b','1')]:g.friend_submit(s,player,1,option,player,5500)
+        self.assertEqual(s['round']['next_at']-s['round']['resolved_at'],4231)
+        old=self.friend();old['rules'].update(version='friend-shootout-v1',countdown_ms=4000,result_ms=5500)
+        for player,option in [('a','0'),('b','1')]:g.friend_submit(old,player,1,option,player,5500)
+        self.assertEqual(old['round']['next_at']-old['round']['resolved_at'],5500)
+        g.penalty.schedule(old,12000)
+        self.assertEqual(old['round']['opens_at']-12000,4000)
+        self.assertEqual(old['round']['deadline']-old['round']['opens_at'],15000)
+
     def friend(self):
         s=g.friend_create('a','Alice','easy',1000);s['deck']=deck()
         g.penalty.join(s,'b','Bob',1000)
@@ -34,6 +49,23 @@ class ChallengeEngineTests(unittest.TestCase):
         self.assertEqual(s['attempts'],[0,0]);self.assertEqual(s['shooter'],0)
         g.penalty.schedule(s,12000)
         self.assertEqual(s['round']['id'],2);self.assertEqual(s['round']['replay_of'],1)
+
+    def test_resolved_response_times_are_server_owned_and_visible_to_both_seats(self):
+        for shooter in (0,1):
+            for gap in (-800,-150,-149,0,149,150,800):
+                with self.subTest(shooter=shooter,gap=gap):
+                    s=self.friend();s['round']['shooter']=shooter
+                    opened=s['round']['opens_at']
+                    times=[opened+3000,opened+3000];times[shooter]+=gap
+                    # Submit in chronological order, as two actual clients would.
+                    for i in sorted(range(2),key=lambda i:times[i]):
+                        g.friend_submit(s,s['players'][i]['id'],1,'0',str(i),times[i])
+                    for pid in ('a','b'):
+                        v=g.penalty.view(s,pid,max(times))
+                        self.assertEqual([a['elapsed_ms'] for a in v['round']['answers']],[t-opened for t in times])
+                        self.assertTrue(all(a['correct'] for a in v['round']['answers']))
+                        self.assertEqual(v['round']['outcome'],'replay' if abs(gap)<150 else 'goal' if gap<0 else 'save')
+                        self.assertTrue(all(set(a)=={'option_id','correct','elapsed_ms'} for a in v['round']['answers']))
 
     def test_server_redaction_and_idempotency(self):
         s=self.friend();g.friend_submit(s,'a',1,'0','req',5500)

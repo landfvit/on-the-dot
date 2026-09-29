@@ -10,8 +10,8 @@ h1,.community-heading h1,.solo-heading h1,.guide-heading h1 { font-weight:900; f
 h2,.game-guide h2 { font-weight:850; }
 button,a,input,textarea,select { -webkit-tap-highlight-color:transparent; }
 .public-header { border-bottom:var(--line-width) solid var(--ink); padding:24px 0; max-width:1160px; margin:0 auto; justify-content:space-between; }
-.public-header .top-navigation { display:flex; flex:0 0 auto; flex-wrap:nowrap; gap:12px; }
-.public-header .top-navigation a { position:relative; padding:0; width:46px; height:46px; min-height:46px; flex:none; }
+.public-header .top-navigation { display:flex; flex:0 0 auto; flex-wrap:nowrap; align-items:center; gap:12px; }
+.public-header .top-navigation :is(a,button,.nav-current) { position:relative; display:grid; place-items:center; padding:0; width:46px; height:46px; min-width:46px; min-height:46px; flex:none; }
 .public-header .top-navigation img { display:block; width:24px; height:24px; flex:none; object-fit:contain; filter:none; }
 .public-header .top-navigation a:first-child img { filter:none; }
 .public-header .top-navigation a::after { content:attr(data-label); position:absolute; top:calc(100% + 8px); left:50%; transform:translateX(-50%); font-size:11px; font-weight:600; white-space:nowrap; opacity:0; pointer-events:none; }
@@ -57,15 +57,17 @@ button,a,input,textarea,select { -webkit-tap-highlight-color:transparent; }
  * The result IDs in this list also cover the older result-card styles.
  * Only controls share the bold weight; ordinary copy and headings keep theirs. */
 body:has(.public-header) {
-  --control-fill:transparent; --control-text:var(--text); --control-border:var(--ink);
+  --control-base:#e2e4de; --control-hover:#d4d8d0;
+  --control-fill:var(--control-base); --control-text:var(--text);
   --control-icon:0; --control-width:2px; --control-radius:999px; --control-font-weight:700;
   --selected-fill:#111; --selected-text:#f6f3eb; --selected-icon:1;
 }
 html[data-theme=dark] body:has(.public-header) {
+  --control-base:#343a35; --control-hover:#454d47;
   --control-icon:1; --selected-fill:#f6f3eb; --selected-text:#111; --selected-icon:0;
 }
 body:has(.public-header) :is(
-  button,summary,.primary-link,.play-button,.top-navigation a,.page-return>a,
+  button,summary,.primary-link,.play-button,.top-navigation a,.top-navigation .nav-current,.page-return>a,
   .home-modes a,.home-rules-bottom a,.home-progress a,.game-mode-tabs a,
   .guide-jump a,.guide-guest>a,.solo-heading>a,.daily-ranking-link,
   .community-actions>a,.site-footer a,#public-profile,.team-rules-link,
@@ -73,19 +75,20 @@ body:has(.public-header) :is(
   #summary #share-result,#summary #guest-benefits a
 ) {
   background:var(--control-fill); color:var(--control-text);
-  border:var(--control-width) solid var(--control-border); border-radius:var(--control-radius);
+  /* Reserve the old border space so timed-game controls do not resize. */
+  border:var(--control-width) solid transparent; border-radius:var(--control-radius);
   box-shadow:none; text-decoration:none;
   font-family:inherit; font-weight:var(--control-font-weight);
 }
 body:has(.public-header) .difficulty-options label>span { font-weight:var(--control-font-weight); }
 /* Default icon color follows the control, not the page's light/dark background. */
-body:has(.public-header) :is(button,summary,.primary-link,.top-navigation a,.page-return>a,
+body:has(.public-header) :is(button,summary,.primary-link,.top-navigation a,.top-navigation .nav-current,.page-return>a,
   .home-modes a,.home-rules-bottom a,.home-progress a,.solo-heading>a,.daily-ranking-link,
   .team-options label,#summary #share-result) img[src*="/icons/"] { filter:invert(var(--control-icon)); }
 body:has(.public-header) :where(button,summary,.primary-link,.play-button,.top-navigation a,
   .page-return>a,.home-modes a,.home-rules-bottom a,.home-progress a,.game-mode-tabs a,
   .guide-jump a,.guide-guest>a,.solo-heading>a,.daily-ranking-link,.community-actions>a,
-  .site-footer a,#public-profile,.team-rules-link):hover:not(:disabled) { --control-fill:var(--surface-raised); }
+  .site-footer a,#public-profile,.team-rules-link):hover:not(:disabled) { --control-fill:var(--control-hover); }
 /* Selected controls invert with the theme; answer outcomes keep their colors. */
 body:has(.public-header) :is([aria-selected=true],[aria-pressed=true],[aria-current],
   button.chosen,button:active:not(:disabled),a:active,summary:active,
@@ -95,17 +98,17 @@ body:has(.public-header) :is([aria-selected=true],[aria-pressed=true],[aria-curr
 }
 .difficulty-options label,.solo-choices button { --control-radius:6px; }
 body:has(.public-header) .solo-choices button.correct {
-  --control-fill:var(--brand-green); --control-text:#111; --control-border:#111; --control-icon:0;
+  --control-fill:var(--brand-green); --control-text:#111; --control-icon:0;
 }
 body:has(.public-header) .solo-choices button.incorrect {
-  --control-fill:var(--coral); --control-text:#f6f3eb; --control-border:var(--coral); --control-icon:1;
+  --control-fill:var(--coral); --control-text:#f6f3eb; --control-icon:1;
 }
 html[data-theme=dark] body:has(.public-header) .solo-choices .incorrect { --control-text:#111; --control-icon:0; }
 .solo-choices button { position:relative; text-align:center; }
 /* Outcome color leaves all available space for long answer labels. */
 .solo-choices .correct,.solo-choices .incorrect { opacity:1; }
 .difficulty-options label:has(:checked) small { color:var(--selected-text); }
-body:has(.public-header) .play-button { --control-width:4.8px; --control-fill:var(--brand-green); --control-text:#111; --control-border:var(--ink); }
+body:has(.public-header) .play-button { --control-width:4.8px; --control-fill:var(--brand-green); --control-text:#111; }
 body:has(.public-header) a.play-button:is(:hover,:active) { --control-fill:#99bd64; --control-text:#111; }
 /* Newly framed text links need comfortable inset space; game buttons keep
  * their existing heights and vertical padding from the mobile styles. */
@@ -147,8 +150,6 @@ body:has(.public-header) :is(button,a,summary)>img[src*='/icons/'] { display:blo
 /* Do not add padding/height here: that would shift the fixed mobile answer grid. */
 .stadium-playing:not(.stadium-ending) .solo-questions { border-color:var(--ink); }
 .site-footer { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; max-width:1160px; padding:24px 0; border-top:2px solid var(--ink); text-align:left; }
-.site-footer nav { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
-.site-footer a { color:var(--ink); }
 @media(min-width:801px) {
   body:has(.public-header):not(.stadium-playing) :is(.public-header,.page-return,.site-footer,.home-page,.solo-page,.community-page,.game-guide,.public-result) {
     max-width:min(var(--public-content-width),calc(100% - 64px)); margin-left:auto; margin-right:auto;
@@ -172,18 +173,21 @@ body:has(.public-header) :is(button,a,summary)>img[src*='/icons/'] { display:blo
   .difficulty-options small { font-size:10px; margin-top:4px; }
   .guide-jump { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .guide-jump a:last-child { grid-column:1/-1; }
-  .site-footer nav { width:100%; }
-  .site-footer nav a { min-width:0; padding:8px 6px; }
   body:has(.public-header) .game-mode-tabs a { padding:8px 6px; font-size:12px; }
   .home-modes a { min-width:0; padding:8px; gap:6px; font-size:12px; }
   .home-modes a img { width:16px; height:16px; }
 }
 @media(max-width:450px) {
   .public-header { flex-wrap:nowrap; justify-content:space-between; gap:12px; }
-  .public-header .top-navigation { flex-basis:auto; justify-content:flex-end; gap:8px; }
-  .page-return { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.5fr) 44px 44px; gap:6px; align-items:center; }
-  body:has(.home-page) .page-return { grid-template-columns:minmax(0,1fr) 44px 44px; }
+  .public-header .top-navigation { flex-basis:auto; justify-content:flex-end; gap:6px; }
+  .public-header .top-navigation :is(a,button,.nav-current) { width:44px; height:44px; min-width:44px; min-height:44px; }
+  .page-return { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
   .page-return > button:not(.icon-button) { margin:0; min-width:0; padding:8px; font-size:12px; gap:6px; white-space:nowrap; }
   .page-return > button:not(.icon-button) img { width:16px; height:16px; }
-  body:has(.public-header) .page-return > a { display:none; }
+}
+@media(max-width:360px) {
+  .public-header { gap:8px; }
+  .public-header .top-navigation { gap:4px; }
+  .public-header .top-navigation :is(a,button,.nav-current) { width:44px; min-width:44px; }
+  .public-header .points-brand .brand-mark { width:32px; height:32px; }
 }

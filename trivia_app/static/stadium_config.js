@@ -48,18 +48,26 @@ export const V6_WORLD = {
   },
 };
 
+// 1.3x playback between penalties. Keep intro/outro and the answer clock unchanged.
+// Friend Duel's server countdown/result waits use the same ratio in challenge_engine.py.
+export const BETWEEN_SHOT_SPEED = 1.3;
+
 export const STADIUM = {
+    betweenShotSpeed: BETWEEN_SHOT_SPEED,
     introMs: (V6_WORLD.duration + V6_WORLD.focus.duration) * 1000,
     focusMs: V6_WORLD.focus.duration * 1000,
-    roleChangeMs: 1800, // Plynuly oblouk od puntiku do brany a zpet.
+    roleChangeMs: 1800 / BETWEEN_SHOT_SPEED, // Plynuly oblouk od puntiku do brany a zpet.
     outroMs: 6200, // Navrat detailu, vylet nad stred, spolecny fade vysledku.
+    // Movement timings are simulation time; playback scales the whole motion
+    // together so ball, keeper, run-up and contact sounds stay synchronized.
     runUpMs: 700, // Rozbeh soupere pred kontaktem s micem.
-    keeperHoldMs: 800, // Cas navic pro zretelne ukazani mice v rukavicich.
     // Contiguous samples (radius=1) prevent comb-like copies of bright seat
     // edges. Increase downsample for a softer background, not sample spacing.
     backgroundBlur: { downsample:6, radius:1 }, // Contiguous taps: soft stands without repeated line artifacts.
     shotMs: V6_WORLD.penalty.shotDuration * 1000,
-    resultHoldMs:1000, // Brief pause after contact for the save/net sound and audience reaction.
+    // Actual wall-clock pause after the motion finishes, not divided by speed.
+    // No extra keeper-only wait: the catch and landing are already in shotMs.
+    resultHoldMs:400,
     maxPixelRatio: V6_WORLD.maxPixelRatio,
     pitch: {length: 105, width: 68},
     goal: {width: 7.32, height: 2.44},

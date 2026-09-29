@@ -11,9 +11,35 @@
   const sharing=globalThis.PointsResultShare.bind(()=>room?{run_id:room.run_id,mode:'friend'}:null);
   const inviteFriend=new URLSearchParams(location.search).get('invite');
   const animated=new Set();
-  let forfeitRun=null;
+  let forfeitRun=null,lastDecision=null;
   const playerName=(s,seat)=>!s.players[seat]?'Friend':s.players[seat].is_guest?(seat===s.me?'You':'Friend'):s.players[seat].name;
   const opponentName=s=>playerName(s,1-s.me);
+  // Presentation of an already resolved round only. Never infer correctness
+  // from an option or pick a winner locally; both come from the server.
+  function roundDecision(s){
+    const r=s.round;
+    if(!r?.outcome||!r.answers)return null;
+    const winner=r.outcome==='goal'?r.shooter:r.outcome==='save'?1-r.shooter:null;
+    const seconds=ms=>(ms/1000).toFixed(ms%10?3:2)+' s';
+    return {outcome:r.outcome,rows:[s.me,1-s.me].map(seat=>{
+      const a=r.answers[seat];
+      return {name:playerName(s,seat),winner:seat===winner,correct:Boolean(a?.correct),
+        status:!a?'Time out':a.correct?'Correct':'Incorrect',time:a?seconds(a.elapsed_ms):null};
+    })};
+  }
+  function showDecision(target,decision){
+    target.replaceChildren();target.hidden=!decision;if(!decision)return;
+    target.dataset.outcome=decision.outcome;
+    const players=node('div',undefined,'friend-answer-comparison');
+    for(const row of decision.rows){
+      const player=node('div',undefined,'friend-answer'+(row.winner?' is-winner':''));
+      player.setAttribute('aria-label',`${row.name}: ${row.status}${row.time?', '+row.time:''}${row.winner?', won this penalty':''}`);
+      const name=node('strong',row.name,'friend-answer-name');name.title=row.name;
+      const detail=node('span',row.time||'Time out','friend-answer-time');
+      player.append(name,detail);players.append(player);
+    }
+    target.append(players);
+  }
   function error(message=''){$('error').textContent=message;$('error').hidden=!message;}
   async function api(path,body){
     const response=await fetch('/api/'+path,{method:body===undefined?'GET':'POST',headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});
@@ -63,10 +89,13 @@
   // always takes priority over old presentation, including after reconnecting.
   function present(s){
     if(!stadium||s.phase==='LOBBY')return;
-    const epoch=presentation,r=s.round,desired=(r?.shooter??s.initial_shooter)===s.me?'shooter':'keeper';
+    const epoch=presentation,r=s.round,shotRole=(r?.shooter??s.initial_shooter)===s.me?'shooter':'keeper';
+    const nextRole=r?.outcome==='replay'?shotRole:shotRole==='shooter'?'keeper':'shooter';
     if(!entered&&terminal(s)){stadium.leave();return;}
     animation=animation.catch(()=>{}).then(async()=>{
       if(epoch!==presentation)return;
+      // Check inside the queue: another snapshot may have finished this shot.
+      const desired=s.phase==='RESOLVED'&&animated.has(r?.id)?nextRole:shotRole;
       if(!entered){entered=true;role=desired;await stadium.enter(role,{intro:false,maxDurationMs:0});}
       if(epoch!==presentation)return;
       if(role!==desired){role=desired;stadium.reset();await stadium.enter(role,{intro:false});}
@@ -81,6 +110,10 @@
         await stadium.finish?.();
         if(s.winner!==null)globalThis.PointsAudio?.play(s.winner===s.me?'win':'loss');
         $('result-heading').focus({preventScroll:true});
+      }else if(s.phase==='RESOLVED'&&role!==nextRole){
+        // Prepare the next view immediately after the shot's short result hold.
+        // Only the server opens the next question and starts its answer clock.
+        role=nextRole;stadium.reset();await stadium.enter(role,{intro:false});
       }else if(['ANSWERING','COUNTDOWN'].includes(s.phase)){stadium.skip();stadium.reset();}
     }).catch(()=>{stadium.leave();if(terminal(room)){$('question-panel').hidden=true;$('summary').hidden=false;}});
   }
@@ -93,6 +126,7 @@
     $('result-level').hidden=true;$('guest-benefits').hidden=true;$('another').hidden=false;$('another').textContent='New friend duel';
     $('summary-account').textContent=user?'View profile':'Create account';$('summary-account').href=user?'/account':'/account?mode=register';$('result-review').hidden=true;
     $('summary').hidden=entered&&!finished;$('question-panel').hidden=!entered||finished;
+    showDecision($('friend-final-result'),roundDecision(s));
     sharing.reset();
   }
   function render(s){
@@ -107,6 +141,7 @@
     const key=[s.phase,s.version,s.round?.id,s.round?.own_option,busy].join(':');
     if(key===renderKey)return;renderKey=key;scoreboard(s);$('retry').hidden=true;
     if(s.phase==='LOBBY'){
+      lastDecision=null;showDecision($('friend-round-result'),null);$('feedback').hidden=false;
       // Reloading a ready lobby restores waiting, not a disabled Ready button.
       if(s.players[s.me].ready&&!entered){entered=true;role=s.initial_shooter===s.me?'shooter':'keeper';stadium?.enter(role,{intro:false,maxDurationMs:0});}
       lobby(s);return;
@@ -129,7 +164,11 @@
       b.addEventListener('click',()=>answer(option.id));$('choices').append(b);
     }
     const feedback=active&&r?.own_option!==null?`Answer locked. Waiting for ${opponentName(s)}...`:'';
-    $('feedback').textContent=feedback;$('next').hidden=true;$('leave').hidden=done;
+    if(r?.outcome)lastDecision=roundDecision(s);
+    else if(active)lastDecision=null;
+    showDecision($('friend-round-result'),lastDecision);
+    $('feedback').hidden=Boolean(lastDecision);$('feedback').textContent=feedback;
+    $('next').hidden=true;$('leave').hidden=done;
     $('summary').hidden=true;$('question-panel').hidden=false;
     if(done)summary(s);present(s);
   }
@@ -197,7 +236,7 @@
     try{await navigator.share({title:'ON THE DOT. | Friend Duel',text:'Join my penalty shootout.',url:$('invite-link').value});}catch(e){if(e.name!=='AbortError')error('Could not share. Copy the invitation link instead.');}
   });
   $('another').addEventListener('click',()=>{
-    presentation++;stadium?.leave();remember('');room=null;role=null;entered=finished=introducing=false;renderKey='';animated.clear();sharing.reset();
+    presentation++;stadium?.leave();remember('');room=null;role=null;lastDecision=null;entered=finished=introducing=false;renderKey='';animated.clear();sharing.reset();
     page.classList.remove('shootout-active','shootout-finished');$('shootout-board').hidden=true;$('quiz-run').hidden=true;$('selection').hidden=false;$('friend-lobby').hidden=true;$('quiz-start').hidden=false;error();
   });
   setInterval(()=>{if(room&&!terminal(room)&&!document.hidden)refresh();},1000);

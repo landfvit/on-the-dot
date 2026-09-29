@@ -3,7 +3,7 @@
  * Tento modul neobsahuje demo UI, vyber vysledku ani herni casomiru.
  */
 import * as THREE from './vendor/three/three.module.min.js';
-import {V6_WORLD as CONFIG} from './stadium_config.js?v=14';
+import {V6_WORLD as CONFIG} from './stadium_config.js?v=16';
 
 export function createStadiumWorld(scene) {
   const v=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);

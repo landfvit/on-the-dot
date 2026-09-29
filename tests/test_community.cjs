@@ -41,12 +41,13 @@ test('player cell contains only username and an optional nonempty team',async()=
 test('failed request provides a usable retry and empty ranks never invent players',async()=>{
   const s=setup();reply(s.requests[0],{},503);await flush();assert.equal(s.get('community-retry').hidden,false);
   s.get('community-retry').handlers.click();reply(s.requests[1],{...board,entries:[],me:null,participants:0,signed_in:false,distribution:[]});await flush();
-  assert.equal(s.get('ranking-table').hidden,true);assert.equal(s.get('community-play').hidden,false);
+  assert.equal(s.get('ranking-table').hidden,true);
+  assert.equal(s.get('ranking-self').children.filter(e=>e.tag==='a').length,0);
   assert.match(s.get('community-status').textContent,/No scores/);
 });
 test('history is private and requests authentication on an expired session',async()=>{
   const s=setup('history');reply(s.requests[0],{},401);await flush();
-  assert.equal(s.get('history-list').children.length,0);assert.equal(s.get('community-signin').hidden,false);
+  assert.equal(s.get('history-list').children.length,0);assert.match(s.get('community-status').textContent,/Sign in/);
 });
 test('history rows link to owner-authorized run details and paginate',async()=>{
   const s=setup('history');reply(s.requests[0],{items:[{run_id:'abc',phase:'ABANDONED',finished_at:1789980000000,difficulty:'easy',correct:3,questions:10,xp:30,category:{label:'All clubs',topic_label:'Goals'}}],has_more:true});await flush();

@@ -37,7 +37,7 @@ class SoloDatabaseTests(unittest.TestCase):
                 mock=patch(target,return_value=original);mock.start();self.addCleanup(mock.stop)
             conn.execute(sql.SQL('CREATE SCHEMA {}').format(sql.Identifier(self.schema)))
             conn.execute(sql.SQL('SET search_path TO {},public').format(sql.Identifier(self.schema)))
-            for name in ['037_player_progress','038_solo_answer_guards','039_email_trials_xp','040_weekly_question_history','042_solo_answer_duration','043_solo_shootout','044_solo_community','045_account_settings','046_team_membership','047_daily_friends','048_social_play','049_daily_survival','050_developer_dashboard','051_account_moderation']:
+            for name in ['037_player_progress','038_solo_answer_guards','039_email_trials_xp','040_weekly_question_history','042_solo_answer_duration','043_solo_shootout','044_solo_community','045_account_settings','046_team_membership','047_daily_friends','048_social_play','049_daily_survival','050_developer_dashboard','051_account_moderation','052_game_performance']:
                 if name=='039_email_trials_xp':
                     conn.execute('INSERT INTO game_accounts(account_id,username,password_hash) VALUES(%s,%s,%s)',
                                  (uuid4(),'legacy_player',password_hash('legacy-password-1234')))
@@ -55,6 +55,10 @@ class SoloDatabaseTests(unittest.TestCase):
             p=patch(module+'.get_connection',isolated);p.start();self.addCleanup(p.stop)
         for module in ['api.player_accounts','api.solo_routes','api.social_routes','api.result_shares']:
             p=patch(module+'.rate_limit');p.start();self.addCleanup(p.stop)
+        # Disposable-schema tests deliberately own direct, session-scoped
+        # search_path connections, including concurrent TestClient lifespans.
+        for target in ['trivia_app.main.start_pool','trivia_app.main.close_pool']:
+            p=patch(target);p.start();self.addCleanup(p.stop)
         self.client=TestClient(app)
         response=self.client.post('/api/players/register',json={'username':'test_player','email':'player@example.com','password':'test-only-password-1234'})
         self.assertEqual(response.status_code,201,response.text)

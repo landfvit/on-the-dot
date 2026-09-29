@@ -19,6 +19,7 @@ class StadiumAssetsTests(unittest.TestCase):
                 self.assertNotIn('class="penalty-stage"', response.text)
                 self.assertNotIn('2D view', response.text)
                 self.assertIn('id="stadium-unavailable"', response.text)
+                self.assertIn('id="stadium-retry"', response.text)
                 self.assertNotIn('cdn.jsdelivr', response.text)
 
     def test_only_explicitly_allowed_game_assets_are_public(self):
@@ -29,3 +30,18 @@ class StadiumAssetsTests(unittest.TestCase):
                 self.assertEqual(client.get('/trivia-assets/' + filename).status_code, 200)
         self.assertNotEqual(client.get('/trivia-assets/writer.js').status_code, 200)
         self.assertNotEqual(client.get('/trivia-assets/bank.js').status_code, 200)
+
+    def test_retry_namespace_serves_the_same_public_dependency_graph(self):
+        client=TestClient(app)
+        for filename in ('stadium_scene.js','stadium_config.js','stadium_v6_world.js',
+                         'stadium_motion.js','crowd_reaction.js','vendor/three/three.module.min.js',
+                         'vendor/three/three.core.min.js'):
+            with self.subTest(filename=filename):
+                original=client.get('/trivia-assets/'+filename)
+                retry=client.get('/trivia-assets/_retry/2/'+filename)
+                self.assertEqual(retry.status_code,200)
+                self.assertEqual(retry.content,original.content)
+                self.assertEqual(retry.headers['content-type'],original.headers['content-type'])
+        for path in ('_retry/2/writer.js','_retry/2/bank.js','_retry/2/../writer.js',
+                     '_retry/2/%2e%2e%2fwriter.js','_retry/0/stadium_scene.js','_retry/no/stadium_scene.js'):
+            self.assertNotEqual(client.get('/trivia-assets/'+path).status_code,200)

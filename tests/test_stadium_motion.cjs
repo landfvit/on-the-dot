@@ -1,6 +1,19 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs');
 const source=fs.readFileSync(require('node:path').join(__dirname,'../trivia_app/static/stadium_motion.js'),'utf8');
 const motion=import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+test('inter-penalty playback is 1.3x without changing intro, outro or physics',async()=>{
+    const {STADIUM:C}=await import('../trivia_app/static/stadium_config.js');
+    assert.equal(C.betweenShotSpeed,1.3);
+    assert.equal(C.roleChangeMs,1800/1.3);
+    assert.equal(C.introMs,10050);assert.equal(C.outroMs,6200);
+    assert.equal(C.shot.gravity,9.81);assert.equal(C.shot.flightSeconds,.46);
+    assert.equal(C.resultHoldMs,400);
+    assert.equal(C.keeperHoldMs,undefined);
+    for(const runUp of [0,C.runUpMs]){
+        const total=(C.shotMs+runUp+C.resultHoldMs*C.betweenShotSpeed)/C.betweenShotSpeed;
+        assert(Math.abs(total-(C.shotMs+runUp)/C.betweenShotSpeed-400)<1e-9);
+    }
+});
 test('jump is a gravity-driven parabola and returns below launch height',async()=>{
     const {ballistic}=await motion,g=9.81,v=3.5,apex=v/g;
     assert(ballistic(.92,v,apex)>.92);

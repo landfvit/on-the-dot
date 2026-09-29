@@ -2,7 +2,7 @@
 {% set mode = game_mode|default('solo') %}
 {% set mode_title = 'Daily Challenge' if mode == 'daily' else 'Friend Duel' if mode == 'friend' else 'Penalties' %}
 {% block title %}{{ mode_title }} · ON THE DOT.{% endblock %}
-{% block final_styles %}<link rel="stylesheet" href="/trivia-assets/solo_mobile.css?v=4"><link rel="stylesheet" href="/trivia-assets/solo_results.css?v=2"><link rel="stylesheet" href="/trivia-assets/xp_progress.css?v=1"><link rel="stylesheet" href="/trivia-assets/game_modes.css?v=4">{% endblock %}
+{% block final_styles %}<link rel="stylesheet" href="/trivia-assets/solo_mobile.css?v=4"><link rel="stylesheet" href="/trivia-assets/solo_results.css?v=2"><link rel="stylesheet" href="/trivia-assets/xp_progress.css?v=1"><link rel="stylesheet" href="/trivia-assets/game_modes.css?v=5">{% endblock %}
 {% block styles %}<link rel="stylesheet" href="/trivia-assets/penalties.css?v=2"><link rel="stylesheet" href="/trivia-assets/solo.css?v=4"><link rel="stylesheet" href="/trivia-assets/stadium.css?v=5"><link rel="stylesheet" href="/trivia-assets/shootout.css?v=8">{% endblock %}
 {% block content %}
 {% include 'stadium.html' %}
@@ -41,13 +41,14 @@
     <div class="clock"><progress id="timer" max="15" value="15" aria-label="Time remaining"></progress><output id="seconds">15 s</output></div>
     <h2 id="question-title" tabindex="-1"></h2>
     <div id="choices" class="solo-choices" role="group" aria-labelledby="question-title"></div>
-    <div class="feedback-slot"><p id="feedback" role="status" aria-live="polite"></p><button id="feedback-expand" type="button" aria-label="Read full answer" title="Read full answer" hidden><img src="/trivia-assets/icons/arrow-right.svg" alt=""></button></div>
+    <div class="feedback-slot"><p id="feedback" role="status" aria-live="polite"></p>{% if mode == 'friend' %}<div id="friend-round-result" class="friend-round-result" role="status" aria-live="polite" aria-atomic="true" hidden></div>{% endif %}<button id="feedback-expand" type="button" aria-label="Read full answer" title="Read full answer" hidden><img src="/trivia-assets/icons/arrow-right.svg" alt=""></button></div>
     <div class="actions"><button id="next" class="primary" hidden>Next shot</button><button id="retry" hidden>Reconnect</button></div>
     </div>
     {% with ad_slot='gameplay-bottom', ad_class='ad-gameplay' %}{% include 'ad_slot.html' %}{% endwith %}
     <section id="summary" hidden aria-labelledby="result-heading">
       <div class="result-heading-row"><div class="result-heading-copy"><h2 id="result-heading" tabindex="-1"></h2><p id="result-completion" class="muted"></p></div><button id="share-result" class="icon-button" type="button" aria-label="Share with friends" title="Share with friends" disabled><img src="/trivia-assets/icons/share-2.svg" alt=""><span>Share with friends</span></button></div>
       <div class="metrics" id="result-metrics"></div>
+      {% if mode == 'friend' %}<div id="friend-final-result" class="friend-round-result" aria-label="Final penalty" hidden></div>{% endif %}
       <div id="result-level" hidden><div class="xp-heading"><strong id="result-level-label"></strong><span id="result-level-up" role="status" hidden></span></div><progress id="result-level-progress" class="xp-progress" aria-label="Level progress"></progress><div class="xp-caption"><span id="result-level-remaining"></span><span id="result-xp-total"></span></div></div>
       <div class="actions result-actions"><button id="another" class="primary" hidden>New shootout</button><a id="summary-account" class="primary-link" href="/account">View profile</a><a class="primary-link" href="/leaderboard{{ '?metric=daily_highscore' if mode == 'daily' else '' }}">Leaderboard</a><a class="primary-link" href="/">Home</a></div>
       <section id="guest-benefits" class="guest-benefits" aria-labelledby="guest-heading" hidden>
@@ -93,4 +94,4 @@
   </div>
 </dialog>
 {% endblock %}
-{% block scripts %}<script src="/trivia-assets/penalty_shots.js?v=1" defer></script><script src="/trivia-assets/stadium_intro.js?v=18" defer></script><script src="/trivia-assets/penalty_scene.js?v=6" defer></script><script src="/trivia-assets/xp_progress.js?v=1" defer></script><script src="/trivia-assets/result_share.js?v=3" defer></script><script src="/trivia-assets/mode_intro.js?v=4" defer></script><script src="/trivia-assets/{{ 'friends.js?v=11' if mode == 'friend' else 'solo.js?v=26' }}" defer></script><script src="/trivia-assets/solo_mobile.js?v=1" defer></script>{% endblock %}
+{% block scripts %}<script src="/trivia-assets/penalty_shots.js?v=1" defer></script><script src="/trivia-assets/stadium_intro.js?v=23" defer></script><script src="/trivia-assets/penalty_scene.js?v=6" defer></script><script src="/trivia-assets/xp_progress.js?v=1" defer></script><script src="/trivia-assets/result_share.js?v=3" defer></script><script src="/trivia-assets/mode_intro.js?v=4" defer></script><script src="/trivia-assets/{{ 'friends.js?v=13' if mode == 'friend' else 'solo.js?v=26' }}" defer></script><script src="/trivia-assets/solo_mobile.js?v=1" defer></script>{% endblock %}

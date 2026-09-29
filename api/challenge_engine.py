@@ -5,6 +5,9 @@ from api import penalty_engine as penalty
 
 XP={'easy':10,'medium':20,'hard':30}
 TERMINAL=('FINISHED','ABANDONED')
+# Match the inter-penalty playback ratio in stadium_config.js. Frozen rules in
+# already-started duels keep their original waits and 15-second answer windows.
+BETWEEN_SHOT_SPEED=1.3
 
 
 def daily_create(deck,now,expires_at,ranked=True):
@@ -87,8 +90,9 @@ def daily_view(s,now):
 
 def friend_create(player,name,difficulty,now):
     s=penalty.create('pvp',player,name,[],now,0)
-    s['rules'].update(version='friend-shootout-v1',initial_kicks=5,answer_ms=15000,
-                      countdown_ms=4000,result_ms=5500,reconnect_ms=30000,tie_ms=150)
+    s['rules'].update(version='friend-shootout-v2',initial_kicks=5,answer_ms=15000,
+                      countdown_ms=round(4000/BETWEEN_SHOT_SPEED),result_ms=round(5500/BETWEEN_SHOT_SPEED),
+                      reconnect_ms=30000,tie_ms=150)
     s.update(difficulty=difficulty,finished_at=None)
     return s
 

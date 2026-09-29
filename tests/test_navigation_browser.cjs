@@ -3,7 +3,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
 const origin=process.env.MOBILE_TEST_URL||'http://127.0.0.1:8015';
 assert(['localhost','127.0.0.1'].includes(new URL(origin).hostname));
 const output='/tmp/on-the-dot-navigation';fs.mkdirSync(output,{recursive:true});
-const links=['/penalties','/leaderboard','/account'];
+const links=['/leaderboard','/account'];
 (async()=>{
  const browser=await chromium.launch({channel:'chrome',headless:true});
  try{
@@ -30,7 +30,7 @@ const links=['/penalties','/leaderboard','/account'];
    assert.equal(await page.locator('.home-modes,.match-format,.step-index').count(),0);
    for(const theme of ['light','dark']){
     await page.evaluate(theme=>{document.documentElement.dataset.theme=theme;},theme);
-    assert.deepEqual(await page.locator('.play-button').evaluate(e=>{const s=getComputedStyle(e);return [s.borderTopColor,s.backgroundColor];}),[theme==='dark'?'rgb(246, 243, 235)':'rgb(17, 17, 17)','rgb(136, 176, 75)']);
+    assert.deepEqual(await page.locator('.play-button').evaluate(e=>{const s=getComputedStyle(e);return [s.borderTopColor,s.backgroundColor];}),['rgba(0, 0, 0, 0)','rgb(136, 176, 75)']);
     assert.equal(await page.locator('.site-footer').evaluate(e=>getComputedStyle(e).marginTop),'0px');
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     await page.screenshot({path:`${output}/home-${width}-${theme}.png`,fullPage:true});
@@ -38,9 +38,9 @@ const links=['/penalties','/leaderboard','/account'];
    await page.goto(origin+'/penalties');
    assert.equal(await page.locator('#menu-open,#menu-drawer,.shell-drawer').count(),0);
    const nav=page.getByRole('navigation',{name:'Main navigation',exact:true});
-   assert(await nav.isVisible());assert.equal(await nav.locator('img').count(),3);
+   assert(await nav.isVisible());assert.equal(await nav.locator('img').count(),5);
    assert.deepEqual(await nav.locator('a').evaluateAll(es=>es.map(e=>e.getAttribute('href'))),links);
-   const boxes=await nav.locator('a').evaluateAll(es=>es.map(e=>{
+   const boxes=await nav.locator('a,button,.nav-current').evaluateAll(es=>es.map(e=>{
     const r=e.getBoundingClientRect(),icon=e.querySelector('img').getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,fits:icon.left>=r.left&&icon.right<=r.right};
    }));
    for(const [i,r] of boxes.entries()){
@@ -50,12 +50,17 @@ const links=['/penalties','/leaderboard','/account'];
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
    await page.screenshot({path:`${output}/navigation-${width}.png`});
    assert.equal(await page.locator('.header-sound,[data-sound-volume]').count(),0);
-   const sound=page.locator('.page-return [data-sound-toggle]');
+   assert.equal(await page.locator('[data-theme-toggle]:visible').count(),1);
+   assert.equal(await page.locator('[data-sound-toggle]:visible').count(),1);
+   assert.equal(await page.locator('a[href="/how-to-play"]:visible').count(),1);
+   assert.equal(await page.locator('.site-footer a,.site-footer button').count(),0);
+   const sound=page.locator('.top-navigation [data-sound-toggle]');
    await sound.click();assert.equal(await sound.getAttribute('aria-pressed'),'false');
    assert.equal(await page.evaluate(()=>PointsAudio.getSettings().enabled),false);
    await sound.click();assert.equal(await sound.getAttribute('aria-pressed'),'true');
    assert.equal(await page.evaluate(()=>PointsAudio.getSettings().enabled),true);
-   await page.locator('[data-share-game]').click();assert(await page.locator('#game-share-dialog').isVisible());
+   assert.equal(await page.locator('[data-share-game]').count(),0);
+   await page.goto(origin+'/');await page.locator('[data-share-game]').click();assert(await page.locator('#game-share-dialog').isVisible());
    const share=await page.locator('#game-share-dialog').boundingBox();
    assert(share.x>=0&&share.x+share.width<=width+1);assert(Math.abs(share.x-(width-share.width)/2)<2);
    assert.equal(await page.locator('#game-share-link').inputValue(),origin+'/');
@@ -72,8 +77,9 @@ const links=['/penalties','/leaderboard','/account'];
    await page.locator('.game-rules-link').click();await page.waitForURL(origin+'/how-to-play');
    assert(await page.locator('.game-guide').isVisible());assert.equal(await page.locator('dialog[open]').count(),0);
    await page.locator('[data-back]').click();await page.waitForURL(origin+path);
-   await page.locator('.site-footer a[href="/how-to-play"]').click();await page.waitForURL(origin+'/how-to-play');
-   console.log(`PASS ${path}: both help links reach full guide; Back returns to the mode`);
+   assert.equal(await page.locator('a[href="/how-to-play"]:visible').count(),1);
+   assert.equal(await page.locator('.site-footer a').count(),0);
+   console.log(`PASS ${path}: one help link reaches full guide; Back returns to the mode`);
   }
   for(const path of ['/penalties','/friends']){
    await page.goto(origin+path);await page.locator('#start:not([disabled])').click();

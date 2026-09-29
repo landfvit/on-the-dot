@@ -22,12 +22,12 @@ const out='/tmp/on-the-dot-dark';fs.mkdirSync(out,{recursive:true});
    assert(ink>20&&white>20,'White balls must retain black panels and an outline');
    console.log(`PASS dark UI ${width}: 7 pages and outlined white balls`);
   }
-  await page.locator('.page-return [data-theme-toggle]').click();
+  await page.locator('.top-navigation [data-theme-toggle]').click();
   assert.equal(await page.locator('html').getAttribute('data-theme'),'light');await page.reload();
   assert.equal(await page.locator('html').getAttribute('data-theme'),'light');
   await page.emulateMedia({colorScheme:'dark'});assert.equal(await page.locator('html').getAttribute('data-theme'),'light');
   const tab=await context.newPage();await tab.goto(origin+'/');
-  await page.locator('.page-return [data-theme-toggle]').focus();await page.keyboard.press('Enter');
+  await page.locator('.top-navigation [data-theme-toggle]').focus();await page.keyboard.press('Enter');
   await tab.waitForFunction(()=>document.documentElement.dataset.theme==='dark');
   assert.deepEqual(errors,[]);await context.close();
   const denied=await browser.newContext();await denied.addInitScript(()=>{Object.defineProperty(window,'localStorage',{get(){throw Error('blocked');}});});

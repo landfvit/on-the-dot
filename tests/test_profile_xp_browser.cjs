@@ -37,10 +37,14 @@ async function greenPixels(locator){const {data,info}=await sharp(await locator.
     await page.evaluate(theme=>{localStorage.setItem('onthedot.theme',theme);document.documentElement.dataset.theme=theme;},theme);
     assert.equal(await page.locator('#level-progress').evaluate(e=>e.value),450);assert((await greenPixels(page.locator('#level-progress')))>100);
     assert(await page.locator('#profile-record').isVisible());assert.equal(await page.locator('#profile-name').textContent(),profile.username);
+    assert.equal(await page.locator('a[href="/history"]:visible').count(),1);
+    assert.equal(await page.locator('.site-footer a').count(),0);
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     await page.screenshot({path:`${out}/profile-${width}-${theme}.png`,fullPage:true});
     await page.locator('[data-profile-tab=settings]').click();await page.getByText('Sound',{exact:true}).click();
     assert(await page.locator('#sound-volume').isVisible());assert(await page.locator('#level-progress').isVisible());
+    assert.equal(await page.locator('[data-sound-toggle]:visible').count(),1);
+    assert.equal(await page.locator('.top-navigation [data-sound-toggle]:visible').count(),1);
     assert(!await page.locator('#profile-stats').isVisible());assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     await page.screenshot({path:`${out}/settings-${width}-${theme}.png`,fullPage:true});
     await page.locator('[data-profile-tab=friends]').click();assert(await page.locator('#friend-add').isVisible());

@@ -13,7 +13,7 @@ class HomePageTests(unittest.TestCase):
                 response=TestClient(app,cookies=cookies).get('/')
                 self.assertEqual(response.status_code,200)
                 self.assertIn('class="play-button"',response.text)
-                for path in ('/penalties','/how-to-play','/leaderboard','/account','/history'):
+                for path in ('/penalties','/how-to-play','/leaderboard','/account'):
                     self.assertIn(f'href="{path}"',response.text)
                 self.assertNotIn('stadium_intro.js',response.text)
                 self.assertNotIn('id="stadium-layer"',response.text)

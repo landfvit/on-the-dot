@@ -11,6 +11,7 @@ from psycopg.types.json import Jsonb
 from api.database import get_connection
 from api.game_state import checkpoint,progress,QuestionWindow
 from api.player_accounts import account,profile,xp_transition,COOKIE as ACCOUNT_COOKIE
+from api.player_kits import outfit
 from api.solo_trials import trial_player
 from api.penalty_routes import now_ms,rate_limit
 from api.solo_routes import active_releases,Answer,Next
@@ -271,7 +272,9 @@ def daily_leave(run_id:UUID,request:Request):return daily_action(run_id,request,
 def friend_public(row,user,now):
     result={**game.penalty.view(row['state'],str(user['account_id']),now),'code':row['invite'],
             'run_id':str(row['run_id']),'difficulty':row['state']['difficulty'],'xp_saved':False,'is_guest':user['is_guest']}
-    for shown,frozen in zip(result['players'],row['state']['players']):shown['is_guest']=frozen.get('is_guest',False)
+    for shown,frozen in zip(result['players'],row['state']['players']):
+        shown['is_guest']=frozen.get('is_guest',False)
+        shown['outfit']=frozen.get('outfit')
     return result
 
 
@@ -302,6 +305,7 @@ def friend_create(body:FriendStart,request:Request,response:Response):
         ensure_free(conn,ident)
         s=game.friend_create(str(ident),'Friend' if user['is_guest'] else user['username'],body.difficulty,now)
         s['players'][0]['is_guest']=user['is_guest']
+        s['players'][0]['outfit']=outfit(user)
         s['first']=s['shooter']=secrets.randbelow(2)
         row=conn.execute('''INSERT INTO game_mode_runs(run_id,mode,owner_id,start_request_id,invite,state)
             VALUES(%s,'friend',%s,%s,%s,%s) RETURNING *''',(uuid4(),ident,body.request_id,secrets.token_urlsafe(32),Jsonb(s))).fetchone()
@@ -352,6 +356,7 @@ def friend_action(code,request,command='view',body=None,response=None):
                 ensure_free(conn,ident)
                 game.penalty.join(s,pid,'Friend' if user['is_guest'] else user['username'],now)
                 s['players'][-1]['is_guest']=user['is_guest']
+                s['players'][-1]['outfit']=outfit(user)
                 conn.execute('INSERT INTO game_mode_members(run_id,account_id,seat) VALUES(%s,%s,1)',(row['run_id'],ident))
             if s['phase'] not in game.TERMINAL:
                 player=next(p for p in s['players'] if p['id']==pid)

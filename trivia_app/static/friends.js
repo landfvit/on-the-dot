@@ -132,6 +132,7 @@
   function render(s){
     if(room&&room.run_id===s.run_id&&s.server_now<room.server_now)return;
     room=s;offset=s.server_now-Date.now();
+    stadium?.setOutfits?.(s.players[s.me]?.outfit,s.players[1-s.me]?.outfit);
     updateClock();
     if(terminal(s)&&$('forfeit-dialog').open)$('forfeit-dialog').close();
     // Fetch at the shared opening instant, not at each tab's arbitrary polling
@@ -150,7 +151,7 @@
     const done=terminal(s),active=s.phase==='ANSWERING',r=s.round;
     page.classList.toggle('shootout-active',!done);page.classList.toggle('shootout-finished',done);
     $('run-position').textContent=r?(r.shooter===s.me?'Shooting':'Defending')+' · Round '+r.pair:'';
-    $('question-title').textContent=s.question?.text||(done?'Duel ended':r?.shooter===s.me?'Get ready to shoot':'Get ready to save');
+    $('question-title').textContent=PointsQuestion.text(s.question)||(done?'Duel ended':r?.shooter===s.me?'Get ready to shoot':'Get ready to save');
     $('timer').parentElement.hidden=!active&&s.phase!=='COUNTDOWN';$('choices').replaceChildren();
     for(const option of s.question?.options||[]){
       const b=node('button',option.text);b.disabled=!active||busy||r.own_option!==null;

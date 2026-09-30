@@ -1,54 +1,37 @@
 <!doctype html>
-<html lang="en"><meta charset="utf-8"><title>Stadium fade regression</title>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Minimal penalty theme regression</title>
 <style>
-body{background:#091316;color:#e6eee4;font:14px monospace;margin:16px}button{padding:12px}
+body{background:#f6f3eb;color:#111;font:14px monospace;margin:16px}button{padding:12px}
 #frames{display:flex;flex-wrap:wrap;gap:8px}figure{margin:0;width:300px}img{width:100%}
 </style>
-<button id="run">Check gradient</button><pre id="result">Ready</pre><div id="frames"></div>
+<button id="run">Check minimal scene</button><pre id="result">Ready</pre><div id="frames"></div>
 <script type="module">
 import * as THREE from '/trivia-assets/vendor/three/three.module.min.js';
-import {createStadiumWorld} from '/trivia-assets/stadium_v6_world.js?v=7';
+import {createStadiumWorld} from '/trivia-assets/stadium_v6_world.js?v=19';
 const scene=new THREE.Scene(),world=createStadiumWorld(scene);
-const camera=new THREE.PerspectiveCamera(55,1.5,.07,600);
-camera.position.set(40,1.7,0);camera.lookAt(52.5,.92,0);
-const renderer=new THREE.WebGLRenderer({alpha:true,preserveDrawingBuffer:true});
+world.keeperRig.group.position.set(52.1,.92,0);world.strikerRig.group.position.set(39.5,.92,0);
+world.ball.position.set(41.5,.195,0);world.shadows();
+const camera=new THREE.PerspectiveCamera(40,1.5,.07,100);
+camera.position.set(29,5,-8);camera.lookAt(47,.7,0);
+const renderer=new THREE.WebGLRenderer({alpha:true,preserveDrawingBuffer:true,antialias:true});
 renderer.setSize(600,400);renderer.outputColorSpace=THREE.SRGBColorSpace;
-const target=new THREE.WebGLRenderTarget(600,400);
-const pixels=new Uint8Array(600*400*4);
-const environment=scene.children.find(o=>o.isGroup);
-const objects=[];scene.traverse(o=>{if(o.isMesh||o.isLine)objects.push(o);});
-const original=new Map(objects.map(o=>[o,o.visible]));
-function capture(focus){
-  world.setFocus(focus);renderer.setRenderTarget(target);renderer.render(scene,camera);
-  renderer.readRenderTargetPixels(target,0,0,600,400,pixels);
-  let alpha=0;for(let i=3;i<pixels.length;i+=4)alpha+=pixels[i];
-  renderer.setRenderTarget(null);renderer.render(scene,camera);
-  return {alpha,image:renderer.domElement.toDataURL()};
-}
+const target=new THREE.WebGLRenderTarget(600,400),pixels=new Uint8Array(600*400*4);
 document.querySelector('#run').onclick=()=>{
-  const results={},frames=document.querySelector('#frames');frames.replaceChildren();
-  for(const mode of ['lines','shell','full']){
-    for(const object of objects){
-      // Isolate the actual production materials, not a replica of their shaders.
-      object.visible=mode==='full'?original.get(object):
-        mode==='lines'?Boolean(object.isLine&&object.parent===environment):
-        Boolean(object.isMesh&&object.parent.parent===environment);
-    }
-    const samples=[];
-    for(const focus of [0,.25,.5,.75,.95,.999,1]){
-      const {alpha,image}=capture(focus);samples.push({focus,alpha});
-      const figure=document.createElement('figure'),img=document.createElement('img'),caption=document.createElement('figcaption');
-      img.src=image;caption.textContent=`${mode} ${focus}: alpha ${alpha}`;
-      figure.append(img,caption);frames.append(figure);
-    }
-    results[mode]=samples;
+  const samples=[],frames=document.querySelector('#frames');frames.replaceChildren();
+  for(const theme of ['light','dark','light']){
+    world.setTheme(theme);renderer.setRenderTarget(target);renderer.render(scene,camera);
+    renderer.readRenderTargetPixels(target,0,0,600,400,pixels);
+    let alpha=0;for(let i=3;i<pixels.length;i+=4)alpha+=pixels[i];
+    renderer.setRenderTarget(null);renderer.render(scene,camera);
+    const figure=document.createElement('figure'),img=document.createElement('img'),caption=document.createElement('figcaption');
+    img.src=renderer.domElement.toDataURL();img.alt=theme+' penalty area';
+    figure.style.background=theme==='dark'?'#191d19':'#f6f3eb';
+    caption.textContent=theme;figure.append(img,caption);frames.append(figure);
+    samples.push({theme,alpha,...world.inspect()});
   }
-  const checks=['lines','shell'].map(mode=>{
-    const s=results[mode];
-    return {mode,nonblank:s[0].alpha>1000,monotonic:s.every((p,i)=>!i||p.alpha<s[i-1].alpha||p.alpha===0),
-      halfway:s[2].alpha/s[0].alpha,nearEnd:s[5].alpha/s[0].alpha,hidden:s.at(-1).alpha===0};
-  });
-  const pass=checks.every(c=>c.nonblank&&c.monotonic&&c.halfway>.1&&c.halfway<.8&&c.nearEnd<.01&&c.hidden);
-  document.querySelector('#result').textContent=JSON.stringify({pass,checks,results},null,2);
+  const pass=samples.every(s=>s.alpha>1000&&s.alpha===samples[0].alpha&&s.stadiumObjects===0
+    &&s.goalColor===0xffffff&&s.markingsColor===0xffffff);
+  document.querySelector('#result').textContent=JSON.stringify({pass,samples},null,2);
 };
 </script></html>

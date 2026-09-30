@@ -11,9 +11,9 @@ def guide_context():
         ('early', 'Early finish', [True] * 6,
          'You have an unbeatable lead. The shootout ends without taking the remaining penalties.'),
         ('last', 'Last kick', [True, False] * 4 + [True],
-         'The opponent still has one kick left. A goal keeps the shootout alive; a save wins it for you.'),
+         'Your opponent has one kick left. A goal keeps the game going. A save wins it for you.'),
         ('sudden', 'Sudden death', [True, False] * 5 + [True, True],
-         'After a tied opening five, both sides take one more kick. You score, then save: you win.'),
+         'The first five kicks end level. Both sides take another kick. You score and save to win.'),
     )
     for code, title, answers, caption in cases:
         state = {'history': [{'correct': answer, 'option_id': '0'} for answer in answers]}

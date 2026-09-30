@@ -79,11 +79,13 @@ class TriviaAssets(StaticFiles):
 app.mount('/assets', TriviaAssets(directory=ROOT / 'web' / 'static'), name='assets')
 app.mount('/trivia-assets', TriviaAssets(directory=ROOT / 'trivia_app' / 'static',
     public_files=('app.css','penalties.css','penalty_scene.js','solo.css','solo.js',
-                  'stadium.css','stadium_intro.js','stadium_scene.js','stadium_config.js','stadium_v6_world.js','stadium_motion.js','crowd_reaction.js','penalty_shots.js','points_theme.css','redesign.css','home.css','home.js','theme.js','dark_mode.css','icons/sun.svg','icons/moon.svg',
+                  'stadium.css','stadium_inline.css','stadium_intro.js','stadium_scene.js','stadium_config.js','stadium_v6_world.js','stadium_motion.js','crowd_reaction.js','penalty_shots.js','points_theme.css','redesign.css','home.css','home.js','theme.js','dark_mode.css','icons/sun.svg','icons/moon.svg',
                   'community.css','community.js','shell.js','shootout.css','result_share.js','solo_mobile.css','solo_mobile.js','solo_results.css','friends.js','game_modes.css',
-                  'account_settings.css','account_settings.js','profile.css','xp_progress.css','xp_progress.js','public_ui.css','public_ui.js','social.css','social.js','mode_intro.js',
+                  'account_settings.css','account_settings.js','profile.css','xp_progress.css','xp_progress.js','public_ui.css','public_ui.js','question_text.js','social.css','social.js','mode_intro.js',
+                  'player_kit.css','player_kit.js','kit_pixels.js','player-kits/catalog.json',
                   'audio.css','audio.js','icons/volume-2.svg','icons/volume-x.svg','icons/monitor.svg','icons/monitor-off.svg',
                   'game_guide.css','game_guide.js','guide/shooter.png','guide/keeper.png','icons/circle-help.svg',
+                  'guide/kit-home.png','guide/kit-away.png','guide/kit-third.png','guide/kit-number.png',
                   'brand/logo.png','brand/mark.png','brand/favicon.png','brand/favicon.svg','brand/logo-transparent.png','brand/logo.svg','brand/icon-180.png',
                   'icons/eye.svg','icons/eye-off.svg',
                   *(f'clubs/{club["team_id"]}.png' for club in public_metadata['clubs']),
@@ -197,7 +199,8 @@ def home(request: Request):
 
 @app.get('/favicon.ico', include_in_schema=False)
 def favicon():
-    return RedirectResponse('/trivia-assets/brand/favicon.png?v=4', status_code=307)
+    return RedirectResponse('/trivia-assets/brand/favicon.png?v=5', status_code=307,
+                            headers={'Cache-Control':'no-cache'})
 
 
 @app.get('/quizzes', response_class=HTMLResponse, dependencies=[Depends(require_editor)])

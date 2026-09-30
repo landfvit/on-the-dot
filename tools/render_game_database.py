@@ -23,7 +23,7 @@ DATA_TABLES = frozenset({
     'trivia_datasets', 'trivia_bank_batches', 'trivia_bank_questions',
     'trivia_bank_validation_runs', 'trivia_bank_checks',
     'penalty_bank_releases', 'penalty_bank_questions',
-    'game_question_difficulty', 'game_levels', 'game_clubs',
+    'game_question_difficulty', 'game_levels', 'game_clubs', 'game_kits',
     'trivia_schema_migrations',
 })
 

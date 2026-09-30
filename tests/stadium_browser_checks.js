@@ -12,19 +12,19 @@
             report.frames++;
             if(!report.roles.includes(view.role))report.roles.push(view.role);
             if(!report.phases.includes(view.phase))report.phases.push(view.phase);
-            if(!view.markingsVisible)error('Pitch markings left the sharp layer');
-            if(!view.environmentVisible||!view.standsSolid||view.geometryFocus!==0)error('Blur changed stadium geometry');
+            if(!view.markingsVisible)error('Pitch markings hidden');
+            if(view.stadiumObjects!==0||view.renderPasses!==1)error('Unexpected stadium or postprocessing');
             if(!view.keeperVisible||!view.ballVisible)error('Keeper or ball hidden');
             if(view.caught&&view.ball.some((n,i)=>Math.abs(n-view.hands[i])>.001))error('Saved ball detached from gloves');
         }
-        if(document.body.classList.contains('stadium-ending')){
+        if(document.body.classList.contains('stadium-ending')||document.querySelector('#stadium-stage[data-ending]:not([hidden])')){
             const reveal=Number(document.body.style.getPropertyValue('--stadium-result'));
-            const stage=document.querySelector('#stadium-layer'),panel=document.querySelector('.solo-questions');
+            const stage=document.querySelector('#stadium-stage')||document.querySelector('#stadium-layer'),panel=document.querySelector('.solo-questions');
             const stageOpacity=Number(getComputedStyle(stage).opacity),panelOpacity=Number(getComputedStyle(panel).opacity);
             if(Math.abs(stageOpacity+panelOpacity-1)>.001)error('Stage and results crossfade out of sync');
             if(reveal>0&&reveal<1){
                 report.fadeFrames++;
-                if(view.camera[1]<100||view.focus!==0)error('Fade began before full-detail overhead view');
+                if(view.camera[1]>8||view.focus!==1)error('Results triggered a camera tour or background fade');
             }
             if(stage.hidden&&reveal<1)error('Stage hidden before fade completed');
             if(reveal<previous)error('Results fade reversed');

@@ -1,8 +1,8 @@
 {% extends 'trivia_base.html' %}
 {% block title %}{{ 'Leaderboard' if active_page == 'leaderboard' else 'Your history' }} · ON THE DOT.{% endblock %}
 {% block content %}
-<main class="community-page" data-view="{{ active_page }}">
-  <header class="community-heading"><h1>{{ 'Leaderboard' if active_page == 'leaderboard' else 'Your history' }}</h1></header>
+<main class="community-page" data-view="{{ active_page }}" aria-labelledby="page-title">
+  <h1 id="page-title" class="sr-only">{{ 'Leaderboard' if active_page == 'leaderboard' else 'Your history' }}</h1>
   {% if active_page == 'leaderboard' %}
   <p id="ranking-period" class="muted">All time</p>
   <fieldset class="period-tabs ranking-tabs"><legend class="sr-only">Rank by</legend>

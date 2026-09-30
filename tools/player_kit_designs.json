@@ -1,0 +1,1031 @@
+{
+  "note": "Original game pixel designs, not downloaded kit artwork. Each kit row is [type, pattern, shirt, pattern colour, sleeve, trim, shorts, socks]. Small commercial marks are intentionally omitted.",
+  "clubs": [
+    {
+      "team_id": 42,
+      "name": "Arsenal",
+      "season": 2026,
+      "kits": [
+        [
+          "home",
+          "plain",
+          "#e32125",
+          "#e32125",
+          "#ffffff",
+          "#ffffff",
+          "#ffffff",
+          "#e32125"
+        ],
+        [
+          "away",
+          "hoops",
+          "#0a234a",
+          "#122f59",
+          "#0a234a",
+          "#e8ba45",
+          "#0a234a",
+          "#0a234a"
+        ],
+        [
+          "third",
+          "plain",
+          "#fff5ba",
+          "#fff5ba",
+          "#fff5ba",
+          "#561a2e",
+          "#17263e",
+          "#17263e"
+        ]
+      ]
+    },
+    {
+      "team_id": 66,
+      "name": "Aston Villa",
+      "season": 2026,
+      "kits": [
+        [
+          "home",
+          "plain",
+          "#681c34",
+          "#681c34",
+          "#681c34",
+          "#b6d4ed",
+          "#b6d4ed",
+          "#b6d4ed"
+        ],
+        [
+          "away",
+          "pinstripes",
+          "#171817",
+          "#393b32",
+          "#171817",
+          "#e6b840",
+          "#171817",
+          "#171817"
+        ],
+        [
+          "third",
+          "flecks",
+          "#b9d5ed",
+          "#a4bdd7",
+          "#b9d5ed",
+          "#681c34",
+          "#681c34",
+          "#b9d5ed"
+        ]
+      ]
+    },
+    {
+      "team_id": 35,
+      "name": "Bournemouth",
+      "season": 2026,
+      "kits": [
+        [
+          "home",
+          "stripes",
+          "#e43130",
+          "#161817",
+          "#e43130",
+          "#d4b367",
+          "#161817",
+          "#161817"
+        ],
+        [
+          "away",
+          "zigzag",
+          "#6651ad",
+          "#a3a3d8",
+          "#6651ad",
+          "#ffffff",
+          "#6651ad",
+          "#a3a3d8"
+        ],
+        [
+          "third",
+          "plain",
+          "#ede9d9",
+          "#ede9d9",
+          "#ede9d9",
+          "#161817",
+          "#161817",
+          "#ede9d9"
+        ]
+      ]
+    },
+    {
+      "team_id": 55,
+      "name": "Brentford",
+      "season": 2026,
+      "kits": [
+        [
+          "home",
+          "stripes",
+          "#e52225",
+          "#ffffff",
+          "#e52225",
+          "#e4c149",
+          "#181919",
+          "#181919"
+        ],
+        [
+          "away",
+          "pinstripes",
+          "#101531",
+          "#d0c9e7",
+          "#101531",
+          "#d0c9e7",
+          "#101531",
+          "#101531"
+        ],
+        [
+          "third",
+          "pinstripes",
+          "#edf000",
+          "#d4d915",
+          "#edf000",
+          "#181919",
+          "#edf000",
+          "#edf000"
+        ]
+      ]
+    },
+    {
+      "team_id": 51,
+      "name": "Brighton & Hove Albion",
+      "season": 2026,
+      "kits": [
+        [
+          "home",
+          "pinstripes",
+          "#1850c6",
+          "#ffffff",
+          "#1850c6",
+          "#ffffff",
+          "#1850c6",
+          "#1850c6"
+        ],
+        [
+          "away",
+          "pinstripes",
+          "#ffffff",
+          "#1850c6",
+          "#ffffff",
+          "#1850c6",
+          "#ffffff",
+          "#ffffff"
+        ],
+        [
+          "third",
+          "plain",
+          "#00667c",
+          "#00667c",
+          "#00667c",
+          "#b4e0e8",
+          "#00667c",
+          "#00667c"
+        ]
+      ]
+    },
+    {
+      "team_id": 49,
+      "name": "Chelsea",
+      "season": 2026,
+      "kits": [
+        [
+          "home",
+          "plain",
+          "#1550c8",
+          "#1550c8",
+          "#1550c8",
+          "#1550c8",
+          "#1550c8",
+          "#ffffff"
+        ],
+        [
+          "away",
+          "pinstripes",
+          "#141714",
+          "#50542b",
+          "#141714",
+          "#e8d719",
+          "#141714",
+          "#e8d719"
+        ],
+        [
+          "third",
+          "pinstripes",
+          "#ffffff",
+          "#ee727e",
+          "#ffffff",
+          "#184ab8",
+          "#ffffff",
+          "#ffffff"
+        ]
+      ]
+    },
+    {
+      "team_id": 1346,
+      "name": "Coventry City",
+      "season": 2026,
+      "kits": [
+        [
+          "home",
+          "stripes",
+          "#62b5da",
+          "#ffffff",
+          "#62b5da",
+          "#ffffff",
+          "#171e37",
+          "#62b5da"
+        ],
+        [
+          "away",
+          "plain",
+          "#fffaf0",
+          "#fffaf0",
+          "#fffaf0",
+          "#192939",
+          "#fffaf0",
+          "#fffaf0"
+        ],
+        [
+          "third",
+          "zigzag",
+          "#dc92d4",
+          "#efa4c5",
+          "#dc92d4",
+          "#ffffff",
+          "#dc92d4",
+          "#dc92d4"
+        ]
+      ]
+    },
+    {
+      "team_id": 52,
+      "name": "Crystal Palace",
+      "season": 2026,
+      "kits": [
+        [
+          "home",
+          "sash",
+          "#ffffff",
+          "#e93142",
+          "#ffffff",
+          "#4768cf",
+          "#ffffff",
+          "#ffffff"
+        ],
+        [
+          "away",
+          "flecks",
+          "#17191a",
+          "#323436",
+          "#17191a",
+          "#273dba",
+          "#17191a",
+          "#17191a"
+        ],
+        [
+          "third",
+          "zigzag",
+          "#244ccd",
+          "#e92334",
+          "#244ccd",
+          "#141717",
+          "#244ccd",
+          "#244ccd"
+        ]
+      ]
+    },
+    {
+      "team_id": 45,
+      "name": "Everton",
+      "season": 2026,
+      "kits": [
+        [
+          "home",
+          "plain",
+          "#1746b8",
+          "#1746b8",
+          "#1746b8",
+          "#fff5d4",
+          "#ffffff",
+          "#1746b8"
+        ],
+        [
+          "away",
+          "pinstripes",
+          "#ffffff",
+          "#dacda3",
+          "#ffffff",
+          "#0b214b",
+          "#0b214b",
+          "#ffffff"
+        ],
+        [
+          "third",
+          "plain",
+          "#4a676a",
+          "#4a676a",
+          "#4a676a",
+          "#b59b59",
+          "#243939",
+          "#4a676a"
+        ]
+      ]
+    },
+    {
+      "team_id": 36,
+      "name": "Fulham",
+      "season": 2026,
+      "kits": [
+        [
+          "home",
+          "plain",
+          "#ffffff",
+          "#ffffff",
+          "#ffffff",
+          "#191a1b",
+          "#191a1b",
+          "#ffffff"
+        ],
+        [
+          "away",
+          "checks",
+          "#e42c2d",
+          "#17191b",
+          "#e42c2d",
+          "#ffffff",
+          "#e42c2d",
+          "#e42c2d"
+        ],
+        [
+          "third",
+          "hoops",
+          "#8acadd",
+          "#a6c3dd",
+          "#8acadd",
+          "#e8569a",
+          "#8acadd",
+          "#8acadd"
+        ]
+      ]
+    },
+    {
+      "team_id": 64,
+      "name": "Hull City",
+      "season": 2026,
+      "references": [
+        "https://oxensports.com/blogs/news/hull-city-2026-27-away-kit",
+        "https://oxensports.com/blogs/news/hull-city-third-kit-2026-27"
+      ],
+      "kits": [
+        [
+          "home",
+          "stripes",
+          "#ef9809",
+          "#171817",
+          "#ef9809",
+          "#ffffff",
+          "#ffffff",
+          "#171817"
+        ],
+        [
+          "away",
+          "sidepanels",
+          "#ffffff",
+          "#171817",
+          "#ffffff",
+          "#e9a746",
+          "#171817",
+          "#ffffff"
+        ],
+        [
+          "third",
+          "plain",
+          "#204fc5",
+          "#204fc5",
+          "#204fc5",
+          "#ffffff",
+          "#ffffff",
+          "#ffffff"
+        ]
+      ]
+    },
+    {
+      "team_id": 57,
+      "name": "Ipswich",
+      "season": 2026,
+      "kits": [
+        [
+          "home",
+          "checks",
+          "#204eaa",
+          "#193d85",
+          "#204eaa",
+          "#ffffff",
+          "#ffffff",
+          "#204eaa"
+        ],
+        [
+          "away",
+          "hoops",
+          "#f4e5bd",
+          "#a73b24",
+          "#f4e5bd",
+          "#202720",
+          "#171817",
+          "#f4e5bd"
+        ]
+      ]
+    },
+    {
+      "team_id": 63,
+      "name": "Leeds United",
+      "season": 2026,
+      "kits": [
+        [
+          "home",
+          "hoops",
+          "#ffffff",
+          "#e5d822",
+          "#ffffff",
+          "#2854ce",
+          "#ffffff",
+          "#ffffff"
+        ],
+        [
+          "away",
+          "plain",
+          "#f1dd20",
+          "#f1dd20",
+          "#f1dd20",
+          "#182337",
+          "#182337",
+          "#f1dd20"
+        ],
+        [
+          "third",
+          "flecks",
+          "#171a1b",
+          "#3a3d40",
+          "#171a1b",
+          "#747779",
+          "#171a1b",
+          "#171a1b"
+        ]
+      ]
+    },
+    {
+      "team_id": 40,
+      "name": "Liverpool",
+      "season": 2026,
+      "kits": [
+        [
+          "home",
+          "flecks",
+          "#d91e26",
+          "#ea4643",
+          "#d91e26",
+          "#ffffff",
+          "#d91e26",
+          "#d91e26"
+        ],
+        [
+          "away",
+          "plain",
+          "#ffffff",
+          "#ffffff",
+          "#ffffff",
+          "#d91e26",
+          "#ffffff",
+          "#ffffff"
+        ],
+        [
+          "third",
+          "checks",
+          "#151819",
+          "#651526",
+          "#151819",
+          "#d9d7ca",
+          "#151819",
+          "#151819"
+        ]
+      ]
+    },
+    {
+      "team_id": 50,
+      "name": "Manchester City",
+      "season": 2026,
+      "kits": [
+        [
+          "home",
+          "plain",
+          "#a3d0ef",
+          "#a3d0ef",
+          "#a3d0ef",
+          "#ffffff",
+          "#a3d0ef",
+          "#a3d0ef"
+        ],
+        [
+          "away",
+          "plain",
+          "#171918",
+          "#171918",
+          "#171918",
+          "#d7b849",
+          "#171918",
+          "#171918"
+        ],
+        [
+          "third",
+          "fade-stripes",
+          "#ffffff",
+          "#3669b3",
+          "#ffffff",
+          "#183c76",
+          "#183c76",
+          "#ffffff"
+        ]
+      ]
+    },
+    {
+      "team_id": 33,
+      "name": "Manchester United",
+      "season": 2026,
+      "references": [
+        "https://us.store.manutd.com/en/p/manchester-united-2627-home-authentic-jersey-5755",
+        "https://www.manutd.com.es/en/news/what-goes-into-making-a-united-kit-inigo-turner-explains",
+        "https://www.manutd.com.es/en/news/explained-the-landmarks-and-symbols-of-our-third-kit"
+      ],
+      "kits": [
+        [
+          "home",
+          "plain",
+          "#e7282c",
+          "#e7282c",
+          "#e7282c",
+          "#ffffff",
+          "#ffffff",
+          "#171919"
+        ],
+        [
+          "away",
+          "plain",
+          "#2149bd",
+          "#2149bd",
+          "#2149bd",
+          "#df2f3c",
+          "#2149bd",
+          "#2149bd"
+        ],
+        [
+          "third",
+          "hem",
+          "#eee9dd",
+          "#254f40",
+          "#eee9dd",
+          "#254f40",
+          "#eee9dd",
+          "#eee9dd"
+        ]
+      ]
+    },
+    {
+      "team_id": 34,
+      "name": "Newcastle",
+      "season": 2026,
+      "kits": [
+        [
+          "home",
+          "stripes",
+          "#f9f9f5",
+          "#181c1e",
+          "#f9f9f5",
+          "#70c6dc",
+          "#181c1e",
+          "#181c1e"
+        ],
+        [
+          "away",
+          "hoops",
+          "#14283b",
+          "#243b50",
+          "#14283b",
+          "#b4dfe6",
+          "#14283b",
+          "#14283b"
+        ],
+        [
+          "third",
+          "plain",
+          "#c9bfdf",
+          "#c9bfdf",
+          "#c9bfdf",
+          "#2c243e",
+          "#c9bfdf",
+          "#c9bfdf"
+        ]
+      ]
+    },
+    {
+      "team_id": 65,
+      "name": "Nottingham Forest",
+      "season": 2026,
+      "kits": [
+        [
+          "home",
+          "plain",
+          "#e7272c",
+          "#e7272c",
+          "#e7272c",
+          "#ffffff",
+          "#ffffff",
+          "#e7272c"
+        ],
+        [
+          "away",
+          "flecks",
+          "#103e30",
+          "#24513f",
+          "#103e30",
+          "#e6372c",
+          "#103e30",
+          "#103e30"
+        ],
+        [
+          "third",
+          "zigzag",
+          "#8bd2ef",
+          "#ffffff",
+          "#8bd2ef",
+          "#172242",
+          "#172242",
+          "#172242"
+        ]
+      ]
+    },
+    {
+      "team_id": 746,
+      "name": "Sunderland",
+      "season": 2026,
+      "kits": [
+        [
+          "home",
+          "stripes",
+          "#e62e2d",
+          "#ffffff",
+          "#e62e2d",
+          "#171919",
+          "#171919",
+          "#171919"
+        ],
+        [
+          "away",
+          "plain",
+          "#ee91b6",
+          "#ee91b6",
+          "#ee91b6",
+          "#171919",
+          "#ee91b6",
+          "#ee91b6"
+        ],
+        [
+          "third",
+          "hoops",
+          "#242b83",
+          "#353c96",
+          "#242b83",
+          "#d5b861",
+          "#242b83",
+          "#242b83"
+        ]
+      ]
+    },
+    {
+      "team_id": 47,
+      "name": "Tottenham",
+      "season": 2026,
+      "kits": [
+        [
+          "home",
+          "plain",
+          "#ffffff",
+          "#ffffff",
+          "#ffffff",
+          "#101c41",
+          "#101c41",
+          "#ffffff"
+        ],
+        [
+          "away",
+          "zigzag",
+          "#101c41",
+          "#e25027",
+          "#101c41",
+          "#ecc12c",
+          "#101c41",
+          "#101c41"
+        ],
+        [
+          "third",
+          "pinstripes",
+          "#a18bd9",
+          "#695497",
+          "#a18bd9",
+          "#261f37",
+          "#a18bd9",
+          "#a18bd9"
+        ]
+      ]
+    },
+    {
+      "team_id": 44,
+      "name": "Burnley",
+      "season": 2025,
+      "kits": [
+        [
+          "home",
+          "flecks",
+          "#7b263e",
+          "#8d354f",
+          "#7b263e",
+          "#a7d4ec",
+          "#ffffff",
+          "#a7d4ec"
+        ]
+      ]
+    },
+    {
+      "team_id": 43,
+      "name": "Cardiff",
+      "season": 2025,
+      "references": [
+        "https://www.cardiffcityfc.co.uk/news/202526-cardiff-city-home-kit"
+      ],
+      "kits": [
+        [
+          "home",
+          "pinstripes",
+          "#2457bc",
+          "#ffffff",
+          "#2457bc",
+          "#ffffff",
+          "#ffffff",
+          "#2457bc"
+        ]
+      ]
+    },
+    {
+      "team_id": 37,
+      "name": "Huddersfield",
+      "season": 2025,
+      "kits": [
+        [
+          "home",
+          "stripes",
+          "#ffffff",
+          "#296bb9",
+          "#ffffff",
+          "#296bb9",
+          "#ffffff",
+          "#ffffff",
+          "#171919"
+        ]
+      ]
+    },
+    {
+      "team_id": 46,
+      "name": "Leicester City",
+      "season": 2025,
+      "references": [
+        "https://www.lcfc.com/media-article/leicester-city-2025-2026-home-kit-adidas-on-sale-buy"
+      ],
+      "kits": [
+        [
+          "home",
+          "plain",
+          "#2355b9",
+          "#2355b9",
+          "#2355b9",
+          "#ffffff",
+          "#2355b9",
+          "#2355b9"
+        ],
+        [
+          "third",
+          "plain",
+          "#efb4c3",
+          "#efb4c3",
+          "#efb4c3",
+          "#17191c",
+          "#17191c",
+          "#efb4c3"
+        ]
+      ]
+    },
+    {
+      "team_id": 1359,
+      "name": "Luton",
+      "season": 2025,
+      "references": [
+        "https://shop.lutontown.co.uk/kit/kit/home/1242_2526-home-adult-shirt.html"
+      ],
+      "kits": [
+        [
+          "home",
+          "plain",
+          "#f47429",
+          "#f47429",
+          "#f47429",
+          "#152844",
+          "#152844",
+          "#f47429"
+        ]
+      ]
+    },
+    {
+      "team_id": 70,
+      "name": "Middlesbrough",
+      "season": 2025,
+      "kits": [
+        [
+          "home",
+          "band",
+          "#d92a31",
+          "#ffffff",
+          "#d92a31",
+          "#ffffff",
+          "#d92a31",
+          "#d92a31"
+        ]
+      ]
+    },
+    {
+      "team_id": 71,
+      "name": "Norwich City",
+      "season": 2025,
+      "references": [
+        "https://www.canaries.co.uk/content/city-unveil-202526-joma-home-shirt"
+      ],
+      "kits": [
+        [
+          "home",
+          "plain",
+          "#f5dd21",
+          "#f5dd21",
+          "#f5dd21",
+          "#18783b",
+          "#18783b",
+          "#f5dd21"
+        ]
+      ]
+    },
+    {
+      "team_id": 62,
+      "name": "Sheffield Utd",
+      "season": 2025,
+      "kits": [
+        [
+          "home",
+          "stripes",
+          "#ffffff",
+          "#d82c32",
+          "#ffffff",
+          "#17191b",
+          "#17191b",
+          "#ffffff"
+        ]
+      ]
+    },
+    {
+      "team_id": 41,
+      "name": "Southampton",
+      "season": 2025,
+      "references": [
+        "https://www.southamptonfc.com/en/news/article/past-made-present-for-2025-26-our-home-kit-is-here"
+      ],
+      "kits": [
+        [
+          "home",
+          "saints",
+          "#ffffff",
+          "#d62d33",
+          "#ffffff",
+          "#ffffff",
+          "#17191b",
+          "#ffffff"
+        ]
+      ]
+    },
+    {
+      "team_id": 75,
+      "name": "Stoke City",
+      "season": 2025,
+      "kits": [
+        [
+          "home",
+          "stripes",
+          "#ffffff",
+          "#d62d33",
+          "#ffffff",
+          "#ffffff",
+          "#ffffff",
+          "#ffffff"
+        ]
+      ]
+    },
+    {
+      "team_id": 76,
+      "name": "Swansea",
+      "season": 2025,
+      "kits": [
+        [
+          "home",
+          "plain",
+          "#ffffff",
+          "#ffffff",
+          "#ffffff",
+          "#171919",
+          "#ffffff",
+          "#ffffff"
+        ]
+      ]
+    },
+    {
+      "team_id": 38,
+      "name": "Watford",
+      "season": 2025,
+      "references": [
+        "https://kelme.com/en/blogs/news/el-watford-fc-y-kelme-presentan-la-primera-equipacion-para-la-temporada-25-26"
+      ],
+      "kits": [
+        [
+          "home",
+          "fade-stripes",
+          "#edda22",
+          "#d6332e",
+          "#edda22",
+          "#171919",
+          "#171919",
+          "#edda22"
+        ]
+      ]
+    },
+    {
+      "team_id": 60,
+      "name": "West Bromwich Albion",
+      "season": 2025,
+      "references": [
+        "https://www.wba.co.uk/club/125-years-hawthorns/1-202526-home-kit-launch"
+      ],
+      "kits": [
+        [
+          "home",
+          "stripes",
+          "#ffffff",
+          "#16283e",
+          "#ffffff",
+          "#16283e",
+          "#ffffff",
+          "#16283e"
+        ]
+      ]
+    },
+    {
+      "team_id": 48,
+      "name": "West Ham United",
+      "season": 2025,
+      "kits": [
+        [
+          "home",
+          "plain",
+          "#79283f",
+          "#79283f",
+          "#79283f",
+          "#92bfdd",
+          "#ffffff",
+          "#ffffff"
+        ]
+      ]
+    },
+    {
+      "team_id": 39,
+      "name": "Wolverhampton Wanderers",
+      "season": 2025,
+      "kits": [
+        [
+          "home",
+          "plain",
+          "#edab2b",
+          "#edab2b",
+          "#edab2b",
+          "#171919",
+          "#171919",
+          "#edab2b"
+        ]
+      ]
+    }
+  ]
+}

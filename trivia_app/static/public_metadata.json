@@ -39,6 +39,16 @@
       "logo_url": "https://media.api-sports.io/football/teams/51.png"
     },
     {
+      "team_id": 44,
+      "name": "Burnley",
+      "logo_url": "https://media.api-sports.io/football/teams/44.png"
+    },
+    {
+      "team_id": 43,
+      "name": "Cardiff",
+      "logo_url": "https://media.api-sports.io/football/teams/43.png"
+    },
+    {
       "team_id": 49,
       "name": "Chelsea",
       "logo_url": "https://media.api-sports.io/football/teams/49.png"
@@ -64,6 +74,11 @@
       "logo_url": "https://media.api-sports.io/football/teams/36.png"
     },
     {
+      "team_id": 37,
+      "name": "Huddersfield",
+      "logo_url": "https://media.api-sports.io/football/teams/37.png"
+    },
+    {
       "team_id": 64,
       "name": "Hull City",
       "logo_url": "https://media.api-sports.io/football/teams/64.png"
@@ -79,9 +94,19 @@
       "logo_url": "https://media.api-sports.io/football/teams/63.png"
     },
     {
+      "team_id": 46,
+      "name": "Leicester City",
+      "logo_url": "https://media.api-sports.io/football/teams/46.png"
+    },
+    {
       "team_id": 40,
       "name": "Liverpool",
       "logo_url": "https://media.api-sports.io/football/teams/40.png"
+    },
+    {
+      "team_id": 1359,
+      "name": "Luton",
+      "logo_url": "https://media.api-sports.io/football/teams/1359.png"
     },
     {
       "team_id": 50,
@@ -94,9 +119,19 @@
       "logo_url": "https://media.api-sports.io/football/teams/33.png"
     },
     {
+      "team_id": 70,
+      "name": "Middlesbrough",
+      "logo_url": "https://media.api-sports.io/football/teams/70.png"
+    },
+    {
       "team_id": 34,
       "name": "Newcastle",
       "logo_url": "https://media.api-sports.io/football/teams/34.png"
+    },
+    {
+      "team_id": 71,
+      "name": "Norwich City",
+      "logo_url": "https://media.api-sports.io/football/teams/71.png"
     },
     {
       "team_id": 65,
@@ -104,14 +139,54 @@
       "logo_url": "https://media.api-sports.io/football/teams/65.png"
     },
     {
+      "team_id": 62,
+      "name": "Sheffield Utd",
+      "logo_url": "https://media.api-sports.io/football/teams/62.png"
+    },
+    {
+      "team_id": 41,
+      "name": "Southampton",
+      "logo_url": "https://media.api-sports.io/football/teams/41.png"
+    },
+    {
+      "team_id": 75,
+      "name": "Stoke City",
+      "logo_url": "https://media.api-sports.io/football/teams/75.png"
+    },
+    {
       "team_id": 746,
       "name": "Sunderland",
       "logo_url": "https://media.api-sports.io/football/teams/746.png"
     },
     {
+      "team_id": 76,
+      "name": "Swansea",
+      "logo_url": "https://media.api-sports.io/football/teams/76.png"
+    },
+    {
       "team_id": 47,
       "name": "Tottenham",
       "logo_url": "https://media.api-sports.io/football/teams/47.png"
+    },
+    {
+      "team_id": 38,
+      "name": "Watford",
+      "logo_url": "https://media.api-sports.io/football/teams/38.png"
+    },
+    {
+      "team_id": 60,
+      "name": "West Bromwich Albion",
+      "logo_url": "https://media.api-sports.io/football/teams/60.png"
+    },
+    {
+      "team_id": 48,
+      "name": "West Ham United",
+      "logo_url": "https://media.api-sports.io/football/teams/48.png"
+    },
+    {
+      "team_id": 39,
+      "name": "Wolverhampton Wanderers",
+      "logo_url": "https://media.api-sports.io/football/teams/39.png"
     }
   ]
 }

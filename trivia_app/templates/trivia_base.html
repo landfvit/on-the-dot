@@ -17,21 +17,22 @@
     <meta property="og:type" content="website"><meta property="og:site_name" content="ON THE DOT.">
     <meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
     <meta property="og:image:type" content="image/png"><meta name="twitter:card" content="summary_large_image">
-    <link rel="icon" type="image/png" sizes="64x64" href="/trivia-assets/brand/favicon.png?v=4">
-    <link rel="icon" type="image/svg+xml" sizes="any" href="/trivia-assets/brand/favicon.svg?v=4">
-    <link rel="apple-touch-icon" sizes="180x180" href="/trivia-assets/brand/icon-180.png?v=4">
+    <link rel="icon" type="image/png" sizes="64x64" href="/trivia-assets/brand/favicon.png?v=5">
+    <link rel="icon" type="image/svg+xml" sizes="any" href="/trivia-assets/brand/favicon.svg?v=5">
+    <link rel="apple-touch-icon" sizes="180x180" href="/trivia-assets/brand/icon-180.png?v=5">
     <link rel="stylesheet" href="/trivia-assets/app.css?v=1">
     {% block styles %}{% endblock %}
     <link rel="stylesheet" href="/trivia-assets/points_theme.css?v=14">
     {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/community.css?v=11">{% endif %}
     {% block final_styles %}{% endblock %}
-    {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/public_ui.css?v=6"><script src="/trivia-assets/public_ui.js?v=1" defer></script>{% endif %}
+    {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/public_ui.css?v=6"><script src="/trivia-assets/question_text.js?v=1" defer></script><script src="/trivia-assets/public_ui.js?v=2" defer></script>{% endif %}
     {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/audio.css?v=2"><script src="/trivia-assets/audio.js?v=5" defer></script>{% endif %}
     {% if not private_navigation %}<link rel="stylesheet" href="/trivia-assets/social.css?v=3">{% endif %}
-    <link rel="stylesheet" href="/trivia-assets/redesign.css?v=12">
+    <link rel="stylesheet" href="/trivia-assets/redesign.css?v=15">
     <link rel="stylesheet" href="/trivia-assets/dark_mode.css?v=4">
+    {% block presentation_styles %}{% endblock %}
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
     <header class="points-header{% if not private_navigation %} public-header{% endif %}">
         <a class="points-brand" href="/" aria-label="ON THE DOT. home">
           <img class="brand-mark" src="/trivia-assets/brand/favicon.svg?v=4" width="54" height="54" alt="ON THE DOT.">
@@ -52,23 +53,24 @@
         <form action="/logout" method="post"><button class="points-signout" type="submit">Sign out</button></form>
         {% else %}
         <nav class="top-navigation" aria-label="Main navigation">
-          {% if active_page in ('penalties','daily','friends') %}<span class="nav-current" role="img" aria-label="Play" aria-current="page" title="Play"><img src="/trivia-assets/icons/football-outline.svg?v=1" alt=""></span>
-          {% elif active_page not in ('home','shared') %}<a href="/penalties" aria-label="Play penalties" data-label="Play" title="Play penalties"><img src="/trivia-assets/icons/football-outline.svg?v=1" alt=""></a>{% endif %}
-          {% if active_page == 'leaderboard' %}<span class="nav-current" role="img" aria-label="Leaderboard" aria-current="page" title="Leaderboard"><img src="/trivia-assets/icons/trophy.svg" alt=""></span>
-          {% else %}<a href="/leaderboard" aria-label="Leaderboard" data-label="Leaderboard" title="Leaderboard"><img src="/trivia-assets/icons/trophy.svg" alt=""></a>{% endif %}
-          {% if active_page == 'account' and not profile_username %}<span class="nav-current" role="img" aria-label="Your profile" aria-current="page" title="Your profile"><img src="/trivia-assets/icons/user-round.svg" alt=""></span>
-          {% else %}<a href="/account" aria-label="Your profile" data-label="Profile" title="Your profile"><img src="/trivia-assets/icons/user-round.svg" alt=""></a>{% endif %}
+          {% block game_controls %}{% endblock %}
+          {% if active_page in ('penalties','daily','friends') %}<span class="nav-current" data-nav-slot="play" role="img" aria-label="Play" aria-current="page" title="Play"><img src="/trivia-assets/icons/football-outline.svg?v=1" alt=""></span>
+          {% elif active_page not in ('home','shared') %}<a href="/penalties" data-nav-slot="play" aria-label="Play penalties" data-label="Play" title="Play penalties"><img src="/trivia-assets/icons/football-outline.svg?v=1" alt=""></a>{% endif %}
+          {% if active_page == 'leaderboard' %}<span class="nav-current" data-nav-slot="leaderboard" role="img" aria-label="Leaderboard" aria-current="page" title="Leaderboard"><img src="/trivia-assets/icons/trophy.svg" alt=""></span>
+          {% else %}<a href="/leaderboard" data-nav-slot="leaderboard" aria-label="Leaderboard" data-label="Leaderboard" title="Leaderboard"><img src="/trivia-assets/icons/trophy.svg" alt=""></a>{% endif %}
+          {% if active_page == 'account' and not profile_username %}<span class="nav-current" data-nav-slot="profile" role="img" aria-label="Your profile" aria-current="page" title="Your profile"><img src="/trivia-assets/icons/user-round.svg" alt=""></span>
+          {% else %}<a href="/account" data-nav-slot="profile" aria-label="Your profile" data-label="Profile" title="Your profile"><img src="/trivia-assets/icons/user-round.svg" alt=""></a>{% endif %}
           <button type="button" class="icon-button" data-theme-toggle aria-label="Switch to dark mode" title="Switch to dark mode" aria-pressed="false"><img src="/trivia-assets/icons/moon.svg" alt=""></button>
           <button class="icon-button" type="button" data-sound-toggle aria-label="Mute sound" title="Mute sound" aria-pressed="true"><img src="/trivia-assets/icons/volume-2.svg" alt=""></button>
         </nav>
         {% endif %}
     </header>
     {% if not private_navigation %}
-    <nav class="page-return" aria-label="Page actions">
+    {% block page_actions %}<nav class="page-return" aria-label="Page actions">
       {% if active_page != 'home' %}<button type="button" data-back><img class="back-arrow" src="/trivia-assets/icons/arrow-right.svg" alt="">Back</button>{% endif %}
       {% if active_page not in ('home','guide','penalties','daily','friends') %}<a href="/how-to-play">How to play</a>{% endif %}
       {% if active_page == 'home' %}<button type="button" data-share-game><img src="/trivia-assets/icons/share-2.svg" alt="">Share game</button>{% endif %}
-    </nav>
+    </nav>{% endblock %}
     <dialog id="game-share-dialog" class="shell-dialog" aria-labelledby="game-share-title"><div class="drawer-heading"><h2 id="game-share-title">Share ON THE DOT.</h2><button class="icon-button" data-close-dialog aria-label="Close sharing"><img src="/trivia-assets/icons/x.svg" alt=""></button></div><a href="{{ public_origin() }}/"><img class="game-share-preview" src="/share/brand.png?v=4" alt="ON THE DOT. football trivia" width="1200" height="630"></a><input id="game-share-link" aria-label="Game link" readonly value="{{ public_origin() }}/"><button type="button" id="game-share-copy">Copy link</button><p id="game-share-status" role="status"></p></dialog>
     {% endif %}
     {% block content %}{% endblock %}

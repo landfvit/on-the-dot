@@ -1,0 +1,28 @@
+/* A fixed, plain display surface preserves garment contrast in
+ * both themes. Selection changes the frame, never the artwork or its mat. */
+.profile-kit { --kit-backdrop:#e7eae2; --kit-edge:#17201526; padding:24px 0; border-top:2px solid var(--border); }
+.profile-kit h2 { margin:0 0 18px; }
+.kit-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:24px; align-items:start; }
+.kit-fields { display:grid; gap:16px; min-width:0; }
+.kit-fields>label { display:grid; gap:6px; font-weight:700; }
+.kit-fields select { width:100%; min-width:0; }
+.kit-number { max-width:120px; }
+.kit-options { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; border:0; padding:0; margin:0; }
+.kit-options label,.kit-preview-images {
+  position:relative; border:1px solid var(--kit-edge); border-radius:8px;
+  background-color:var(--kit-backdrop);
+}
+.kit-options label { display:grid; grid-template-columns:minmax(0,1fr); place-items:center; min-width:0; height:120px; cursor:pointer; padding:12px 6px 16px; }
+.kit-options label::after { content:''; position:absolute; bottom:7px; left:calc(50% - 12px); width:24px; height:3px; border-radius:2px; background:transparent; }
+.kit-options label:hover { border-color:#647449; }
+.kit-options label:has(:checked) { border-color:#647449; box-shadow:inset 0 0 0 1px #647449; }
+.kit-options label:has(:checked)::after { background:#88b04b; }
+.kit-options label:has(:focus-visible) { outline:3px solid #88b04b; outline-offset:2px; }
+.kit-options input { position:absolute; width:1px; height:1px; opacity:0; }
+.kit-options canvas { display:block; width:80px; height:88px; max-width:100%; object-fit:contain; image-rendering:pixelated; }
+.kit-preview { margin:0; text-align:center; }
+.kit-preview-images { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); place-items:center; min-height:212px; gap:12px; padding:24px 16px; }
+.kit-preview canvas { display:block; width:120px; height:132px; max-width:100%; object-fit:contain; image-rendering:pixelated; }
+.kit-preview figcaption { margin:12px 0 0; font-size:13px; font-weight:700; line-height:1.5; }
+.profile-kit #kit-status:empty { display:none; }
+@media(max-width:600px) { .kit-layout { grid-template-columns:1fr; gap:20px; } .kit-preview { grid-row:1; } .kit-preview-images { min-height:188px; padding-block:20px; } .profile-kit { padding:16px 0; } }

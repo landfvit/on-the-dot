@@ -1,641 +1,385 @@
-/* Geometrie prevzata z uzivatelem dodaneho stadion_penalty_v6.html.
- * Three.js zustava lokalni r180; puvodni pribalenou r140 znovu nenacitame.
- * Tento modul neobsahuje demo UI, vyber vysledku ani herni casomiru.
+/* Art-directed pixel scene. Keep the existing module/API names for recovery.
+ * Pixel sprite patterns below are editable: "." is transparent; palette keys
+ * map to colors in stadium_config.js. No bitmap downloads or lighting pass.
  */
 import * as THREE from './vendor/three/three.module.min.js';
-import {V6_WORLD as CONFIG} from './stadium_config.js?v=16';
+import {V6_WORLD as C} from './stadium_config.js?v=28';
+import {kitPixels} from './kit_pixels.js?v=4';
 
 export function createStadiumWorld(scene) {
   const v=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
-  const clamp=x=>Math.max(0,Math.min(1,x)), lerp=THREE.MathUtils.lerp;
-  const environment=new THREE.Group(), fills=new THREE.Group(),pitch=new THREE.Group(),goal=new THREE.Group(),tunnel=new THREE.Group();
-  environment.add(fills,tunnel);scene.add(environment,pitch,goal);
-  let activeGroup=pitch;
-  const fadeUniform={value:0},lineMaterials=new Map(),textures=new Set();
-  scene.add(new THREE.HemisphereLight(0xe6f4ed, 0x66806a, 2.1));
-  const key = new THREE.DirectionalLight(0xffeed8, 2.7);
-  key.position.set(33, 17, -13); scene.add(key);
-  const rim = new THREE.DirectionalLight(0xc0e4f2, 1.35);
-  rim.position.set(58, 8, 9); scene.add(rim);
-
-
-  // Materiály stadionu mají VLASTNÍ fade. Materiály brány/čar/figurky se nesdílejí.
-  function fadingMaterial(mat) {
-    // Stejny shader a depth test po cely prijezd: prepinani transparent/depthWrite
-    // pri prvnim fade snimku kompilovalo novy program a odkryvalo zadni hrany.
-    // Pri focus=0 ma plast alpha=1 a stale zapisuje hloubku, tedy je nepruhledny.
-    mat.transparent = true;
-    mat.forceSinglePass = true;
-    mat.onBeforeCompile = (shader) => {
-      shader.uniforms.uStadiumFade = fadeUniform;
-      shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', '#include <common>\nvarying vec3 vFadeWorld;')
-        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvFadeWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
-      shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', '#include <common>\nuniform float uStadiumFade;\nvarying vec3 vFadeWorld;')
-        .replace('#include <opaque_fragment>', `#include <opaque_fragment>
-          // Stejna svetova souradnice znamena stejnou masku pro sedacku i jeji
-          // obrys. Horni rady mizi prvni; sirka 0.6 odpovida mekke masce UI.
-          float row = 1.0 - clamp(vFadeWorld.y / 12.0, 0.0, 1.0);
-          float edge = uStadiumFade * 1.6;
-          float remaining = smoothstep(edge - 0.6, edge, row);
-          // Globalni slozka zacina hned spolecne s UI a zjemni posledni rady.
-          gl_FragColor.a *= remaining * (1.0 - uStadiumFade);
-        `);
-    };
-    mat.customProgramCacheKey = () => 'stadium-gradient-fade-v7';
-    return mat;
+  const clamp=x=>Math.max(0,Math.min(1,x)),lerp=THREE.MathUtils.lerp;
+  const surface=color=>new THREE.MeshBasicMaterial({color});
+  const pitch=new THREE.Group(),goal=new THREE.Group();
+  pitch.name='penalty-area';goal.name='goal';scene.add(pitch,goal);
+  const gx=C.penalty.goalX,spotX=C.penalty.spotX;
+  const paint=surface(C.colors.markings);paint.side=THREE.DoubleSide;
+  function plane(parent,color,x,z,w,d,y=C.ground.turfY,name='') {
+    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,d),surface(color));
+    mesh.rotation.x=-Math.PI/2;mesh.position.set(x,y,z);mesh.name=name;parent.add(mesh);return mesh;
   }
-  function isBackground(parent) { return parent === environment || parent === fills || parent === tunnel; }
-  function material(color, opacity = 1, parent = activeGroup) {
-    const fading = isBackground(parent);
-    const key = `${color}:${opacity}:${fading}`;
-    if (!lineMaterials.has(key)) {
-      let mat = new THREE.MeshBasicMaterial({ color, opacity, transparent: true, depthWrite: false });
-      if (fading) mat = fadingMaterial(mat);
-      lineMaterials.set(key, mat);
-    }
-    return lineMaterials.get(key);
+  // Grass continues off every foreground/side edge. Only the far end is
+  // visible, behind the goal. The framing rectangle is never a turf island.
+  const back=gx+C.ground.behindGoal;
+  plane(pitch,C.colors.pitch,back-80,0,160,240,C.ground.turfY,'penalty-turf');
+  const stripes=[];
+  for(let z=-120;z<120;z+=4)if(Math.round(z/4)%2===0) {
+    const x0=back-160,x1=back,z0=z,z1=z+4,y=C.ground.turfY+.001;
+    stripes.push(x0,y,z0,x1,y,z0,x0,y,z1,x0,y,z1,x1,y,z0,x1,y,z1);
   }
-  function line(points, color = CONFIG.colors.outline, opacity = 1, parent = activeGroup) {
-    // Merged square rods keep a true world-space line width on mobile WebGL.
-    const box=new THREE.BoxGeometry(1,1,1).toNonIndexed(),source=box.attributes.position;
-    const vertices=[],pose=new THREE.Object3D(),point=v(),up=v(0,1,0);
+  const stripeGeometry=new THREE.BufferGeometry();
+  stripeGeometry.setAttribute('position',new THREE.Float32BufferAttribute(stripes,3));
+  const stripeMat=surface(C.colors.pitchStripe);stripeMat.side=THREE.DoubleSide;
+  const stripeMesh=new THREE.Mesh(stripeGeometry,stripeMat);stripeMesh.name='mowing-bands';pitch.add(stripeMesh);
+  const markings=[];
+  function paintedLine(points,name) {
+    const vertices=[],half=C.pitchMarkings.width/2,y=C.pitchMarkings.elevation;
     for(let i=1;i<points.length;i++){
-      const a=v(...points[i-1]),b=v(...points[i]),direction=b.clone().sub(a);
-      if(direction.length()<.001)continue;
-      pose.position.copy(a).add(b).multiplyScalar(.5);
-      pose.scale.set(CONFIG.structure.lineRadius*2,direction.length(),CONFIG.structure.lineRadius*2);
-      pose.quaternion.setFromUnitVectors(up,direction.normalize());pose.updateMatrix();
-      for(let j=0;j<source.count;j++){point.fromBufferAttribute(source,j).applyMatrix4(pose.matrix);vertices.push(point.x,point.y,point.z);}
+      const [ax,az]=points[i-1],[bx,bz]=points[i],length=Math.hypot(bx-ax,bz-az);
+      const dx=-(bz-az)/length*half,dz=(bx-ax)/length*half;
+      vertices.push(ax+dx,y,az+dz,bx+dx,y,bz+dz,ax-dx,y,az-dz,
+        ax-dx,y,az-dz,bx+dx,y,bz+dz,bx-dx,y,bz-dz);
     }
-    box.dispose();
-    const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
-    const object = new THREE.Mesh(geometry, material(color, opacity, parent));
-    if(isBackground(parent))object.renderOrder=-1;
-    parent.add(object); return object;
+    const geometry=new THREE.BufferGeometry();
+    geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));
+    const mesh=new THREE.Mesh(geometry,paint);mesh.name=name;pitch.add(mesh);
+    markings.push({points,geometry});
   }
-  // Malované čáry tvoří ploché trojúhelníkové pásy. WebGL linewidth se nepoužívá.
-  // Rohy sdílejí vrcholy: na pokutovém území nevznikají překryvy ani spáry.
-  const markingMaterial = new THREE.MeshBasicMaterial({
-    color: CONFIG.colors.markings, side: THREE.DoubleSide,
-    polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1,
+  paintedLine([[gx,-120],[gx,120]],'pitch-marking-goal-line');
+  for(const [name,half,depth] of [['penalty-area',C.area.halfWidth,C.area.depth],['goal-area',C.area.smallHalfWidth,C.area.smallDepth]]) {
+    paintedLine([[gx,-half],[gx-depth,-half],[gx-depth,half],[gx,half]],'pitch-marking-'+name);
+  }
+  const arcLimit=Math.acos((C.area.depth-11)/C.area.arcRadius);
+  const arc=Array.from({length:41},(_,i)=>{
+    const a=lerp(-arcLimit,arcLimit,i/40);
+    return [spotX-C.area.arcRadius*Math.cos(a),C.area.arcRadius*Math.sin(a)];
   });
-  let markingNumber = 0;
-  function paintedLine(points, closed = false) {
-    const half = CONFIG.pitchMarkings.width / 2;
-    const vertices = [], indices = [];
-    const count = points.length;
-    for (let i = 0; i < count; i++) {
-      const [x, z] = points[i];
-      const prev = points[(i - 1 + count) % count];
-      const next = points[(i + 1) % count];
-      let dx = 0, dz = 0;
-      if (!closed && (i === 0 || i === count - 1)) {
-        const a = i === 0 ? points[0] : points[count - 2];
-        const b = i === 0 ? points[1] : points[count - 1];
-        const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
-        dx = -(b[1] - a[1]) / length * half;
-        dz =  (b[0] - a[0]) / length * half;
-      } else {
-        const inLength = Math.hypot(x - prev[0], z - prev[1]);
-        const outLength = Math.hypot(next[0] - x, next[1] - z);
-        const nx1 = -(z - prev[1]) / inLength, nz1 = (x - prev[0]) / inLength;
-        const nx2 = -(next[1] - z) / outLength, nz2 = (next[0] - x) / outLength;
-        const mx = nx1 + nx2, mz = nz1 + nz2;
-        const scale = half / Math.max(0.25, mx * nx2 + mz * nz2);
-        dx = mx * scale; dz = mz * scale;
-      }
-      vertices.push(x + dx, CONFIG.pitchMarkings.elevation, z + dz,
-                    x - dx, CONFIG.pitchMarkings.elevation, z - dz);
-    }
-    const segments = closed ? count : count - 1;
-    for (let i = 0; i < segments; i++) {
-      const a = i * 2, b = ((i + 1) % count) * 2;
-      indices.push(a, b, a + 1, a + 1, b, b + 1);
-    }
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-    geometry.setIndex(indices); geometry.computeVertexNormals();
-    const mesh = new THREE.Mesh(geometry, markingMaterial);
-    mesh.name = `pitch-marking-${++markingNumber}`;
-    mesh.userData.width = CONFIG.pitchMarkings.width;
-    pitch.add(mesh); return mesh;
-  }
-  function flatRect(x1, z1, x2, z2) {
-    return paintedLine([[x1,z1],[x2,z1],[x2,z2],[x1,z2]], true);
-  }
-  function arc(cx, cz, r, start = 0, end = Math.PI*2) {
-    const closed = Math.abs(end - start - Math.PI*2) < 1e-6;
-    const segments = Math.max(32, Math.ceil(Math.abs(end - start) * 32));
-    const points = [];
-    for (let i = 0; i < segments + (closed ? 0 : 1); i++) {
-      const a = lerp(start, end, i / segments);
-      points.push([cx + Math.cos(a)*r, cz + Math.sin(a)*r]);
-    }
-    return paintedLine(points, closed);
-  }
-  function dot(x, z, name, radius = 0.13) {
-    // JEDEN PLNÝ PUNTÍK. Žádná RingGeometry, obvod ani svítící halo.
-    const mesh = new THREE.Mesh(new THREE.CircleGeometry(radius, 40),
-      new THREE.MeshBasicMaterial({ color: CONFIG.colors.markings }));
-    mesh.rotation.x = -Math.PI/2; mesh.position.set(x, 0.024, z);
-    mesh.name = name; pitch.add(mesh); return mesh;
-  }
-  function surface(color, extras = {}) {
-    // Flat, unlit surfaces preserve the graphic palette without glossy casts.
-    return new THREE.MeshBasicMaterial({ color });
-  }
-  function tube(a, b, radius, mat, parent = goal, segments = 12) {
-    const object = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, 1, segments), mat);
-    parent.add(object); setSegment(object, v(...a), v(...b)); return object;
-  }
-  const axisY = v(0,1,0);
-  function setSegment(mesh, start, end) {
-    mesh.position.copy(start).add(end).multiplyScalar(0.5);
-    const direction = end.clone().sub(start);
-    mesh.scale.y = direction.length();
-    mesh.quaternion.setFromUnitVectors(axisY, direction.normalize());
-  }
+  paintedLine(arc,'pitch-marking-penalty-arc');
+  // A single filled circle, on the ground under the ball. No line or cross.
+  const spot=new THREE.Mesh(new THREE.CircleGeometry(.18,12),paint);
+  spot.rotation.x=-Math.PI/2;spot.position.set(spotX,.015,0);spot.name='penalty-spot';pitch.add(spot);
 
-  function buildPitch() {
-    // Barevný trávník je samostatná plocha. Za brankou přechází měkce do pozadí.
-    const turfMaterial = new THREE.ShaderMaterial({
-      uniforms: {
-        uFocus: fadeUniform,
-        uLight: { value: new THREE.Color(CONFIG.colors.pitch) },
-        uDark: { value: new THREE.Color(CONFIG.colors.pitchDark) },
-      },
-      transparent: true,
-      depthWrite: true,
-      vertexShader: `varying vec3 vWorld;
-        void main() { vec4 world = modelMatrix * vec4(position, 1.0); vWorld = world.xyz;
-          gl_Position = projectionMatrix * viewMatrix * world; }`,
-      fragmentShader: `uniform float uFocus; uniform vec3 uLight; uniform vec3 uDark; varying vec3 vWorld;
-        void main() {
-          float stripe = 0.5 + 0.5 * cos(vWorld.x * 0.60);
-          float lightPool = exp(-0.0007 * pow(vWorld.x - 44.0, 2.0) - 0.0013 * vWorld.z * vWorld.z);
-          vec3 col = mix(uDark, uLight, 0.40 + 0.48 * lightPool + 0.025 * stripe);
-          float back = 1.0 - smoothstep(54.0, 78.0, vWorld.x);
-          float sides = 1.0 - smoothstep(28.0, 68.0, abs(vWorld.z));
-          float edgeX = 1.0 - smoothstep(108.0, 120.0, abs(vWorld.x));
-          float edgeZ = 1.0 - smoothstep(78.0, 90.0, abs(vWorld.z));
-          // Otvor pod tunelem je skutečně vynechaný v geometrii, ne jen průhledný.
-          float alpha = edgeX * edgeZ * mix(1.0, back * sides, uFocus);
-          if (alpha < 0.001) discard;
-          gl_FragColor = vec4(col, alpha);
-          #include <tonemapping_fragment>
-          #include <colorspace_fragment>
-        }`,
-    });
-    // Turf ends at the INNER terrace footprint, including its rounded corners.
-    // It cannot protrude beyond the stadium during the overhead outro, and it
-    // stops at the tunnel mouth rather than passing underneath the corridor.
-    const footprint=ring(59,40,8,0),shape=new THREE.Shape();
-    footprint.forEach(([x,,z],i)=>i?shape.lineTo(x,-z):shape.moveTo(x,-z));
-    shape.closePath();
-    const groundGeometry = new THREE.ShapeGeometry(shape);
-    groundGeometry.rotateX(-Math.PI/2);
-    const grass = new THREE.Mesh(groundGeometry, turfMaterial);
-    grass.position.y = CONFIG.ground.turfY;
-    grass.userData.tunnelCutout = true;
-    grass.renderOrder = -2; grass.name = 'soft-green-pitch'; pitch.add(grass);
-    activeGroup = pitch;
-    flatRect(-52.5, -34, 52.5, 34);
-    paintedLine([[0,-34],[0,34]]);
-    arc(0,0,9.15);
-    // Výrazný plný středový puntík: nesplývá s půlicí čárou.
-    // Penaltové puntíky si ponechávají původní velikost; další kruh nepřidáváme.
-    dot(0,0,'centre-spot',CONFIG.pitchMarkings.centreSpotRadius);
-    for (const sign of [-1,1]) {
-      // Otevřené U: společná branková čára už patří obvodu hřiště, nekreslí se podruhé.
-      paintedLine([[sign*52.5,-20.16],[sign*36,-20.16],[sign*36,20.16],[sign*52.5,20.16]]);
-      paintedLine([[sign*52.5,-9.16],[sign*47,-9.16],[sign*47,9.16],[sign*52.5,9.16]]);
-      dot(sign*41.5,0,sign===1 ? 'penalty-spot' : 'opposite-penalty-spot');
-      const a = Math.acos(5.5/9.15);
-      arc(sign*41.5,0,9.15,sign===-1 ? -a : Math.PI-a,sign===-1 ? a : Math.PI+a);
+  const unitBox=new THREE.BoxGeometry(1,1,1),outlinedBars=[];
+  function bar(parent,a,b,width,color,outline=0) {
+    const start=v(...a),end=v(...b),delta=end.clone().sub(start),length=delta.length();
+    const mesh=new THREE.Mesh(unitBox,surface(color));
+    mesh.position.copy(start).add(end).multiplyScalar(.5);
+    mesh.quaternion.setFromUnitVectors(v(0,1,0),delta.normalize());
+    mesh.scale.set(width,length+width,width);parent.add(mesh);
+    if(outline){
+      const edge=new THREE.Mesh(unitBox,new THREE.MeshBasicMaterial({color:C.colors.outline,side:THREE.BackSide}));
+      edge.position.copy(mesh.position);edge.quaternion.copy(mesh.quaternion);
+      edge.scale.set(width+outline*2,length+width+outline*2,width+outline*2);
+      parent.add(edge);
+      outlinedBars.push({mesh,edge,length,width,outline});
     }
-    // Vzdálená brána je součást stadionu a spolu s ním zmizí.
-    line([[-52.5,0,-3.66],[-52.5,2.44,-3.66],[-52.5,2.44,3.66],[-52.5,0,3.66]],
-      CONFIG.colors.outline, 1, environment);
-    // Bez zelených svislých značek u rohů: při výjezdu z tunelu zůstává jen bílé značení.
+    return mesh;
   }
-
-  // Jeden spojitý, uzavřený rám ve tvaru U. V rozích se sousední úseky
-  // dělí o stejný prstenec vrcholů (pokosový spoj), ne o tři překryté válce.
-  function continuousFrame(x, halfWidth, height, radius, mat, name) {
-    const centres = [[x,0,-halfWidth],[x,height,-halfWidth],
-                     [x,height,halfWidth],[x,0,halfWidth]];
-    const miters = [[0,-1],[1,-1],[1,1],[0,1]]; // Y/Z, v rozích záměrně délka sqrt(2)
-    const radial = 24, positions = [], indices = [];
-    for (let row = 0; row < centres.length; row++) {
-      const [cx,cy,cz] = centres[row], [my,mz] = miters[row];
-      for (let i = 0; i < radial; i++) {
-        const a = i / radial * Math.PI * 2;
-        positions.push(cx + radius * Math.cos(a),
-          cy + radius * Math.sin(a) * my, cz + radius * Math.sin(a) * mz);
-      }
-    }
-    for (let row = 0; row < centres.length - 1; row++) {
-      for (let i = 0; i < radial; i++) {
-        const j = (i + 1) % radial, a = row*radial+i, b = row*radial+j;
-        const c = (row+1)*radial+i, d = (row+1)*radial+j;
-        indices.push(a,b,c,b,d,c);
-      }
-    }
-    // Spodní čela rámu: geometrie je uzavřená i u země.
-    for (let i = 1; i < radial - 1; i++) {
-      indices.push(0,i+1,i);
-      const base = (centres.length - 1) * radial;
-      indices.push(base,base+i,base+i+1);
-    }
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
-    geometry.setIndex(indices); geometry.computeVertexNormals(); geometry.computeBoundingSphere();
-    const frame = new THREE.Mesh(geometry,mat); frame.name = name;
-    frame.userData.continuous = true; goal.add(frame); return frame;
+  const gz=3.66,gb=gx+1.8;
+  const front=new THREE.Group();front.name='goal-frame-continuous';goal.add(front);
+  const thick=C.structure.postRadius*2,border=C.structure.goalOutline;
+  bar(front,[gx,0,-gz],[gx,2.44,-gz],thick,C.colors.goal,border);
+  bar(front,[gx,2.44,-gz],[gx,2.44,gz],thick,C.colors.goal,border);
+  bar(front,[gx,0,gz],[gx,2.44,gz],thick,C.colors.goal,border);
+  for(const s of [-1,1]){
+    bar(goal,[gb,0,s*gz],[gb,2.2,s*gz],.075,C.colors.netShade);
+    bar(goal,[gx,2.44,s*gz],[gb,2.2,s*gz],.075,C.colors.goal);
+    bar(goal,[gx,0,s*gz],[gb,0,s*gz],.075,C.colors.goal);
   }
-
-  let net, netRest;
-  function buildGoal() {
-    const x = CONFIG.penalty.goalX, back = x+2, z = 3.66;
-    const posts = new THREE.MeshBasicMaterial({color:CONFIG.colors.goal});
-    continuousFrame(x,z,2.44,CONFIG.structure.postRadius,posts,'goal-frame-continuous');
-    // A slightly larger back-facing shell gives a thin silhouette on both
-    // sides of each white post, including the corners and keeper camera view.
-    // Do not use stadium ink/theme here: this outline must remain black.
-    const border=new THREE.MeshBasicMaterial({color:0x111111,side:THREE.BackSide});
-    continuousFrame(x,z,2.44,CONFIG.structure.postRadius+CONFIG.structure.goalOutline,border,'goal-frame-outline');
-    const supports = new THREE.MeshBasicMaterial({color:CONFIG.colors.goal});
-    continuousFrame(back,z,2.15,0.021,supports,'goal-rear-frame-continuous');
-    continuousFrame(back,z,2.15,0.024,border,'goal-rear-frame-outline');
-    for (const s of [-1,1]) {
-      tube([x,0.02,s*z],[back,0.02,s*z],0.021,supports);
-      tube([x,2.44,s*z],[back,2.15,s*z],0.022,supports);
-    }
-    tube([back,0.02,-z],[back,0.02,z],0.021,supports);
-    // Jediný LineSegments objekt: síť vzadu, na obou bocích i nahoře.
-    const points = [];
-    const segment = (a,b) => points.push(...a,...b);
-    const top = (t) => lerp(2.44,2.15,t);
-    const nZ = 30, nY = 10, nX = 9;
-    for (let j=0;j<=nZ;j++) {
-      const zz=lerp(-z,z,j/nZ);
-      for (let k=0;k<nY;k++)
-        segment([back,2.15*k/nY,zz],[back,2.15*(k+1)/nY,zz]);
-      segment([x,2.44,zz],[back,2.15,zz]);
-    }
-    for (let j=0;j<=nY;j++) {
-      const yy=2.15*j/nY;
-      for (let k=0;k<nZ;k++)
-        segment([back,yy,lerp(-z,z,k/nZ)],[back,yy,lerp(-z,z,(k+1)/nZ)]);
-      for (const s of [-1,1]) segment([x,2.44*j/nY,s*z],[back,yy,s*z]);
-    }
-    for (let j=0;j<=nX;j++) {
-      const t=j/nX, xx=lerp(x,back,t);
-      segment([xx,top(t),-z],[xx,top(t),z]);
-      for (const s of [-1,1]) segment([xx,0,s*z],[xx,top(t),s*z]);
-    }
-    const geometry=new THREE.BufferGeometry();
-    geometry.setAttribute('position',new THREE.Float32BufferAttribute(points,3));
-    netRest=new Float32Array(points);
-    net=new THREE.LineSegments(geometry,new THREE.LineBasicMaterial({
-      color:CONFIG.colors.goal, transparent:true, opacity:CONFIG.structure.netOpacity, depthWrite:false,
-    }));
-    net.name='goal-net'; goal.add(net);
+  bar(goal,[gb,2.2,-gz],[gb,2.2,gz],.075,C.colors.netShade);
+  const netPoints=[],segment=(a,b)=>netPoints.push(...a,...b);
+  for(let i=0;i<=10;i++){
+    const z=lerp(-gz,gz,i/10);
+    for(let j=0;j<4;j++)segment([gb,2.2*j/4,z],[gb,2.2*(j+1)/4,z]);
+    segment([gx,2.44,z],[gb,2.2,z]);
   }
+  for(let j=0;j<=4;j++){
+    const y=2.2*j/4;
+    for(let i=0;i<10;i++)segment([gb,y,lerp(-gz,gz,i/10)],[gb,y,lerp(-gz,gz,(i+1)/10)]);
+    for(const s of [-1,1])segment([gx,2.44*j/4,s*gz],[gb,y,s*gz]);
+  }
+  // A dark offset behind the white mesh makes the net legible on white without
+  // turning the goal into a solid colored wall.
+  const netGeometry=new THREE.BufferGeometry();
+  netGeometry.setAttribute('position',new THREE.Float32BufferAttribute(netPoints,3));
+  const netRest=new Float32Array(netPoints);
+  const netShadow=new THREE.LineSegments(netGeometry,new THREE.LineBasicMaterial({color:C.colors.netShade}));
+  netShadow.position.set(.06,-.08,.06);goal.add(netShadow);
+  const net=new THREE.LineSegments(netGeometry,new THREE.LineBasicMaterial({
+    color:C.colors.goal,transparent:true,opacity:C.structure.netOpacity,depthWrite:false,
+  }));
+  net.name='goal-net';net.renderOrder=1;goal.add(net);
   function rippleNet(amount=0,targetZ=0,targetY=.6) {
-    const attr=net.geometry.attributes.position;
-    for (let i=0;i<attr.count;i++) {
-      const j=i*3, x=netRest[j], y=netRest[j+1], z=netRest[j+2];
-      const spread=Math.exp(-((z-targetZ)**2+(y-targetY)**2)*0.8);
-      const depth=clamp((x-CONFIG.penalty.goalX)/2);
-      // Síť pruží pouze uvnitř. Obvod zůstává přichycený k rámu i při gólu.
-      const roof = lerp(2.44,2.15,depth);
-      const pinned = Math.sin(Math.PI*clamp(y/roof))
-        * Math.sin(Math.PI*clamp((z+3.66)/7.32));
-      attr.setXYZ(i,x+amount*spread*depth*pinned,y,z);
+    const p=netGeometry.attributes.position;
+    for(let i=0;i<p.count;i++){
+      const j=i*3,x=netRest[j],y=netRest[j+1],z=netRest[j+2],depth=clamp((x-gx)/1.8);
+      const pin=Math.sin(Math.PI*clamp(y/lerp(2.44,2.2,depth)))*Math.sin(Math.PI*clamp((z+gz)/(gz*2)));
+      p.setXYZ(i,x+amount*Math.exp(-((z-targetZ)**2+(y-targetY)**2)*.8)*depth*pin,y,z);
     }
-    attr.needsUpdate=true;
+    p.needsUpdate=true;
   }
 
-  function ring(hx,hz,radius,y) {
-    const points=[[4.7,y,hz]];
-    const corners=[
-      [hx-radius,hz-radius,Math.PI/2,0], [hx-radius,-hz+radius,0,-Math.PI/2],
-      [-hx+radius,-hz+radius,-Math.PI/2,-Math.PI],[-hx+radius,hz-radius,Math.PI,Math.PI/2],
-    ];
-    for (const [cx,cz,a,b] of corners) for(let i=0;i<=12;i++) {
-      const t=lerp(a,b,i/12); points.push([cx+Math.cos(t)*radius,y,cz+Math.sin(t)*radius]);
+  const textures=new Set(),parts=[],figures=[],textureCache=new Map();
+  const palette={
+    K:C.colors.outline,H:C.colors.hair,h:C.colors.hairLight,
+    S:C.colors.skin,L:C.colors.skinLight,s:C.colors.skinShade,
+    C:C.colors.shorts,W:0xffffff,w:0xdce3d1,
+  };
+  // Kit 0 is always the local player; kit 1 is the opponent, in Solo/Daily
+  // and on each Duel device. Rigs keep their gloves and anatomy when swapped.
+  const kits=[
+    {...palette,B:C.colors.strikerShirt,l:C.colors.strikerLight,b:C.colors.strikerShade},
+    {...palette,B:C.colors.shirt,l:C.colors.shirtLight,b:C.colors.shirtShade},
+  ];
+  function texture(rows,colors) {
+    // Skin, boots and gloves do not need duplicate GPU maps for each kit.
+    const used=Object.fromEntries([...new Set(rows.join(''))].filter(k=>k!=='.').sort().map(k=>[k,colors[k]]));
+    const key=rows.join('/')+JSON.stringify(used);if(textureCache.has(key))return textureCache.get(key);
+    const w=Math.max(...rows.map(row=>row.length)),h=rows.length,data=new Uint8Array(w*h*4);
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+      const code=rows[y][x];if(!code||code==='.')continue;
+      const hex=colors[code];if(hex===undefined)throw Error('Unknown sprite color '+code);
+      const i=((h-1-y)*w+x)*4;data[i]=hex>>16&255;data[i+1]=hex>>8&255;data[i+2]=hex&255;data[i+3]=255;
     }
-    points.push([-4.7,y,hz]); return points;
+    const map=new THREE.DataTexture(data,w,h);
+    map.magFilter=map.minFilter=THREE.NearestFilter;map.generateMipmaps=false;
+    map.colorSpace=THREE.SRGBColorSpace;map.needsUpdate=true;
+    textures.add(map);textureCache.set(key,map);return map;
   }
-  function buildStands() {
-    activeGroup=environment;
-    const rows=[];
-    for(let i=0;i<14;i++) {
-      const points=ring(59+i*1.12,40+i*1.05,8+i*0.3,0.8+i*0.85);
-      rows.push(points);
-      line(points,CONFIG.colors.outline,1);
-    }
-    const inner=rows[0],outer=rows.at(-1),positions=[];
-    const push=(...points)=>points.forEach((p)=>positions.push(...p));
-    const floor=p=>[p[0],0,p[2]];
-    const quad=(a,b,c,d)=>push(a,b,c,a,c,d);
-    // Uzavrene tribuny: svah, celni obruba, zadni plast a boky u tunelu.
-    // Bez techto sten jsou ze strany videt zebra a konstrukce protilehle tribuny.
-    for(let i=0;i<inner.length-1;i++) {
-      // Real terrace steps, not a featureless slope behind floating supporters.
-      // Each row has a horizontal tread and an opaque vertical riser.
-      for(let row=0;row<rows.length-1;row++){
-        const a=rows[row][i],b=rows[row][i+1],c=rows[row+1][i+1],d=rows[row+1][i];
-        const cLow=[c[0],a[1],c[2]],dLow=[d[0],a[1],d[2]];
-        quad(a,dLow,cLow,b);quad(dLow,d,c,cLow);
-      }
-      quad(outer[i],floor(outer[i]),floor(outer[i+1]),outer[i+1]);
-      quad(inner[i],inner[i+1],floor(inner[i+1]),floor(inner[i]));
-    }
-    for(const i of [0,inner.length-1])quad(inner[i],floor(inner[i]),floor(outer[i]),outer[i]);
-    const geometry=new THREE.BufferGeometry();
-    geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
-    const standMesh=new THREE.Mesh(geometry,fadingMaterial(new THREE.MeshBasicMaterial({
-      color:CONFIG.colors.stands, side:THREE.DoubleSide,
-      // Plocha zapisuje hloubku; drobny offset ponecha citelne predni obrysy.
-      depthWrite:true, transparent:false, polygonOffset:true, polygonOffsetFactor:1, polygonOffsetUnits:1,
-    })));
-    // Pri alpha fade musi cele pozadi zustat za siti. Sortovani velkeho
-    // prstence podle jeho stredu by jinak mohlo prekreslit blizkou sit.
-    // Plast pred obrysy: zadni cary zustanou zakryte i behem rozpousteni.
-    standMesh.renderOrder=-2;fills.add(standMesh);
-    for(const i of [0,1,7,13,14,20,26,27,33,39,40,46,52,53]) line([inner[i],outer[i]],CONFIG.colors.outline,1);
-    for(const i of [1,7,13,20,26,33,39,46,52]) {
-      const p=outer[i]; line([[p[0],0,p[2]],p],CONFIG.colors.outline,0.45);
-    }
-    // Bez stožárů a reflektorových ramp; zůstávají pouze nízké obrysy tribun.
+  // A 16px football with broad black panels and quiet grey seams. Four exact
+  // quarter-turns keep the silhouette crisp; no smoothing or image downloads.
+  // These are cosmetic pixels: the ball still follows the same 3D trajectory.
+  const football=[
+    '.....KKKKKK.....',
+    '...KKWWWWWWKK...',
+    '..KWWWKKKKWWWK..',
+    '.KWWWWKKKKWWWWK.',
+    '.KWWWWWGGWWWWWK.',
+    'KWWWWGGWWGGWWWWK',
+    'KKWWGWWKKWWGWWKK',
+    'KKKWWWKKKKWWWKKK',
+    'KKKWWWKKKKWWWKKK',
+    'KKWWGWKKKKWGWWKK',
+    'KWWWWGGKKGGWWWWK',
+    '.KWWGWWGGWWGWWK.',
+    '.KWWKKWWWWKKWWK.',
+    '..KWKKKGGKKKWK..',
+    '...KKSSSSSSKK...',
+    '.....KKKKKK.....',
+  ];
+  const ballFrames=[];let rotated=football;
+  for(let turn=0;turn<4;turn++){
+    ballFrames.push(texture(rotated,{K:C.colors.ballBlack,W:C.colors.ballWhite,G:0x9aa49a,S:0xd9dfd6}));
+    rotated=rotated[0].split('').map((_,x)=>rotated.map(row=>row[x]).reverse().join(''));
   }
-  function buildTunnel() {
-    const {halfWidth: hw, height: h, startZ: front, endZ: back} = CONFIG.tunnel;
-    const y = CONFIG.ground.tunnelFloorY;
-    // Jediný neprůhledný plášť. Podlaha, stěny a strop sdílejí hrany;
-    // žádné překryté boxy, žádné vnitřní diagonály ani čáry přes podlahu.
-    // Tunel ma stejnou fade masku i pri pohledu z brany smerem zpet.
-    const positions = [
-      -hw,y,front, hw,y,front, hw,h,front, -hw,h,front,
-      -hw,y,back,  hw,y,back,  hw,h,back,  -hw,h,back,
-    ];
-    const indices = [
-      0,4,5, 0,5,1,  // podlaha
-      0,3,7, 0,7,4,  // levá stěna
-      1,5,6, 1,6,2,  // pravá stěna
-      3,2,6, 3,6,7,  // strop; oba konce tunelu zůstávají otevřené
-    ];
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
-    geometry.setIndex(indices); geometry.computeVertexNormals();
-    const shellMaterial = fadingMaterial(new THREE.MeshBasicMaterial({
-      color: CONFIG.colors.tunnel, side: THREE.DoubleSide,
-      transparent: false, depthTest: true, depthWrite: true,
-    }));
-    const shell = new THREE.Mesh(geometry, shellMaterial);
-    shell.name = 'tunnel-solid-shell'; shell.renderOrder = -10;
-    tunnel.add(shell);
-
-    // Jemne stropni spary a portal doplnuji pevne hrany a svetla nize.
-    // Podlaha zustava volna, bez pricnych ramu pres cestu kamery.
-    const inset = 0.035;
-    for (const sign of [-1,1]) {
-      const seam = line([[sign*(hw-inset),h-inset,back],
-                         [sign*(hw-inset),h-inset,front]],
-                        CONFIG.colors.outline,0.30,tunnel);
-      seam.name = 'tunnel-ceiling-seam';
-    }
-    const portal = line([[-hw+inset,y+0.04,front+inset],
-                          [-hw+inset,h-inset,front+inset],
-                          [hw-inset,h-inset,front+inset],
-                          [hw-inset,y+0.04,front+inset]],
-                         CONFIG.colors.outline,0.55,tunnel);
-    portal.name = 'tunnel-exit-outline';
-    // Plochy misto WebGL linewidth: hrany maji stabilni skutecnou tloustku.
-    // Barvu, rozestupy a sirku svetel men v stadium_config.js.
-    function strip(name, size, position, color) {
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size),fadingMaterial(new THREE.MeshBasicMaterial({color})));
-      mesh.renderOrder=-1;
-      mesh.name=name;mesh.position.set(...position);tunnel.add(mesh);
-    }
-    const {edgeWidth:e,lightSpacing,lightWidth,lightDepth}=CONFIG.tunnel;
-    for(const sign of [-1,1])for(const level of [y+.04,h-.04])
-      strip('tunnel-wall-edge',[e,e,back-front],[sign*(hw-.04),level,(back+front)/2],CONFIG.colors.outline);
-    for(let z=front+3;z<back;z+=lightSpacing) {
-      strip('tunnel-ceiling-light',[lightWidth,.035,lightDepth],[0,h-.05,z],CONFIG.colors.bright);
-      // Jemny lem vytvari zapusteny drzak bez oslniveho halo efektu.
-      strip('tunnel-light-housing',[lightWidth+.16,.025,lightDepth+.14],[0,h-.02,z],CONFIG.colors.outline);
-    }
+  const ball=new THREE.Group();ball.name='pixel-football';scene.add(ball);
+  const ballSprite=new THREE.Sprite(new THREE.SpriteMaterial({map:ballFrames[0],alphaTest:.5,depthWrite:false}));
+  ballSprite.scale.setScalar(C.penalty.ballRadius*2);ballSprite.renderOrder=9;ballSprite.name='pixel-football-sprite';ball.add(ballSprite);
+  function part(parent,rows,colors,width,height,pos,name,order=4) {
+    const anchor=new THREE.Group();anchor.position.set(...pos);anchor.name=name;parent.add(anchor);
+    const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture(rows,colors),alphaTest:.5,depthWrite:false}));
+    sprite.name=name+'-pixels';sprite.scale.set(width,height,1);sprite.renderOrder=order;anchor.add(sprite);
+    parts.push({anchor,sprite,width,height,name,kits:kits.map(p=>texture(rows,p))});return anchor;
   }
-  buildPitch(); buildGoal(); buildStands(); buildTunnel();
-  fills.visible=!CONFIG.outlineOnly;
-
-  // ---------- Skutečný panelový vzor: 12 pětiúhelníků + 20 šestiúhelníků ----------
-  function buildBall() {
-    const root=new THREE.Group(); root.name='football-32-panels';
-    const r=CONFIG.penalty.ballRadius;
-    const ico=new THREE.IcosahedronGeometry(1,0);
-    const input=ico.getAttribute('position');
-    const vertices=[],faces=[],lookup=new Map();
-    for(let i=0;i<input.count;i+=3) {
-      const face=[];
-      for(let j=0;j<3;j++) {
-        const p=v().fromBufferAttribute(input,i+j).normalize();
-        const key=p.toArray().map((n)=>n.toFixed(6)).join(',');
-        if(!lookup.has(key)) { lookup.set(key,vertices.length); vertices.push(p); }
-        face.push(lookup.get(key));
-      }
-      faces.push(face);
-    }
-    ico.dispose();
-    const adjacent=vertices.map(()=>new Set());
-    for(const [a,b,c] of faces) {
-      adjacent[a].add(b).add(c); adjacent[b].add(a).add(c); adjacent[c].add(a).add(b);
-    }
-    const cut=(a,b)=>vertices[a].clone().multiplyScalar(2).add(vertices[b]).normalize();
-    const pentagons=vertices.map((_,i)=>[...adjacent[i]].map((j)=>cut(i,j)));
-    const hexagons=faces.map(([a,b,c])=>[cut(a,b),cut(b,a),cut(b,c),cut(c,b),cut(c,a),cut(a,c)]);
-    const core=new THREE.Mesh(new THREE.SphereGeometry(r*0.993,48,32),surface(CONFIG.colors.ballBlack));
-    root.add(core);
-    function panelGeometry(polygons) {
-      const positions=[],normals=[];
-      function triangle(a,b,c,depth) {
-        if(depth>0) {
-          const ab=a.clone().add(b).normalize(),bc=b.clone().add(c).normalize(),ca=c.clone().add(a).normalize();
-          triangle(a,ab,ca,depth-1); triangle(ab,b,bc,depth-1);
-          triangle(ca,bc,c,depth-1); triangle(ab,bc,ca,depth-1); return;
-        }
-        // Orientace vždy ven z koule, bez závislosti na pořadí sousedů.
-        if(b.clone().sub(a).cross(c.clone().sub(a)).dot(a)<0) [b,c]=[c,b];
-        for(const p of [a,b,c]) { positions.push(p.x*r,p.y*r,p.z*r); normals.push(p.x,p.y,p.z); }
-      }
-      for(const polygon of polygons) {
-        const center=polygon.reduce((sum,p)=>sum.add(p),v()).normalize();
-        const u=polygon[0].clone().sub(center.clone().multiplyScalar(polygon[0].dot(center))).normalize();
-        const w=center.clone().cross(u).normalize();
-        const ordered=polygon.slice().sort((a,b)=>Math.atan2(a.dot(w),a.dot(u))-Math.atan2(b.dot(w),b.dot(u)));
-        // Bold black seams match the flat football icon; the ball remains 3D.
-        const inset=ordered.map((p)=>p.clone().lerp(center,0.075).normalize());
-        for(let i=0;i<inset.length;i++) triangle(center,inset[i],inset[(i+1)%inset.length],2);
-      }
-      const geometry=new THREE.BufferGeometry();
-      geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
-      geometry.setAttribute('normal',new THREE.Float32BufferAttribute(normals,3));
-      geometry.computeBoundingSphere(); return geometry;
-    }
-    const whites=new THREE.Mesh(panelGeometry(hexagons),new THREE.MeshBasicMaterial({color:CONFIG.colors.ballWhite}));
-    const blacks=new THREE.Mesh(panelGeometry(pentagons),new THREE.MeshBasicMaterial({color:CONFIG.colors.ballBlack}));
-    root.add(whites,blacks);
-    root.userData.panels={pentagons:pentagons.length,hexagons:hexagons.length};
-    scene.add(root); return root;
+  function limb(parent,a,b,width,rows,colors,name) {
+    const anchor=part(parent,rows,colors,width,1,[0,0,0],name,3);
+    setLimb(anchor,a,b);return anchor;
   }
-
-  function softShadow(sx,sz,opacity) {
-    // Měkký stín bez kruhové hrany: není to druhá značka penalty.
-    const canvas=document.createElement('canvas'); canvas.width=canvas.height=128;
-    const ctx=canvas.getContext('2d');
-    const gradient=ctx.createRadialGradient(64,64,0,64,64,64);
-    gradient.addColorStop(0,'rgba(0,0,0,0.60)');
-    gradient.addColorStop(0.30,'rgba(0,0,0,0.36)');
-    gradient.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=gradient; ctx.fillRect(0,0,128,128);
-    const texture=new THREE.CanvasTexture(canvas); textures.add(texture);
-    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(sx,sz),new THREE.MeshBasicMaterial({
-      map:texture,transparent:true,opacity,depthWrite:false,
-    }));
-    mesh.rotation.x=-Math.PI/2; mesh.position.y=0.007; pitch.add(mesh); return mesh;
+  function setLimb(anchor,a,b) {
+    anchor.position.copy(a).add(b).multiplyScalar(.5);
+    const delta=b.clone().sub(a);
+    anchor.scale.y=delta.length();anchor.quaternion.setFromUnitVectors(v(0,1,0),delta.normalize());
   }
-  const ball=buildBall();
-  const ballHome=v(CONFIG.penalty.spotX,CONFIG.penalty.ballRadius+0.025,0);
-  const ballShadow=softShadow(0.92,0.66,0.58);
-  ballShadow.position.set(ballHome.x,0.007,0);
-
-  // ---------- Stylizovaný brankář: dres, šortky, štulpny, rukavice ----------
-  function buildKeeper(numberText="1") {
-    const pivot=new THREE.Group(); pivot.name='goalkeeper'; scene.add(pivot);
-    const model=new THREE.Group(); model.rotation.y=-Math.PI/2; model.position.y=-0.92; pivot.add(model);
-    const mats={};
-    for(const name of ['shirt','shirtTrim','shorts','gloves','gloveCuffs','boots','skin','hair']) mats[name]=surface(CONFIG.colors[name]);
-    if(numberText==='10'){mats.shirt.color.setHex(CONFIG.colors.strikerShirt);mats.shirtTrim.color.setHex(CONFIG.colors.outline);mats.gloves=mats.skin;mats.gloveCuffs=mats.skin;}
-    let kickingLeg=null;
-    function ellipsoid(x,y,z,sx,sy,sz,mat,parent=model) {
-      const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,20,14),mat);
-      mesh.position.set(x,y,z); mesh.scale.set(sx,sy,sz); parent.add(mesh); return mesh;
-    }
-    function cylinder(a,b,r,mat) { return tube(a,b,r,mat,model,12); }
-    // Torzo je širší v ramenou; raději oblý střih než hranatá figurka z kostek.
-    const torso=new THREE.Mesh(new THREE.CylinderGeometry(0.34,0.24,0.58,16),mats.shirt);
-    torso.scale.z=0.57; torso.position.y=1.27; model.add(torso);
-    ellipsoid(0,0.95,0,0.26,0.16,0.17,mats.shorts);
-    cylinder([0,1.54,0],[0,1.64,0],0.071,mats.skin);
-    ellipsoid(0,1.78,0,0.158,0.20,0.156,mats.skin);
-    // Malý nos, uši, oči a vlasy – bez externí textury obličeje.
-    ellipsoid(0,1.77,0.158,0.025,0.029,0.026,mats.skin);
-    for(const s of [-1,1]) {
-      ellipsoid(s*0.158,1.78,-0.003,0.026,0.044,0.022,mats.skin);
-      ellipsoid(s*0.051,1.805,0.142,0.012,0.012,0.012,mats.hair);
-    }
-    const hair=new THREE.Mesh(new THREE.SphereGeometry(1,20,12,0,Math.PI*2,0,Math.PI*0.51),mats.hair);
-    hair.scale.set(0.164,0.207,0.162); hair.position.set(0,1.79,-0.008); model.add(hair);
-    for(const s of [-1,1]) {
-      const hip=[s*0.16,0.95,0],knee=[s*0.29,0.53,0.07],ankle=[s*0.37,0.14,0.015];
-      const first=model.children.length;
-      cylinder(hip,[s*0.24,0.67,0.05],0.119,mats.shorts);
-      cylinder([s*0.24,0.70,0.05],knee,0.077,mats.skin);
-      cylinder(knee,ankle,0.068,mats.shirt);
-      cylinder([s*0.30,0.49,0.065],[s*0.315,0.445,0.058],0.073,mats.shirtTrim);
-      ellipsoid(s*0.38,0.085,0.10,0.096,0.082,0.185,mats.boots);
-      // Kontrastní vršek kopačky.
-      ellipsoid(s*0.38,0.129,0.16,0.077,0.029,0.091,mats.shirtTrim);
-      if(s===1){
-        // Articulated kicking leg: rotate around the hip, not around the foot.
-        const parts=model.children.slice(first);kickingLeg=new THREE.Group();
-        kickingLeg.position.set(...hip);model.add(kickingLeg);
-        for(const part of parts){part.position.sub(kickingLeg.position);kickingLeg.add(part);}
-      }
+  // Each silhouette uses a small authored sprite, not a pixel filter applied
+  // to a rounded 3D mannequin. Limbs are articulated independently.
+  const headFront=[
+    '...KKKKKK...', '..KhhhhhhK..', '.KHHHhhhhHK.', '.KHHHHHHHHK.',
+    '.KSLSSSSLSK.', '.KSLKSSLKSK.', '..KSSLLSSK..', '...KSSSSK...', '....KKKK....',
+  ];
+  const headBack=[
+    '...KKKKKK...', '..KhhhhhhK..', '.KHHHhhhhHK.', '.KHHHHHhhHK.',
+    '.KHHHHHHHHK.', '.KSHHHHHHSK.', '..KHHHHHHK..', '...KSSSSK...', '....KKKK....',
+  ];
+  const torsoFront=[
+    '...KKKKKK...', '..KBWSSWBK..', '.KlBBWWBBlK.', 'KlBBBBBBBBbK',
+    'KlBBBBBBBBbK', '.KlBBBBBBbK.', '.KlBBBBBBbK.', '.KlBBBBBBbK.',
+    '.KBBBBBBBbK.', '.KBBBBBBBBK.', '..KKKKKKKK..',
+  ];
+  const torsoBack=[
+    '...KKKKKK...', '..KBWWWWBK..', '.KlBBBBBBlK.', 'KlBBBBBBBBbK',
+    'KlBBBBBBBBbK', '.KlBBBBBBbK.', '.KlBBBBBBbK.', '.KlBBBBBBbK.',
+    '.KBBBBBBBbK.', '.KBBBBBBBBK.', '..KKKKKKKK..',
+  ];
+  const sleeve=['.KKK.','KlBbK','KlBbK','KlBbK','KlBbK','.KKK.'];
+  const forearm=['.KK.','KLSK','KLSK','KSSK','.KK.'];
+  const thigh=['.KK.','KCCK','KCCK','KLSK','KSSK','.KK.'];
+  const sock=['.KKK.','KWWWK','KlBbK','KlBbK','KlBbK','KBBbK','.KKK.'];
+  const glove=['.KKKK.','KWWWWK','KWWWwK','KWWWwK','.KwwK.','..KK..'];
+  const fist=['.KKK.','KLSSK','KSSsK','.KKK.'];
+  const boot=['..KKKK.','.KCCCCK','KCCCCCK','KKKKKKK'];
+  const shorts=['KKKKKKKKKK','KCCCCCCCCK','KCCCCCCCCK','KCCCKKCCCK','KKKK..KKKK'];
+  function player(isKeeper) {
+    const firstPart=parts.length;
+    const pivot=new THREE.Group();pivot.name=isKeeper?'goalkeeper':'striker';scene.add(pivot);
+    const model=new THREE.Group();model.position.y=-.92;model.rotation.y=-Math.PI/2;pivot.add(model);
+    const colors=kits[isKeeper?1:0];
+    const torso=part(model,isKeeper?torsoFront:torsoBack,colors,.80,.72,[0,1.27,0],'pixel-shirt');
+    const head=part(model,isKeeper?headFront:headBack,colors,.53,.49,[0,1.85,0],'pixel-head',7);
+    const figure={model,isKeeper,kit:isKeeper?1:0,torso:torso.children[0],head:head.children[0],
+      front:kits.map(p=>[texture(torsoFront,p),texture(headFront,p)]),
+      back:kits.map(p=>[texture(torsoBack,p),texture(headBack,p)])};
+    figures.push(figure);
+    figure.defaults={front:figure.front,back:figure.back};
+    part(model,shorts,colors,.58,.27,[0,.88,.01],'pixel-shorts',5);
+    let kickingLeg;
+    for(const s of [-1,1]){
+      const hip=v(s*.17,.86,0),knee=v(s*.25,.51,.015),ankle=v(s*.30,.13,.035);
+      const leg=new THREE.Group();leg.position.copy(hip);model.add(leg);
+      limb(leg,v(),knee.clone().sub(hip),.21,thigh,colors,'pixel-thigh');
+      limb(leg,knee.clone().sub(hip),ankle.clone().sub(hip),.24,sock,colors,'pixel-sock');
+      part(leg,boot,colors,.34,.17,[s*.30-hip.x,.087-hip.y,.07],'pixel-boot',6);
+      if(s===1)kickingLeg=leg;
     }
     const arms=[];
-    for(const s of [-1,1]) {
-      const shoulder=v(s*0.30,1.47,0),elbow=v(s*0.54,1.16,0.035),wrist=v(s*0.68,1.01,0.17);
-      ellipsoid(shoulder.x,shoulder.y,shoulder.z,0.105,0.118,0.11,mats.shirt);
-      const upper=cylinder(shoulder.toArray(),elbow.toArray(),0.088,mats.shirt);
-      const lower=cylinder(elbow.toArray(),wrist.toArray(),0.071,mats.shirt);
-      const cuff=ellipsoid(wrist.x,wrist.y,wrist.z,0.078,0.056,0.081,mats.gloveCuffs);
-      const glove=ellipsoid(wrist.x+s*0.025,wrist.y-0.075,wrist.z+0.035,0.102,0.135,0.074,mats.gloves);
-      const thumb=ellipsoid(wrist.x-s*0.065,wrist.y-0.063,wrist.z+0.064,0.038,0.060,0.037,mats.gloves);
-      arms.push({s,shoulder,elbow,wrist,upper,lower,cuff,glove,thumb});
-      cylinder([s*0.25,1.55,0.045],[s*0.36,1.44,0.085],0.014,mats.shirtTrim);
+    for(const s of [-1,1]){
+      const shoulder=v(s*.28,1.48,0),elbow=v(s*.48,1.22,.01),wrist=v(s*.63,1.04,.10);
+      const upper=limb(model,shoulder,elbow,.22,sleeve,colors,'pixel-sleeve');
+      const lower=limb(model,elbow,wrist,.18,isKeeper?sleeve:forearm,colors,'pixel-forearm');
+      const offset=v(0,-.045,.03);
+      const hand=part(model,isKeeper?glove:fist,colors,isKeeper?.27:.20,isKeeper?.28:.22,
+        wrist.clone().add(offset).toArray(),'pixel-hand',8);
+      arms.push({s,shoulder,elbow,wrist,upper,lower,hand,offset});
     }
-    // Decentní výstřih a jednička. Číslo vzniká na malém canvasu při startu.
-    cylinder([-0.078,1.57,0.13],[0,1.51,0.172],0.011,mats.shirtTrim);
-    cylinder([0,1.51,0.172],[0.078,1.57,0.13],0.011,mats.shirtTrim);
-    const canvas=document.createElement('canvas');canvas.width=canvas.height=128;
-    const ctx=canvas.getContext('2d'); ctx.fillStyle=numberText==='10'?'#111111':'#f6f3eb';ctx.font='bold 94px sans-serif';
-    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(numberText,64,70);
-    const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;textures.add(texture);
-    const number=new THREE.Mesh(new THREE.PlaneGeometry(0.17,0.18),new THREE.MeshBasicMaterial({
-      map:texture,transparent:true,depthWrite:false,
-    }));
-    number.position.set(0,1.30,0.187);model.add(number);
-    return {pivot,model,torso,arms,kickingLeg};
-  }
-
-  // Puvodni model v6 se pouzije i pro protihrace. Pouze jeho cislo je 10.
-  const keeper=buildKeeper(),shooter=buildKeeper("10");
-  shooter.pivot.rotation.y=Math.PI;
-  const keeperShadow=softShadow(1.8,1.6,.62);
-  function rig(player) {
-    const {pivot,model,arms}=player;
     function poseHands(target=null,amount=0) {
       pivot.updateMatrixWorld(true);
-      for(const arm of arms) {
-        // Referencni model ma dlane pod zapestim. Offset kompenzujeme tak,
-        // aby stred obou rukavic v kazde ze sesti zon opravdu drzel mic.
-        const desired=target?model.worldToLocal(target.clone().add(v(0,0,arm.s*.10))):null;
-        const offset=v(arm.s*.023,-.075,.035);
+      for(const arm of arms){
         const wrist=arm.wrist.clone();
-        if(desired)wrist.lerp(desired.sub(offset),amount);
-        const elbow=arm.elbow.clone().lerp(arm.shoulder.clone().lerp(wrist,.52).add(v(0,0,.08)),amount);
-        setSegment(arm.upper,arm.shoulder,elbow);setSegment(arm.lower,elbow,wrist);
-        arm.cuff.position.copy(wrist);arm.glove.position.copy(wrist).add(offset);
-        arm.thumb.position.copy(wrist).add(v(-arm.s*.065,-.063,.064));
+        if(target)wrist.lerp(model.worldToLocal(target.clone().add(v(0,0,arm.s*C.penalty.ballRadius*.85))).sub(arm.offset),amount);
+        const elbow=arm.elbow.clone().lerp(arm.shoulder.clone().lerp(wrist,.52).add(v(0,0,.06)),amount);
+        setLimb(arm.upper,arm.shoulder,elbow);setLimb(arm.lower,elbow,wrist);
+        arm.hand.position.copy(wrist).add(arm.offset);
       }
     }
-    return {group:pivot,poseHands,
-      kick:amount=>{player.kickingLeg.rotation.x=amount;},
-      handPositions:()=>{pivot.updateMatrixWorld(true);return arms.map(a=>a.glove.getWorldPosition(v()));},
-      handCenter:()=>{
-      pivot.updateMatrixWorld(true);
-      return arms.reduce((sum,a)=>sum.add(a.glove.getWorldPosition(v())),v()).multiplyScalar(.5);
-    }};
+    const rigParts=parts.slice(firstPart);
+    figure.parts=rigParts;
+    function setKit(index){
+      figure.kit=index;
+      for(const part of rigParts)part.sprite.material.map=part.kits[index];
+    }
+    return {group:pivot,poseHands,setKit,shirtColor:()=>kits[figure.kit].B,kick:amount=>{kickingLeg.rotation.x=amount;},
+      handPositions:()=>{pivot.updateMatrixWorld(true);return arms.map(a=>a.hand.getWorldPosition(v()));},
+      handCenter:()=>{pivot.updateMatrixWorld(true);return arms.reduce((sum,a)=>sum.add(a.hand.getWorldPosition(v())),v()).multiplyScalar(.5);}};
   }
-  function setFocus(value) {
-    // Jedina menena hodnota; zadne prepinani shaderu ani skryti jeste viditelnych car.
-    const focus=clamp(value);fadeUniform.value=focus;environment.visible=focus<1;
+  const keeperRig=player(true),strikerRig=player(false);strikerRig.group.rotation.y=Math.PI;
+  const defaultTextures=new Set(textures);
+  let role='shooter',outfitsKey='',outfits=[null,null],customMaps=[];
+  function setRole(value){role=value;keeperRig.setKit(role==='keeper'?0:1);strikerRig.setKit(role==='keeper'?1:0);}
+  function setOutfits(value){
+    const key=JSON.stringify(value.map(o=>[o?.kit?.id,o?.number]));if(key===outfitsKey)return;
+    outfitsKey=key;outfits=value;
+    // Replace cosmetic textures as a batch. Repeated matches/polls cannot
+    // accumulate GPU textures; skin, faces, gloves and boots remain shared.
+    for(const map of new Set(customMaps))if(!defaultTextures.has(map)){textures.delete(map);map.dispose();}
+    for(const [cacheKey,map] of textureCache)if(!textures.has(map))textureCache.delete(cacheKey);
+    customMaps=[];
+    const maps=value.map(o=>{
+      if(!o?.kit)return null;
+      const result=Object.fromEntries(['front','back','sleeve','shorts','sock'].map(part=>{
+        const {rows,colors}=kitPixels(o.kit,part,o.number);
+        const map=texture(rows,colors);customMaps.push(map);return [part,map];
+      }));
+      result.thigh=texture(thigh,{...palette,C:parseInt(o.kit.design.shorts.slice(1),16)});
+      customMaps.push(result.thigh);return result;
+    });
+    for(const figure of figures){
+      figure.front=figure.defaults.front.map((pair,index)=>[maps[index]?.front||pair[0],pair[1]]);
+      figure.back=figure.defaults.back.map((pair,index)=>[maps[index]?.back||pair[0],pair[1]]);
+      for(const part of figure.parts){
+        if(!part.defaults)part.defaults=part.kits;
+        const name=part.name==='pixel-forearm'&&figure.isKeeper?'sleeve':{'pixel-sleeve':'sleeve','pixel-shorts':'shorts','pixel-sock':'sock','pixel-thigh':'thigh'}[part.name];
+        part.kits=part.defaults.map((map,index)=>maps[index]?.[name]||map);
+      }
+    }
+    setRole(role);
   }
-  function shadows() {
-    ballShadow.position.set(ball.position.x,.007,ball.position.z);
-    ballShadow.material.opacity=.58/(1+ball.position.y*2);
-    keeperShadow.position.set(keeper.pivot.position.x,.007,keeper.pivot.position.z);
+
+  // Project each bone into the camera plane before drawing its pixel sprite.
+  // Thus a diving body rotates as one rig, while both gloves stay on the
+  // physically simulated ball. The sprite atlas itself is never resampled.
+  function prepareFrame(camera,renderHeight=240) {
+    scene.updateMatrixWorld(true);
+    ballSprite.material.map=ballFrames[Math.floor(Math.abs(ball.rotation.z)*1.5)%ballFrames.length];
+    const ballDepth=-ball.getWorldPosition(v()).applyMatrix4(camera.matrixWorldInverse).z;
+    const ballPixelsPerUnit=renderHeight*camera.projectionMatrix.elements[5]/(2*Math.max(.01,ballDepth));
+    ballSprite.scale.setScalar(Math.max(C.penalty.ballRadius*2,C.penalty.minimumBallPixels/Math.max(.01,ballPixelsPerUnit)));
+    // Keep the chosen kit on both the front and back of the animated figure.
+    for(const figure of figures){
+      const origin=figure.model.getWorldPosition(v());
+      const normal=figure.model.localToWorld(v(0,0,1)).sub(origin);
+      const facing=normal.dot(camera.getWorldPosition(v()).sub(origin))>=0;
+      const maps=(facing?figure.front:figure.back)[figure.kit];
+      figure.torso.material.map=maps[0];figure.head.material.map=maps[1];
+    }
+    // Preserve a solid white core at small framebuffer sizes. Subpixel posts
+    // otherwise alternate black/white along the diagonal and look broken.
+    for(const {mesh,edge,length,width,outline} of outlinedBars){
+      const depth=-mesh.getWorldPosition(v()).applyMatrix4(camera.matrixWorldInverse).z;
+      const pixelsPerUnit=renderHeight*camera.projectionMatrix.elements[5]/(2*(camera.isPerspectiveCamera?depth:1));
+      const core=Math.max(width,2.2/Math.max(.01,pixelsPerUnit));
+      const rim=Math.max(outline,1/Math.max(.01,pixelsPerUnit));
+      mesh.scale.set(core,length+core,core);
+      edge.scale.set(core+rim*2,length+core+rim*2,core+rim*2);
+    }
+    for(const {anchor,sprite,width,height} of parts){
+      const a=anchor.localToWorld(v(0,-height/2,0)).applyMatrix4(camera.matrixWorldInverse);
+      const b=anchor.localToWorld(v(0,height/2,0)).applyMatrix4(camera.matrixWorldInverse);
+      const dx=b.x-a.x,dy=b.y-a.y;
+      const scale=anchor.getWorldScale(v());
+      sprite.scale.set(width,Math.max(.001,Math.hypot(dx,dy)/scale.y),1);
+      sprite.material.rotation=Math.atan2(-dx,dy);
+    }
+    // Ground paint must occupy a full logical pixel even on foreshortened
+    // horizontal edges. Otherwise an unfiltered arc turns into a dotted line.
+    for(const {points,geometry} of markings){
+      const p=geometry.attributes.position;let index=0;
+      for(let i=1;i<points.length;i++){
+        const [ax,az]=points[i-1],[bx,bz]=points[i],length=Math.hypot(bx-ax,bz-az);
+        const nx=-(bz-az)/length,nz=(bx-ax)/length;
+        const centre=v((ax+bx)/2,C.pitchMarkings.elevation,(az+bz)/2);
+        const a=v(ax,centre.y,az).project(camera),b=v(bx,centre.y,bz).project(camera);
+        const n=centre.clone().add(v(nx,0,nz)).project(camera).sub(centre.clone().project(camera));
+        const aspect=camera.isPerspectiveCamera?camera.aspect:(camera.right-camera.left)/(camera.top-camera.bottom);
+        const tx=(b.x-a.x)*aspect,ty=b.y-a.y;
+        const pixelsPerUnit=Math.abs(n.x*aspect*ty-n.y*tx)/Math.max(.00001,Math.hypot(tx,ty))*renderHeight/2;
+        const half=Math.max(C.pitchMarkings.width/2,.70/Math.max(.01,pixelsPerUnit));
+        const dx=nx*half,dz=nz*half,y=centre.y;
+        for(const xyz of [[ax+dx,y,az+dz],[bx+dx,y,bz+dz],[ax-dx,y,az-dz],
+          [ax-dx,y,az-dz],[bx+dx,y,bz+dz],[bx-dx,y,bz-dz]])p.setXYZ(index++,...xyz);
+      }
+      p.needsUpdate=true;
+    }
+  }
+  function shadow(w,d) {
+    const mesh=plane(pitch,C.colors.shadow,0,0,w,d,.005);
+    mesh.material.transparent=true;mesh.material.opacity=.35;mesh.material.depthWrite=false;
+    return mesh;
+  }
+  const ballShadow=shadow(.5,.24),keeperShadow=shadow(1.3,.45),strikerShadow=shadow(1,.42);
+  function shadows(){
+    ballShadow.position.set(ball.position.x,.005,ball.position.z);
+    ballShadow.material.opacity=.4/(1+ball.position.y*1.2);
+    keeperShadow.position.set(keeperRig.group.position.x,.005,keeperRig.group.position.z);
+    strikerShadow.position.set(strikerRig.group.position.x,.005,strikerRig.group.position.z);
   }
   let theme='light';
-  // Only architecture changes with the UI theme. Never recolor the pitch,
-  // painted white markings, football, gloves or player jerseys.
-  function setTheme(value){
-    theme=value==='dark'?'dark':'light';
-    const palette=new Map([[CONFIG.colors.stands,0x272b28],[CONFIG.colors.tunnel,0x333831],[CONFIG.colors.outline,0xb0b5a9]]);
-    environment.traverse(o=>{for(const m of [].concat(o.material||[]))if(m.color){
-      const day=m.userData.dayColor??m.color.getHex();m.userData.dayColor=day;
-      m.color.setHex(theme==='dark'?(palette.get(day)??day):day);
-    }});
-  }
-  return {ball,background:environment,pitch,keeperRig:rig(keeper),strikerRig:rig(shooter),setFocus,rippleNet,shadows,setTheme,
-    dispose:()=>{textures.forEach(t=>t.dispose());},
-    inspect:()=>({focus:fadeUniform.value,environmentVisible:environment.visible,
-      standsSolid:fadeUniform.value===0&&fills.visible&&fills.children.every(o=>o.material.opacity===1&&o.material.depthWrite),
-      panels:ball.userData.panels,theme,markingsColor:markingMaterial.color.getHex(),goalColor:CONFIG.colors.goal,netColor:net.material.color.getHex(),goalOutline:CONFIG.structure.goalOutline,reference:'v6'})};
+  function setTheme(value){theme=value==='dark'?'dark':'light';}
+  return {ball,pitch,keeperRig,strikerRig,rippleNet,shadows,setTheme,setRole,setOutfits,prepareFrame,
+    ballVisualSize:()=>ballSprite.scale.x,
+    dispose:()=>textures.forEach(map=>map.dispose()),
+    inspect:()=>({theme,ballStyle:'pixel-art',markingsColor:paint.color.getHex(),
+      keeperShirt:keeperRig.shirtColor(),strikerShirt:strikerRig.shirtColor(),
+      keeperOutfit:outfits[role==='keeper'?0:1]?.kit?.id||null,strikerOutfit:outfits[role==='keeper'?1:0]?.kit?.id||null,
+      keeperNumber:outfits[role==='keeper'?0:1]?.number||10,strikerNumber:outfits[role==='keeper'?1:0]?.number||10,
+      goalColor:C.colors.goal,netColor:net.material.color.getHex(),goalOutline:C.structure.goalOutline,
+      characterStyle:'pixel-art',spriteTextures:textures.size,environmentVisible:false,stadiumObjects:0,reference:'pixel-art'})};
 }

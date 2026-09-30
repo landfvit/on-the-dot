@@ -1,150 +1,142 @@
-# Stadion v6 a vzhled POINTS
+# Pixel-art scena penalty
 
-Aktualni scena pouziva geometrii a trasu z dodaneho `stadion_penalty_v6.html`.
-Original v Downloads zustal beze zmeny. Jeho demo ovladani ani pravidlo
-"stred = save" se neprebiraji. Hra nadale pouziva serverove vysledky a sest zon.
+Hra zobrazuje souvisly travnik s carami vapna, bilou branu, mic a dve pixelove
+postavy. Stadion, tribuny, tunel, svetla, blur a prelety kamery se nevytvareji.
+Nazvy souboru a exportu zustaly kompatibilni s hernim mostem a Retry 3D.
 
 ## Kde upravovat
 
 | Soubor | Co ovlada |
 |---|---|
-| `static/stadium_config.js` | `V6_WORLD`: barvy, travnik, tunel, mic, obleceni; `STADIUM`: herni kamera, casy a cile kopu |
-| `static/stadium_v6_world.js` | Geometrie v6, spojity ram brany, sit, stiny, modely, rozplynuti tribun |
-| `static/stadium_scene.js` | Trasa kamery, PvP pohled, ramovani, strela a chyceni mice |
-| `static/points_theme.css` | ON THE DOT.: tmava stadionova paleta UI, koralove akce a limetkove vybrane stavy |
-| `static/community.css` | Verejna navigace, menu, leaderboard, historie a profilovy panel |
-| `static/stadium.css` | Rozlozeni 3D stadionu a panelu otazek |
-| `static/stadium_intro.js` | Nacitani, reduced motion, Skip, nastup UI, uvolneni rendereru |
-| `static/penalty_shots.js` | Nahodny plan kopu stejny pro oba PvP klienty |
+| `static/stadium_config.js` | Barvy, velikosti postav, brany a travniku, pevny zaber, casovani |
+| `static/stadium_v6_world.js` | Hriste, ridka sit, pixelove vzory hracu a presne ukotveni dlani |
+| `static/stadium_scene.js` | Ramovani, pohyb mice a brankare, vykreslovani a uvolneni GPU |
+| `static/stadium_inline.css` | Velikost nahledu a stabilni rozmery otazek a odpovedi |
+| `static/stadium_intro.js` | Nacteni, Ready, Retry, vypnuti animaci a prechod do vysledku |
+| `static/penalty_shots.js` | Losovani sesti cilovych zon; stejny plan pro oba hrace duelu |
+| `static/kit_pixels.js` | Vlastni pixelove vzory dresu, kratasy, stulpny a cisla |
+| `../tools/player_kit_designs.json` | Overene barvy a vzory klubovych sad s odkazy na predlohy |
+| `static/player_kit.js` a `static/player_kit.css` | Vyber vlastniho dresu a cisla v profilu |
 
-## Barvy a geometrie
+## Barvy a rozmery
 
-Barvy v `V6_WORLD.colors` jsou `0xRRGGBB`. Napriklad `shirt: 0xef8464`
-je koralovy dres, `pitch: 0x244b3d` travnik a `bright: 0xe6eee4` cary.
-CSS pouziva stejny styl: `--bg`, `--surface`, `--accent`, `--coral`,
-`--text`, `--muted`, `--border` v `points_theme.css`.
+Hodnoty barev v `V6_WORLD.colors` maji format `0xRRGGBB`.
 
-- `pitchMarkings.width`: skutecna sirka malovanych pasu v metrech (0.22).
-- `pitchMarkings.centreSpotRadius`: polomer plneho stredoveho puntiku.
-- `penalty.ballRadius`: polomer mice; 0.17 m pro citelnost.
-- `tunnel`: sirka, vyska a delka cisteho nepruhledneho tunelu.
-  `lightSpacing`, `lightWidth`, `lightDepth` meni stropni svetla;
-  `edgeWidth` meni tloustku zvyraznenych hran sten (v metrech).
-- `focus.duration`: rozplynuti tribun po prijezdu, vychozi 1.65 sekundy.
-- `duration`: samotny prijezd, vychozi 8.4 sekundy.
-- `maxPixelRatio`: ostrost canvasu vs. vykon na telefonu.
+- `pitch: 0x88b04b`: zelena travniku z palety.
+- `goal` a `markings`: bila brana, sit a cary v obou rezimech.
+- `strikerShirt` (modra) a `shirt` (fialova), jejich `Light`/`Shade` varianty: mistni a souperuv dres.
+- `skin`, `hair`, `shorts`, `outline`: paleta pixelovych postav, stejna v obou tematech.
+- `structure.postRadius`: polovina sirky prednich tyci (0.07 m).
+- `structure.goalOutline`: cerny obrys tyci (0.025 m navic).
+- `structure.netOpacity`: pruhlednost ridke bile site (0.80).
+- `pitchMarkings.width`: zakladni sirka bilych car (0.15 m).
+- `ground`: vyska travniku a presah za branou; travnik pokracuje mimo nahled.
+- `area`: rozmery velkeho/maleho vapna a radius oblouku; sirka je stylizovana pro kratky nahled.
+- `penalty.ballRadius`: stylizovany polomer mice (0.28 m) pro citelne chyceni.
 
-Tloustka tyci je parametr `radius` pri volani `continuousFrame` v
-`buildGoal()`: predni ram 0.06 m, zadni 0.021 m. Jde o POLOMER.
-Sit ma `nZ=30, nY=10, nX=9`; zvetseni znamena hustejsi sit.
-Tribuny jsou plne, nepruhledne a maji uzavreny predni/zadni plast i boky u tunelu.
-`outlineOnly: false` a zapis do depth bufferu zakryvaji zadni konstrukci.
-Tenke predni obrysy zustavaji citelne diky polygon offsetu plochy.
-Pri rozpousteni zustava depth test i shader stejny. Plast se kresli pred obrysy
-(`renderOrder=-2`, cary `-1`); materialy maji blending zapnuty od zacatku,
-ale pri focus=0 je plast zcela nepruhledny. Neprepinat `transparent` nebo
-`depthWrite` uvnitr animace: zpusobuje to kompilaci a zmenu viditelnych hran.
-`fadingMaterial()` pouziva pro plochy, cary i tunel stejnou masku shora dolu.
-Hodnota 12 m je horni vyska masky, 0.6 je sirka mekke hrany; celkove tempo
-ovlada `STADIUM.focusMs`. Skupina se skryje az pri focus=1.
-Malovane cary hriste jsou
-trojuhelnikove pasy, nikoliv nefunkcni WebGL `linewidth`.
+Sit ma deset sloupcu a ctyri rady. `prepareFrame()` drzi cary alespon na
+1.4 logickeho pixelu a bile jadro tyci na 2.2 px, aby nebyly prerusovane.
+Postavy jsou sestavene z malych ASCII vzoru prevedenych na `DataTexture`:
+tecka znamena pruhlednost, ostatni znaky barvy z palety. Hlava, telo a koncetiny
+jsou samostatne `Sprite` objekty s `NearestFilter`, bez mipmap. Velikosti dilu
+jsou u volani `part()` a `limb()` ve funkci `player()`.
+Rukavice jsou artikulovane, aby chyceny mic presne sledoval ruce.
+Mic pouziva vlastni vzor 16x16 pixelu s cernymi panely, jemnymi sedymi
+svy a ctyrmi otocenimi. Pri chyceni se rotace zastavi. Poloha mice
+stale pouziva 3D fyziku; minimum 7 logickych pixelu zachovava citelnost v brane.
 
-Mic ma skutecnych 12 pentagonu a 20 hexagonu, hladky povrch a zapustene svy.
-Brankar ma dres, rukavice, boty, oblicej a cislo. Protihrac v PvP pouziva
-stejny model s cislem 10. Stiny i cisla vznikaji lokalne na malem canvasu.
+`world.setRole()` prohodi dresy: pri kopani nosi mistni dres strelec,
+pri chytani brankar. Bez vybraneho klubu zustava modra/fialova vychozi paleta.
+Stejna lokalni logika plati v Solu, Daily i na obou zarizenich Duelu.
+Rukavice a anatomie se nemeni. Prepinani role nevytvari nove textury.
 
-## Trasa a herni cas
+## Klubove dresy
 
-X = delka hriste, Y = vyska, Z = sirka. Brana je na X=52.5, puntik na X=41.5.
-Kamera jede tunelem rovne do Z=12, projede mekkou kvintickou zatackou a
-dobrzdi za micem. PvP brankar pokracuje kolem puntiku do brany a otoci se.
+Dresy se kresli z vlastnich pixelovych vzoru, nikoli ze stazenych obrazku
+Wikipedie. `kit_pixels.js` umi pruhy, obruce, diagonalu, kostky a dalsi vzory.
+Predni a zadni strana maji 18x20 pixelu. Cisla 1-99 maji kontrastni obrys.
+Jde o stylizaci barev a strihu; sponzori a klubove znaky nejsou kopirovany.
 
-Po dojezdu se rozplynou tribuny a vzdaleny stadion, nikoliv brana nebo hrac.
-`#stadium-framing` v CSS vymezuje prostor mimo otazky; renderer do nej
-automaticky ramuje branu a mic. Na mobilu je panel dole, na desktopu vpravo.
+Zdrojovy soubor `tools/player_kit_designs.json` obsahuje 35 klubu a 75 sad;
+30 dalsich kombinaci klub/sada zatim ceka na overeni predlohy. Kazda sada
+je `[typ, vzor, dres, kontrast, rukav, lem, kratasy, stulpny]`.
+Sezona je 2026/27 pro soucasne PL kluby, 2025/26 pro drivejsi kluby.
+Po uprave spust `node tools/build_player_kits.mjs`; tento offline prikaz
+vygeneruje verejny `static/player-kits/catalog.json` bez stahovani obrazku.
+Pri pridani noveho ID priprav i novou migraci registru `game_kits`.
 
-Panel se odhaluje gradientni maskou a vyjizdi o 36 px vzhuru SOUCASNE s fade
-stadionu. `--stadium-reveal` dostava primo jeho hodnotu 0..1 ze stejneho RAF,
-ne z nezavisleho CSS timeru. Behem nastupu je panel inertni. Skip/reduced motion
-nastavi oboji rovnou na 1. Sirka desktopoveho panelu je `min(560px,44vw)`,
-mobilni vyska 56dvh; velikosti a maska jsou v `stadium.css`.
+Profil vybira pouze sady sveho klubu. API i slozeny databazovy cizi klic
+hlidaji vlastnictvi. Zmena klubu vymaze vybranou sadu a pouzije novy domaci
+dres; cislo zustane. Duel uklada verejny snapshot obou dresu pri vstupu,
+aby uprava profilu neprebarvila rozehranou hru. Stare mistnosti a hoste
+zustavaji kompatibilni s vychozimi dresy.
 
-Solo intro probiha v `READY`, pred spustenim casu otazky. PvP intro je pred
-odeslanim `ready`; countdown zacne az po obou hracich. Obnoveni stranky
-uprostred otazky nespousti dalsi intro a neposouva deadline.
-Pri dalsich PvP kolech se kamera musi zastavit nejpozdeji pri otevreni otazky.
+Pred nasazenim na dalsi databazi aplikuj `053_player_kits`:
+`.venv/bin/python -m tools.migrate_account_settings --render --migration 053_player_kits`.
+Lokalni migrace je aplikovana, produkcni nasazeni neni soucasti teto upravy.
 
-## Sest zon a vysledky
+## Kamera a animace
 
-Plan vybira leva/stred/prava, vzdy nizka nebo vysoka strela.
-`STADIUM.shot.postInset` a `crossbarInset` jsou rezervy od tyci a brevna;
-`catchX` je poloha dlani pred brankovou carou.
+X = delka hriste, Y = vyska, Z = sirka. Brana je na X=52.5,
+penaltovy puntik na X=41.5. `STADIUM.camera` ma pole
+`offset` (pozice kamery) a `lookAt` (cil pohledu), obe relativne k puntiku.
+Kamera je primo za kopajicim; zaber zustava stejny pri obou rolich.
+Vychozi `offset=[-14,3.5,1.35]`, `lookAt=[6,.9,1.35]`.
+Nizsi vyska s tesnejsim ramovanim zvetsuje branu oproti puvodnimu nadhledu.
+Stejne Z kamery a cile zachovava vodorovne cary hriste rovnobezne s UI.
+`framingPadding` nechava bezpecny okraj kolem postav a vsech sesti cilovych zon.
+Kamera ramuje akci, ne vsechny rohy hriste; travnik a cary zustavaji souvisle.
 
-- `goal`: brankar skoci na opacnou stranu, u strely na stred do rohu.
-- `save`: dlane miri presne na mic; mic po chyceni zustava mezi rukavicemi.
-- `miss`: strela mine branu.
-- `replay`: bez zavadejici animace strely.
+Zaber se zobrazi okamzite (`introMs=0`, `roleChangeMs=0`). Role se pozna
+podle prohozeneho dresu. Retry i reduced motion obnovi stejne barvy a zaber.
+Konec hry pouziva kratke 180ms prolnuti; odchazejici canvas zustava
+ve stejnem obdelniku, aby pri zobrazeni vysledku neposkocil.
 
-`stadium_motion.js` pocita paraboly a tlumene odrazy analyticky, nezavisle na
-FPS. `STADIUM.shot.gravity` je 9.81 m/s2, `flightSeconds` urcuje dobu letu k
-brane a `bounce` ztratu rychlosti pri odrazu. `shotDuration` zahrnuje i doskok.
-Brankar po vysoku klesne na travnik; pri save zustava mic ve stredu rukavic
-a ruce se skladaji k hrudi. Vysoky gol po kontaktu se siti spadne a odskoci.
-Reduced motion zobrazi az klidovou polohu, nikoli mic visici v sibenici.
+`runUpMs=280` a `shotMs=1500` sdileji rychlost `betweenShotSpeed=1.3`.
+Po animaci zbyva `resultHoldMs=350` ms. Celkem jde priblizne o 1.72 s.
+Zmena rychlosti nemeni gravitaci ani presnost zasahu.
 
-Fade shader zacina menit alpha hned pri prvnim nenulovem `focus`, bez
-pocatecni prodlevy. Stejny snimek meni masku HTML panelu. Oba prechody
-zacnou az po dojezdu kamery; skip oba soucasne dokonci.
+`stadium_motion.js` pocita paraboly a tlumene odrazy nezavisle na FPS.
+Brankar musi dopadnout zpatky na travnik; pri save zustava mic mezi rukavicemi.
+Po doskoku vstane a podrzi mic u hrudi; rotace mice se pri chyceni zastavi.
+Vysoky gol po kontaktu se siti spadne a odskoci.
 
-Identifikator kola seeduje pouze vizualni losovani. Oba PvP hraci vidi stejny
-prostorovy kop, kazdy ze sve kamery. Opakovane zpravy
-nelosuji novy smer. Vizualizace nikdy neurcuje spravnost odpovedi, skore nebo XP.
+Plan urcuje leva/stred/prava a nizka/vysoka strela. Vysledek dodava server:
+`goal`, `save`, `miss` nebo `replay`. Animace nikdy nerozhoduje o skore,
+XP, spravnosti odpovedi ani casovem limitu. V Duelu zustavaji reakce zvuku
+vzdy z pohledu mistniho hrace.
 
-## UI a vysvetleni
+## Vykon a pristupnost
 
-Vysledek odpovedi a vysvetleni zustavaji viditelne. Texty o zdroji, autorovi
-a databazovem overeni se v hernim feedbacku ani souhrnu nezobrazuji.
-Zdrojova metadata a validace v databazi/Studio zustaly beze zmeny.
-Odstraneny jsou take dekorativni podnadpisy a opakovane "Daily quiz complete".
-Dulezite chybove stavy, casovac a informace o neukladanem trial XP zustavaji.
-Po End shootout se posledni otazka skryje a fokus prejde na souhrn. Pocet
-spravnych odpovedi ma jmenovatel cely kviz, ne jen odehrane otazky. Level a
-zbyvajici XP jsou ze serverove transakce, ktera zapisuje odmeny; trial nema
-ulozeny postup. Detail odpovedi je sbalitelny.
+Scena pouziva jeden render pruchod, bez svetel, postprocessingu, render
+targetu nebo externich textur. Mimo animaci nebezi nekonecny RAF.
+`pixelArt.maxWidth=480` a `maxHeight=270` urcuji pixelovou mrizku.
+Renderer pouziva nejvyse DPR 1, bez multisamplingu. CSS zvetsuje canvas
+pomoci `image-rendering: pixelated`; textury maji nearest filtering.
+Citelnost zajistuje blizsi kamera a podrzeni mice, nikoli hladky retina render.
+Textury postav se sdileji a pri zavreni sceny se uvolni spolu s GPU zdroji.
 
-## Pristupnost a zavislosti
-
-`Skip intro` nebo Escape preskoci pohyb. Systemovy reduced motion a prepinac
-Animations ho potlaci. 2D pohled, SVG hriste i oba prepinace jsou odstranene.
-Pri chybe WebGL se zobrazi upozorneni; otazky zustanou ovladatelne, ale zadny
-nahradni 2D renderer se nespusti. Mimo animaci nebezi nekonecny RAF.
-Pri zavreni sceny se uvolni geometrie, materialy, textury a listenery.
-
-Pouziva se puvodni lokalni Three.js 0.180.0 vcetne MIT licence. Knihovna r140
-vlozena v dodanem HTML se nekopiruje; shadery byly prizpusobeny r180.
-Zadne CDN, externi modely nebo externi textury nejsou potreba.
+Vypnuti animaci nebo systemovy reduced motion zobrazi klidovy vysledek.
+Chyba WebGL nesmi zamknout Ready/Next ani menit herni stav.
+Retry vytvari novy renderer a muze znovu nacist celou zavislostni vetev.
+Pri uvolneni sceny se zlikviduji geometrie, materialy, renderer a listenery.
 
 ## Overeni
 
-```sh
-node --test tests/*.cjs
-.venv/bin/python -m unittest tests.test_penalty_engine tests.test_stadium_assets
-NODE_PATH=<cesta-k-playwright-a-pngjs> node src/verify_stadium.cjs
-NODE_PATH=<cesta-k-playwright-a-pngjs> node src/verify_points_theme.cjs
-```
+Vychozi localhost je `http://127.0.0.1:8009`; browser testy lze presmerovat
+promennou `MOBILE_TEST_URL`. Pouzivaji mockovane herni API nebo pouze
+renderer, takze nezapisuji pokusy do databaze.
 
-Browser test potrebuje server na portu 8002 a Chrome. Vytvori izolovane
-anonymni solo/PvP hry a na konci je ukonci. Kontroluje pohyb, v6 modely,
-nepruhledne tribuny, synchronni gradientni nastup panelu, deadline, chyby WebGL
-a vsech sest zon goal/save. Kontroluje i landscape a uzky mobil.
-Screenshoty a pixelove kontroly desktopu/mobilu jsou v
-`data/private/stadium-ui-check`. Node testy kontroluji i 1000 losovanych kol.
+- `test_stadium_motion.cjs`, `test_stadium_fade.cjs`: fyzika, geometrie a pixelove textury.
+- `test_stadium_compact_browser.cjs`: sest zon, pevna kamera, dresy, citelnost mice a prolinani.
+- `test_stadium_players_browser.cjs`: light/dark sprity, doskok a presne chyceni.
+- `test_stadium_inline_browser.cjs`: mobil/desktop, stabilni tlacitka a prechod do vysledku.
+- `test_stadium_recovery_browser.cjs`: importy, WebGL chyby a obnova bez hernich zapisu.
+- `test_daily_ready_browser.cjs`, `test_friend_decision_browser.cjs`: Daily a obe role duelu.
+- `test_player_kits_browser.cjs`: mobil/desktop profil, 99 cisel, vlastni klub,
+  ulozeni a obnoveni, pevna kamera, rovnobeznost car a opakovane zmeny textur.
+- `test_player_kits.py`: katalog a izolovane databazove testy vlastnictvi,
+  zmeny klubu, blokace, smazani uctu a snapshotu dresu v duelu.
 
-Izolovana pixelova kontrola fade bez databaze:
-spust `.venv/bin/python -m tests.community_preview`, otevri
-`http://127.0.0.1:8013/stadium-fade` a stiskni `Check gradient`.
-Test vykresli skutecne materialy car/plaste samostatne i dohromady v sedmi
-fazich a zmeri alpha pixely. `pass: true` znamena postupny ubytek az na nulu.
-`tests/test_stadium_fade.cjs` navic hlida stabilni shader/depth stav a predcasne
-skryti skupiny tesne pred koncem.
+Browser skripty potrebuji Playwright a sharp; `TEST_BROWSER=webkit` voli WebKit.
+Pro Chromium lze v inline testu pouzit `TEST_GPU=native`.

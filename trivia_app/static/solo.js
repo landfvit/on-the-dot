@@ -39,6 +39,8 @@
     $('daily-status').textContent='';$('daily-status').hidden=true;
     if(own){teamChangeAt=p.team_change?.next_change_at||null;teamChangeStatus();$('bio').value=p.bio;$('profile-username').value=p.username;$('account-email').value=p.email||'';$('public-profile').href='/u/'+encodeURIComponent(p.username);globalThis.PointsAccountSettings?.setProfile(p);}
     globalThis.PointsFriends?.profile(p,own);
+    globalThis.PointsProfile={profile:p,own};
+    window.dispatchEvent(new CustomEvent('points-profile',{detail:globalThis.PointsProfile}));
   }
   async function accountPage(){
     const params=new URLSearchParams(location.search||''),next=params.get('next');
@@ -66,32 +68,37 @@
       }catch(e){error(e.message);}finally{$('authenticate').disabled=false;}
     });
     $('profile-edit').addEventListener('submit',async e=>{
-      e.preventDefault();const button=e.target.querySelector('button');button.disabled=true;error('');
-      try{showProfile(await api('/api/players/me',{bio:$('bio').value},'PATCH'),true);$('notice').textContent='Profile saved.';}
-      catch(e){error(e.message);}finally{button.disabled=false;}
+      e.preventDefault();const button=e.target.querySelector('button');button.disabled=true;$('profile-edit-status').textContent='';
+      try{showProfile(await api('/api/players/me',{bio:$('bio').value},'PATCH'),true);$('profile-edit-status').textContent='Profile saved.';}
+      catch(e){$('profile-edit-status').textContent=e.message;}finally{button.disabled=false;}
     });
-    $('signout').addEventListener('click',async()=>{try{await api('/api/players/logout',{});globalThis.PointsPreferences?.clear();location.href='/account';}catch(e){error(e.message);}});
-    const closeTeam=()=>{$('team-edit').hidden=true;$('add-team').setAttribute('aria-expanded','false');};
+    $('signout').addEventListener('click',async()=>{try{await api('/api/players/logout',{});globalThis.PointsPreferences?.clear();location.href='/account';}catch(e){$('profile-edit-status').textContent=e.message;}});
+    const closeTeam=()=>$('team-dialog').close();
+    let teamRequest=0;
+    $('team-dialog').addEventListener('close',()=>{teamRequest++;teamChangeStatus();});
     $('cancel-team').addEventListener('click',closeTeam);
     $('add-team').addEventListener('click',async()=>{
-      $('add-team').disabled=true;error('');
+      const request=++teamRequest;
+      globalThis.PointsAccountSettings.openDialog('team-dialog',$('add-team'));
+      $('team-edit').hidden=true;$('team-edit-status').textContent='Loading teams...';
       try{
         const data=await api('/api/players/teams');
+        if(request!==teamRequest||!$('team-dialog').open)return;
         $('profile-team-select').replaceChildren(...[{team_id:'',name:'No team'},...data.teams].map(t=>{const o=node('option',t.name);o.value=String(t.team_id);return o;}));
         $('profile-team-select').value=$('profile-team-select').dataset.selected;
         globalThis.PointsUI?.teamPicker(data.teams,$('profile-team-select'),$('team-options'));
-        $('team-edit').hidden=false;$('add-team').setAttribute('aria-expanded','true');$('team-options').querySelector('input:checked')?.focus();
-      }catch(e){error(e.message);}finally{teamChangeStatus();}
+        $('team-edit').hidden=false;$('team-edit-status').textContent='';
+      }catch(e){if(request===teamRequest)$('team-edit-status').textContent=e.message;}finally{teamChangeStatus();}
     });
     $('team-edit').addEventListener('submit',async e=>{
-      e.preventDefault();$('save-team').disabled=true;error('');
-      try{showProfile(await api('/api/players/me/team',{team_id:$('profile-team-select').value?Number($('profile-team-select').value):null},'PUT'),true);closeTeam();$('notice').textContent='Team updated.';}
-      catch(e){error(e.message);if(e.status===409){try{const latest=await currentUser();if(latest)showProfile(latest,true);closeTeam();}catch{}}}finally{$('save-team').disabled=false;}
+      e.preventDefault();$('save-team').disabled=true;$('team-edit-status').textContent='';
+      try{showProfile(await api('/api/players/me/team',{team_id:$('profile-team-select').value?Number($('profile-team-select').value):null},'PUT'),true);closeTeam();}
+      catch(e){$('team-edit-status').textContent=e.message;if(e.status===409){try{const latest=await currentUser();if(latest)showProfile(latest,true);}catch{}}}finally{$('save-team').disabled=false;}
     });
     $('email-edit').addEventListener('submit',async e=>{
-      e.preventDefault();const button=e.target.querySelector('button');button.disabled=true;error('');
-      try{const p=await api('/api/players/email',{email:$('account-email').value,password:$('email-password').value},'PUT');$('email-password').value='';showProfile(p,true);$('notice').textContent='Sign-in email saved.';}
-      catch(e){error(e.message);}finally{button.disabled=false;}
+      e.preventDefault();const button=e.target.querySelector('button:not(.password-toggle)');button.disabled=true;$('email-edit-status').textContent='';
+      try{const p=await api('/api/players/email',{email:$('account-email').value,password:$('email-password').value},'PUT');$('email-password').value='';showProfile(p,true);$('email-edit-status').textContent='Sign-in email saved.';}
+      catch(e){$('email-edit-status').textContent=e.message;}finally{button.disabled=false;}
     });
   }
 
@@ -103,6 +110,21 @@
     const animatedShots=new Set(),scene=globalThis.PenaltyScene;
     const stadium=globalThis.PointsStadium;
     let stadiumRun=null,stadiumWaiting=false,presentation=0,presented='';
+    let nextRevealTimer=null,feedbackKey='',feedbackUntil=0;
+    function syncNextPenalty(){
+      clearTimeout(nextRevealTimer);
+      const ready=run?.phase==='READY',review=run?.phase==='REVIEW';
+      const remaining=feedbackUntil-Date.now();
+      const show=ready||(review&&!stadiumWaiting&&remaining<=0);
+      const button=$('next'),wasHidden=button.hidden;
+      button.hidden=!show;button.disabled=busy||stadiumWaiting;
+      $('answer-slot').classList.toggle('is-continuing',show);
+      $('choices').inert=show;
+      if(review&&!stadiumWaiting&&remaining>0)nextRevealTimer=setTimeout(syncNextPenalty,remaining);
+      // Keyboard users advance from the same place without stealing focus
+      // from navigation. A held key must not skip the newly revealed question.
+      if(show&&review&&wasHidden&&[document.body,$('question-title')].includes(document.activeElement))button.focus({preventScroll:true});
+    }
     const resultShare=globalThis.PointsResultShare;
     let reviewPosition=0;
     const sharing=resultShare?.bind?.(()=>run?{run_id:run.run_id,mode:daily?'daily':'solo'}:null);
@@ -117,7 +139,7 @@
       $('review').replaceChildren();
       if(answer){
         const block=node('article',undefined,'review-item');
-        block.append(node('h3',answer.text),node('p',correctAnswer(answer)));
+        block.append(node('h3',PointsQuestion.text(answer)),node('p',correctAnswer(answer)));
         $('review').append(block);
       }
       $('review-position').textContent=answers.length?`${reviewPosition+1} / ${answers.length}`:'No answers';
@@ -165,12 +187,12 @@
           stadium.reset();await stadium.enter(run.survival?'shooter':run.shootout.next_role,{intro:false});
         }else if(run.phase==='ANSWERING')stadium.skip();
       }finally{
-        if(current()){stadiumWaiting=false;$('next').disabled=busy;}
+        if(current()){stadiumWaiting=false;syncNextPenalty();}
       }
     }
     function stadiumView(){
       if(!stadium)return;
-      if(run.shootout||run.survival){const task=shootoutView(),token=presentation;task.catch(()=>{if(token!==presentation)return;stadiumWaiting=false;stadium.leave();$('summary').hidden=!['FINISHED','ABANDONED'].includes(run.phase);$('next').disabled=busy;xpResult?.reveal();});return;}
+      if(run.shootout||run.survival){const task=shootoutView(),token=presentation;task.catch(()=>{if(token!==presentation)return;stadiumWaiting=false;stadium.leave();$('summary').hidden=!['FINISHED','ABANDONED'].includes(run.phase);syncNextPenalty();xpResult?.reveal();});return;}
       if(['FINISHED','ABANDONED'].includes(run.phase)){stadium.leave();stadiumWaiting=false;return;}
       if(stadiumRun===run.run_id){
         // A resumed/server-open question always wins over presentation.
@@ -183,7 +205,7 @@
       // READY has no answer deadline. Finishing the intro only unlocks Next;
       // it never fetches a question or starts the server's 15-second clock.
       stadium.enter('shooter',{intro,maxDurationMs:intro?Infinity:0}).finally(()=>{
-        if(run?.run_id!==id)return;stadiumWaiting=false;$('next').disabled=busy;
+        if(run?.run_id!==id)return;stadiumWaiting=false;syncNextPenalty();
       });
     }
     function pitch(){
@@ -229,7 +251,7 @@
       const count=counts[difficulty()]||0;
       if(daily){
         $('availability').hidden=false;
-        $('availability').textContent=catalogLoading?'Preparing Daily Challenge...':catalogReady&&count<1?'No unused questions remain. Come back after the pool resets.':!catalogReady?'Daily Challenge is not available yet.':rankedAvailable?'Your first attempt today counts towards your all-time high score.':'Today\'s scoring attempt is used. Practice does not change your high score.';
+        $('availability').textContent=catalogLoading?'Preparing Daily Challenge...':catalogReady&&count<1?'No unused questions remain. Come back after the pool resets.':!catalogReady?'Daily Challenge is not available yet.':rankedAvailable?'First attempt today · Counts towards your high score.':'Practice · Today\'s scored attempt is complete.';
         $('weekly-reset').hidden=!catalogReady;
         $('start').disabled=!catalogReady||count<1||busy;$('start').textContent=rankedAvailable?'Play Daily Challenge':'Play practice';
         $('trial-note').hidden=true;$('quiz-rules').textContent='3 lives · You only shoot · 15 seconds per answer';return;
@@ -245,7 +267,7 @@
       catalogReady=false;catalogLoading=true;selection();
       try{
         const catalog=await api(base+'/catalog');
-        if(daily){counts={mixed:catalog.remaining};rules=catalog.rules;rankedAvailable=catalog.ranked_available;catalogReset=Date.parse(catalog.resets_at);$('weekly-reset').textContent='New scoring attempt at 00:00 UTC. Played questions stay excluded until Monday.';catalogReady=true;return;}
+        if(daily){counts={mixed:catalog.remaining};rules=catalog.rules;rankedAvailable=catalog.ranked_available;catalogReset=Date.parse(catalog.resets_at);$('weekly-reset').textContent='Resets at 00:00 UTC.';catalogReady=true;return;}
         // Keep eligibility checks internal; every new game uses all clubs and topics.
         counts=catalog.topics.find(t=>t.code==='ALL')?.counts_by_team.ALL||{};rules=catalog.rules;
         catalogReset=catalog.resets_at?Date.parse(catalog.resets_at):Infinity;
@@ -273,7 +295,7 @@
       if($('timer').parentElement)$('timer').parentElement.hidden=!active;
       page.classList.toggle('shootout-active',!done);
       $('run-position').textContent=run.survival?`Shot ${Math.max(1,run.position)}`:run.shootout?`${run.role==='keeper'?'Defending':'Shooting'} · Penalty ${Math.max(1,Math.ceil(run.position/2))}`:`Shot ${Math.max(1,run.position)} / 10`;
-      $('question-title').textContent=run.question?.text||'Ready for your first question?';
+      $('question-title').textContent=PointsQuestion.text(run.question)||'Ready for your first question?';
       $('choices').replaceChildren();
       const answer=run.review.find(a=>a.position===run.position);
       (run.question?.options||[]).forEach(option=>{
@@ -288,7 +310,13 @@
       // Outcome colors and accessible option labels carry feedback in-game.
       // The full answer list remains available in the post-game review.
       $('feedback').textContent='';
-      $('next').hidden=!['READY','REVIEW'].includes(run.phase);$('next').textContent=run.phase==='READY'?'Take first shot':run.shootout?.next_role==='keeper'?'Face next penalty':'Next shot';
+      $('next').textContent=run.phase==='READY'?'Take first shot':'Next penalty';
+      const answerKey=`${run.run_id}:${run.position}`;
+      if(run.phase==='REVIEW'&&feedbackKey!==answerKey){
+        feedbackKey=answerKey;
+        // Keep green/red feedback readable even with animations switched off.
+        feedbackUntil=Date.now()+600;
+      }
       $('leave').hidden=done;$('another').hidden=!done;$('summary').hidden=!done;
       $('another').textContent='New shootout';$('guest-benefits').hidden=!done||!run.is_trial;
       if(done){
@@ -330,6 +358,7 @@
       }
       if(active)$('question-title').focus({preventScroll:true});
       stadiumView();
+      syncNextPenalty();
       if(done&&!stadiumWaiting){$('result-heading').focus({preventScroll:true});xpResult?.reveal();}
     }
     async function refresh(){
@@ -343,7 +372,7 @@
       if(busy||(path==='next'&&stadiumWaiting))return;busy=true;error('');for(const b of $('choices').children)b.disabled=true;$('next').disabled=true;
       try{const next=await api(`${base}/runs/${run.run_id}/${path}`,body);busy=false;rendered='';render(next);pending=null;}
       catch(e){error(e.message);busy=false;rendered='';await refresh();}
-      finally{busy=false;$('next').disabled=stadiumWaiting;}
+      finally{busy=false;syncNextPenalty();}
     }
     function submit(option){
       if(busy||run?.phase!=='ANSWERING')return;
@@ -351,13 +380,14 @@
       return command('answers',pending);
     }
     $('next').addEventListener('click',()=>command('next',{previous:run.position}));
+    $('next').addEventListener('keydown',event=>{if(event.repeat&&['Enter',' '].includes(event.key))event.preventDefault();});
     $('leave').addEventListener('click',()=>command('leave',{}));
     $('retry').addEventListener('click',()=>{rendered='';refresh();});
     $('result-review').addEventListener('click',()=>{reviewAnswer(0);$('review-dialog').showModal();});
     $('review-previous').addEventListener('click',()=>reviewAnswer(reviewPosition-1));
     $('review-next').addEventListener('click',()=>reviewAnswer(reviewPosition+1));
     $('review-close').addEventListener('click',()=>$('review-dialog').close());
-    $('another').addEventListener('click',async()=>{presentation++;presented='';stadium?.leave();xpResult?.clear();stadiumRun=null;stadiumWaiting=false;storage(null);clearShare();run=null;pending=null;startRequest=null;rendered='';if(location.search)history.replaceState(null,'',location.pathname);page.classList.toggle('shootout-active',false);page.classList.toggle('shootout-finished',false);pitch();$('quiz-run').hidden=true;$('selection').hidden=false;error('');try{await loadCatalog();}catch(e){error(e.message);}});
+    $('another').addEventListener('click',async()=>{presentation++;presented='';stadium?.leave();xpResult?.clear();stadiumRun=null;stadiumWaiting=false;storage(null);clearShare();run=null;pending=null;startRequest=null;rendered='';feedbackKey='';feedbackUntil=0;syncNextPenalty();if(location.search)history.replaceState(null,'',location.pathname);page.classList.toggle('shootout-active',false);page.classList.toggle('shootout-finished',false);pitch();$('quiz-run').hidden=true;$('selection').hidden=false;error('');try{await loadCatalog();}catch(e){error(e.message);}});
     document.querySelectorAll('input[name="difficulty"]').forEach(r=>r.addEventListener('change',selection));
     $('quiz-start').addEventListener('submit',async e=>{
       e.preventDefault();if(busy||!catalogReady||(counts[difficulty()]||0)<minimum)return;busy=true;selection();error('');
@@ -375,7 +405,7 @@
     setInterval(updateClock,100);
     setInterval(()=>{if(run&&run.phase==='ANSWERING'&&!busy)refresh();},1000);
     setInterval(()=>{if(!run&&!busy&&!catalogLoading&&Date.now()+offset>=catalogReset)loadCatalog().catch(e=>error(e.message));},30000);
-    pitch();user=await currentUser();if(user?.preferences)globalThis.PointsPreferences?.set(user.preferences);
+    pitch();user=await currentUser();stadium?.setOutfits?.(user?.outfit,null);if(user?.preferences)globalThis.PointsPreferences?.set(user.preferences);
     if(daily&&!user){$('quiz-start').hidden=true;$('mode-auth').hidden=false;$('mode-signin').href='/account?next=/daily';$('mode-register').href='/account?mode=register&next=/daily';return;}
     await loadCatalog();
     // History links can only resolve through the existing owner-authorized API.

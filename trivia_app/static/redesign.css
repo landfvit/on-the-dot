@@ -3,19 +3,31 @@
  * Change --line-width in points_theme.css to adjust the heavy outline system. */
 body { font-family:Inter,Arial,sans-serif; -webkit-font-smoothing:antialiased; }
 /* Shared desktop column; ad rails use the same width to keep a clear gutter. */
-body:has(.public-header) { --public-content-width:800px; }
+html:has(.public-header) { scrollbar-gutter:stable; }
+body:has(.public-header) {
+  --public-content-width:800px; --public-header-height:77px;
+  --header-logo-size:54px; --header-control-size:46px; --header-control-gap:12px;
+}
 ::selection { color:var(--paper); background:var(--ink); }
 :is(h1,h2,h3,button,a,span) { letter-spacing:0; }
 h1,.community-heading h1,.solo-heading h1,.guide-heading h1 { font-weight:900; font-style:italic; }
 h2,.game-guide h2 { font-weight:850; }
 button,a,input,textarea,select { -webkit-tap-highlight-color:transparent; }
-.public-header { border-bottom:var(--line-width) solid var(--ink); padding:24px 0; max-width:1160px; margin:0 auto; justify-content:space-between; }
-.public-header .top-navigation { display:flex; flex:0 0 auto; flex-wrap:nowrap; align-items:center; gap:12px; }
-.public-header .top-navigation :is(a,button,.nav-current) { position:relative; display:grid; place-items:center; padding:0; width:46px; height:46px; min-width:46px; min-height:46px; flex:none; }
+/* Every route and game state uses the same shell geometry. The first slot
+ * becomes the animation control during play; the four shared icons never move. */
+.public-header { border-bottom:var(--line-width) solid var(--ink); padding:0; height:var(--public-header-height); min-height:var(--public-header-height); max-width:1160px; margin:0 auto; display:flex; flex-wrap:nowrap; align-items:center; justify-content:space-between; gap:8px; }
+.public-header .points-brand .brand-mark { width:var(--header-logo-size); height:var(--header-logo-size); }
+.public-header .top-navigation { display:grid; flex:0 0 auto; grid-template-columns:repeat(5,var(--header-control-size)); align-items:center; gap:var(--header-control-gap); }
+.public-header .top-navigation :is(a,button,.nav-current) { position:relative; grid-row:1; display:grid; place-items:center; padding:0; width:var(--header-control-size); height:var(--header-control-size); min-width:var(--header-control-size); min-height:var(--header-control-size); flex:none; }
+.public-header [data-nav-slot=play] { grid-column:1; }
+.public-header [data-nav-slot=leaderboard] { grid-column:2; }
+.public-header [data-nav-slot=profile] { grid-column:3; }
+.public-header [data-theme-toggle] { grid-column:4; }
+.public-header [data-sound-toggle] { grid-column:5; }
+.public-header .top-navigation:has(#motion-toggle:not([hidden])) .nav-current[aria-label=Play] { display:none; }
 .public-header .top-navigation img { display:block; width:24px; height:24px; flex:none; object-fit:contain; filter:none; }
 .public-header .top-navigation a:first-child img { filter:none; }
-.public-header .top-navigation a::after { content:attr(data-label); position:absolute; top:calc(100% + 8px); left:50%; transform:translateX(-50%); font-size:11px; font-weight:600; white-space:nowrap; opacity:0; pointer-events:none; }
-.public-header .top-navigation a:is(:hover,:focus-visible)::after { opacity:1; }
+/* Hover/focus labels use the single viewport-clamped tooltip in public_ui.js. */
 .page-return { max-width:1160px; padding:0; margin:12px auto 0; }
 .page-return a { font-size:13px; color:var(--text); }
 .page-return img,.game-rules-link img,.icon-button img,.invite-link-row img,.guide-xp-example img,.password-toggle img,.team-options .no-team img,#feedback-expand img,#share-copy img { filter:none; }
@@ -159,9 +171,7 @@ body:has(.public-header) :is(button,a,summary)>img[src*='/icons/'] { display:blo
   .public-header,.page-return,.site-footer { margin-left:32px; margin-right:32px; }
 }
 @media(max-width:700px) {
-  .public-header { gap:16px; justify-content:space-between; padding:18px 0; }
   .public-header,.page-return,.site-footer { margin-left:16px; margin-right:16px; }
-  .public-header .top-navigation { display:flex; grid-template-columns:none; flex-basis:auto; gap:6px; }
   .public-header .top-navigation a { padding:0; }
   .public-header .top-navigation a::after { display:none; }
   .page-return { padding:0; gap:10px; }
@@ -178,16 +188,60 @@ body:has(.public-header) :is(button,a,summary)>img[src*='/icons/'] { display:blo
   .home-modes a img { width:16px; height:16px; }
 }
 @media(max-width:450px) {
-  .public-header { flex-wrap:nowrap; justify-content:space-between; gap:12px; }
-  .public-header .top-navigation { flex-basis:auto; justify-content:flex-end; gap:6px; }
-  .public-header .top-navigation :is(a,button,.nav-current) { width:44px; height:44px; min-width:44px; min-height:44px; }
   .page-return { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
   .page-return > button:not(.icon-button) { margin:0; min-width:0; padding:8px; font-size:12px; gap:6px; white-space:nowrap; }
   .page-return > button:not(.icon-button) img { width:16px; height:16px; }
 }
-@media(max-width:360px) {
-  .public-header { gap:8px; }
-  .public-header .top-navigation { gap:4px; }
-  .public-header .top-navigation :is(a,button,.nav-current) { width:44px; min-width:44px; }
-  .public-header .points-brand .brand-mark { width:32px; height:32px; }
+
+/* All public pages share the header's content edges, including tablet widths.
+ * Gameplay's fixed vertical tracks remain owned by stadium_inline.css. */
+body:has(.public-header) { --page-gutter:32px; }
+body:has(.public-header):not(.stadium-playing) :is(.public-header,.page-return,.site-footer,.home-page,.solo-page,.community-page,.game-guide,.public-result) {
+  width:min(var(--public-content-width),calc(100% - 2 * var(--page-gutter)));
+  max-width:none; margin-inline:auto; padding-inline:0;
+}
+/* Page names remain available to screen readers. The toolbar is the only
+ * visual heading row, matching the compact game screens. */
+body:has(main:is([data-page=account],.community-page,.game-guide)) .page-return {
+  margin-top:0; padding-block:10px; border-bottom:var(--line-width) solid var(--ink); justify-content:space-between;
+}
+body:has(.public-header) :is(.solo-page[data-page=account],.community-page,.game-guide) { margin-top:0; padding-top:24px; }
+.game-guide>.guide-intro { margin-top:0; }
+.community-heading h1 { margin-bottom:0; }
+.difficulty-options small { display:none!important; }
+.difficulty-options label { min-height:56px; padding:14px 12px; }
+.quiz-selection { max-width:none; gap:16px; }
+.quiz-selection :is(#availability,#weekly-reset):empty { display:none; }
+.drawer-heading { align-items:flex-start; }
+.drawer-heading h2 { min-width:0; overflow-wrap:anywhere; }
+.drawer-heading .icon-button { flex:none; }
+.friend-row > a { min-width:0; }
+.friend-row .actions { flex:none; }
+.friend-row .actions > * { text-align:center; }
+#profile .profile-links { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); }
+#profile .profile-links a { min-width:0; text-align:center; }
+.result-dialog .actions > * { min-width:0; overflow-wrap:anywhere; }
+.result-dialog .actions { align-items:stretch; }
+body:has(.public-header) #delete-dialog .actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+body:has(.public-header) .password-toggle { top:2px; bottom:2px; right:2px; min-height:0; height:auto; --control-fill:transparent; --control-radius:4px; }
+.xp-heading > *, .xp-caption > * { min-width:0; overflow-wrap:anywhere; }
+.ui-tooltip {
+  position:fixed; inset:auto; z-index:100; width:max-content; max-width:min(260px,calc(100vw - 24px));
+  margin:0; padding:8px 12px; border:0; border-radius:6px;
+  background:var(--text); color:var(--bg); font:500 12px/1.4 Inter,Arial,sans-serif;
+  text-align:center; overflow-wrap:anywhere; white-space:normal; box-shadow:none;
+}
+@media(max-width:800px) {
+  body:has(.public-header) { --page-gutter:12px; --public-header-height:67px; --header-logo-size:32px; --header-control-size:44px; --header-control-gap:4px; }
+}
+@media(max-width:599px) and (max-height:650px) {
+  body:has(.public-header) { --public-header-height:59px; }
+}
+@media(min-width:600px) and (max-height:600px) {
+  body:has(.public-header) { --public-header-height:57px; --header-logo-size:32px; }
+}
+@media(max-width:450px) {
+  .difficulty-options label { min-height:48px; padding:10px 8px; }
+  .friend-add > div { display:grid; grid-template-columns:minmax(0,1fr); }
+  .friend-row .actions { display:grid; width:100%; grid-auto-flow:column; grid-auto-columns:minmax(0,1fr); align-items:stretch; }
 }

@@ -1,4 +1,7 @@
 /* Profile uses unframed rows; identity and XP remain visible in every tab. */
+html:has(.profile-dialog[open]),body:has(.profile-dialog[open]) { overflow:hidden; }
+main.solo-page[data-page=account] { padding-bottom:24px; }
+body:has(main[data-page=account]) .site-footer { margin-top:0; }
 #profile .profile-title { display:flex; align-items:center; gap:16px; margin:0 0 20px; }
 #profile .profile-title > div { min-width:0; }
 #profile-name { font-size:28px; line-height:1.2; margin:0; overflow-wrap:anywhere; }
@@ -21,11 +24,38 @@
 #profile .profile-section-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; }
 #profile .profile-section-heading h2 { font-size:18px; }
 #profile .profile-links { display:flex; flex-wrap:wrap; gap:8px; padding-top:16px; }
-#profile [data-profile-panel=settings] { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 24px; align-items:start; }
-#profile [data-profile-panel=settings] > details { min-width:0; padding:10px 0; }
-#profile [data-profile-panel=settings] summary { font-size:14px; }
+#profile [data-profile-panel=settings] { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; align-items:start; }
+#profile [data-profile-panel=settings] > button { min-width:0; min-height:48px; font-size:14px; text-align:center; }
+#profile #delete-open { color:var(--coral); }
 #profile #public-friend-status:empty { display:none; }
 #profile .friend-add { max-width:640px; }
+/* Native dialogs leave the profile in place. Only the card scrolls on short
+ * screens, with its title and close command always within reach. */
+.profile-dialog,#delete-dialog.profile-dialog {
+  width:min(480px,calc(100% - 24px)); max-height:calc(100dvh - 24px);
+  padding:0 24px 24px; overflow:auto; overscroll-behavior:contain;
+  border:var(--line-width) solid var(--ink); background:var(--surface); color:var(--text);
+}
+.profile-dialog:focus-visible { outline:none; }
+/* Blur only the page, never the dialog. Filtering the content directly also
+ * works in WebKit versions that omit blur on native dialog backdrops. */
+body:has(.profile-dialog[open]) :is(.public-header,.page-return,main[data-page=account]>:not(dialog),.site-footer) { filter:blur(5px); }
+.profile-dialog::backdrop { -webkit-backdrop-filter:none; backdrop-filter:none; }
+.profile-dialog-heading { position:sticky; top:0; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:20px 0 16px; background:var(--surface); }
+.solo-page .profile-dialog-heading h2 { font-size:20px; line-height:1.3; margin:0; }
+.profile-dialog-heading .icon-button { flex:none; width:44px; height:44px; padding:10px; display:grid; place-items:center; }
+.profile-dialog-heading img { width:20px; height:20px; }
+.profile-dialog .account-form { width:100%; max-width:none; margin:0; gap:16px; }
+.profile-dialog .account-form p { margin:0; line-height:1.5; }
+.profile-dialog [role=status]:empty,.profile-dialog [role=alert]:empty { display:none; }
+.profile-dialog-status { font-size:14px; line-height:1.5; overflow-wrap:anywhere; }
+.profile-dialog .actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.profile-dialog .actions button { min-width:0; padding:10px 12px; }
+.profile-dialog .sound-settings { margin:0; border:0; padding:0; }
+.profile-dialog .sound-volume { margin:0; }
+.solo-page .profile-dialog input[type=range] { padding:0; border:0; background:transparent; }
+.profile-dialog .team-options { margin-bottom:0!important; }
+#team-dialog { width:min(560px,calc(100% - 24px)); }
 @media(max-width:600px) {
   #profile-name { font-size:24px; }
   #profile .profile-title { gap:12px; margin-bottom:16px; }
@@ -34,4 +64,6 @@
   #profile [data-profile-panel=settings] { grid-template-columns:minmax(0,1fr); }
   #profile .profile-record { margin:20px 0; }
   #profile-stats .metric strong { font-size:24px; }
+  .profile-dialog,#delete-dialog.profile-dialog { padding:0 16px 16px; }
+  .profile-dialog-heading { padding-top:12px; }
 }

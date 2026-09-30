@@ -3,7 +3,7 @@ const {chromium,webkit}=require('playwright'),assert=require('node:assert/strict
 const origin=process.env.MOBILE_TEST_URL||'http://127.0.0.1:8009',out='/tmp/on-the-dot-daily-ready';
 assert(['127.0.0.1','localhost'].includes(new URL(origin).hostname));fs.mkdirSync(out,{recursive:true});
 const rules={format:'daily_survival',version:'daily-survival-v2',lives:3,ranked:true,questions:1000,answer_ms:15000,bonus_mode:'none',xp_by_difficulty:{easy:10,medium:20,hard:30}};
-const question={text:'Which team plays at Old Trafford?',options:[{id:'a',text:'Manchester United'},{id:'b',text:'Arsenal'}]};
+const question={text:'Which team plays at Old Trafford: Manchester United or Arsenal?',options:[{id:'a',text:'Manchester United'},{id:'b',text:'Arsenal'}]};
 function fresh(ranked=true){return {run_id:'daily-ready-test',phase:'READY',position:0,role:'shooter',question:null,review:[],rules,deadline:null,
     difficulty:'mixed',category:{label:'Daily Challenge'},is_trial:false,total_xp:0,correct:0,base_xp:0,bonus_xp:0,multiplier:1,highscore:0,
     survival:{ranked,goals:0,mistakes:0,lives:3,max_lives:3,next_role:'shooter',attempts:[]}};}
@@ -25,10 +25,10 @@ function fresh(ranked=true){return {run_id:'daily-ready-test',phase:'READY',posi
                     await route.fulfill({response:r,body:source.replace("if(elapsed>=duration){phase='ready';render();stop();}","if(t===1){focus(0);return;} if(elapsed>=duration){phase='ready';render();stop();}")});
                 });
             }
-            // Keep one normal-speed intro per viewport. Other lifecycle cases
-            // use the real renderer with a shorter intro to keep the suite fast.
-            if(!['full','skip','context-loss'].includes(mode))await page.route('**/stadium_config.js?*',async route=>{
-                const r=await route.fetch();await route.fulfill({response:r,body:(await r.text())+'\nSTADIUM.introMs=600;STADIUM.focusMs=120;STADIUM.outroMs=500;'});
+            // Production opens the fixed view immediately. Hold a test-only
+            // frame sequence to exercise skip, stalled RAF and context recovery.
+            if(['stalled','skip','context-loss'].includes(mode))await page.route('**/stadium_config.js?*',async route=>{
+                const r=await route.fetch();await route.fulfill({response:r,body:(await r.text())+'\nfor(const c of [STADIUM,COMPACT_STADIUM]){c.introMs=600;}'});
             });
             if(mode==='load-failure')await page.route('**/stadium_scene.js?*',route=>route.abort());
             await page.route('**/api/**',async route=>{
@@ -84,6 +84,7 @@ function fresh(ranked=true){return {run_id:'daily-ready-test',phase:'READY',posi
                     assert(await page.locator('#summary a[href="/"]').isVisible());
                 }else{
                     await ready.click();await page.locator('#choices button:enabled').first().waitFor();
+                    assert.equal(await page.locator('#question-title').textContent(),'Which team plays at Old Trafford?');
                     assert.equal(writes.filter(path=>path.endsWith('/next')).length,1);
                     assert.equal(run.phase,'ANSWERING');assert(run.deadline>Date.now()+10000);
                     assert.equal(run.survival.lives,3);

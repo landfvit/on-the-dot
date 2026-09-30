@@ -24,7 +24,7 @@
     }
     function layout() {
         pending=0;
-        const active=compact.matches&&document.body.classList.contains('stadium-playing')&&!document.body.classList.contains('stadium-ending')&&!panel.hidden;
+        const active=(document.body.classList.contains('stadium-inline')||compact.matches&&document.body.classList.contains('stadium-playing')&&!document.body.classList.contains('stadium-ending'))&&!panel.hidden;
         title.style.removeProperty('font-size');
         for(const button of choices.children)button.style.removeProperty('font-size');
         expand.hidden=true;

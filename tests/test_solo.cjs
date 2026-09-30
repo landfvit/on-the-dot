@@ -4,6 +4,7 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const script=fs.readFileSync(require('node:path').join(__dirname,'../trivia_app/static/solo.js'),'utf8');
 const shareScript=fs.readFileSync(require('node:path').join(__dirname,'../trivia_app/static/result_share.js'),'utf8');
+const questionScript=fs.readFileSync(require('node:path').join(__dirname,'../trivia_app/static/question_text.js'),'utf8');
 
 function setup(pageType='solo',withScene=false,stadium=undefined){
   const nodes=new Map(),requests=[],timers=[],stored=new Map(),shots=[],copied=[],sounds=[],radio={value:pageType==='account'?'login':'easy'};
@@ -24,7 +25,9 @@ function setup(pageType='solo',withScene=false,stadium=undefined){
   const document={getElementById:get,createElement:element,querySelector:s=>s==='.solo-page'?page:radio,
     querySelectorAll:s=>s.includes('auth-mode')?[get('login-mode'),get('register-mode')]:[get('easy'),get('medium'),get('hard')]};
   const location={href:'http://localhost/penalties',origin:'http://localhost',pathname:'/penalties'};
-  vm.runInNewContext(shareScript+'\n'+script,{document,location,console,Date,encodeURIComponent,URLSearchParams,navigator:{clipboard:{writeText:async text=>copied.push(text)}},
+  vm.runInNewContext(questionScript+'\n'+shareScript+'\n'+script,{document,location,console,Date,encodeURIComponent,URLSearchParams,navigator:{clipboard:{writeText:async text=>copied.push(text)}},
+    window:{dispatchEvent(){}},CustomEvent:class{constructor(type,options){this.type=type;this.detail=options?.detail;}},
+    setTimeout(fn,ms){const timer={fn,ms};timers.push(timer);return timer;},clearTimeout(timer){if(timer)timer.cancelled=true;},
     PenaltyScene:withScene?{shot:outcome=>shots.push(outcome),reset(){}}:undefined,
     PointsStadium:stadium,
     PointsAudio:{play:name=>sounds.push(name)},

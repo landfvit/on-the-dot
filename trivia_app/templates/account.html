@@ -1,10 +1,17 @@
 {% extends 'trivia_base.html' %}
 {% block title %}Player profile · ON THE DOT.{% endblock %}
 {% block styles %}<link rel="stylesheet" href="/trivia-assets/solo.css?v=1">{% endblock %}
-{% block final_styles %}<link rel="stylesheet" href="/trivia-assets/account_settings.css?v=2"><link rel="stylesheet" href="/trivia-assets/profile.css?v=1"><link rel="stylesheet" href="/trivia-assets/xp_progress.css?v=1">{% endblock %}
+{% block presentation_styles %}<link rel="stylesheet" href="/trivia-assets/player_kit.css?v=5"><link rel="stylesheet" href="/trivia-assets/profile.css?v=4">{% endblock %}
+{% block final_styles %}<link rel="stylesheet" href="/trivia-assets/account_settings.css?v=2"><link rel="stylesheet" href="/trivia-assets/xp_progress.css?v=1">{% endblock %}
 {% block content %}
-<main class="solo-page" data-page="account" {% if profile_username %}data-username="{{ profile_username }}"{% endif %}>
-  <header class="solo-heading"><div><h1>Player profile</h1></div></header>
+{% macro profile_dialog(id, title) %}
+<dialog id="{{ id }}" class="shell-dialog profile-dialog" aria-labelledby="{{ id }}-title">
+  <div class="profile-dialog-heading"><h2 id="{{ id }}-title">{{ title }}</h2><button type="button" class="icon-button" data-close-dialog aria-label="Close {{ title | lower }}"><img src="/trivia-assets/icons/x.svg" alt=""></button></div>
+  {{ caller() }}
+</dialog>
+{% endmacro %}
+<main class="solo-page" data-page="account" aria-labelledby="page-title" {% if profile_username %}data-username="{{ profile_username }}"{% endif %}>
+  <h1 id="page-title" class="sr-only">Player profile</h1>
   <div id="notice" role="status" aria-live="polite">Loading...</div><div id="error" role="alert" hidden></div>
   <section id="authentication" hidden>
     <form id="auth-form" class="account-form">
@@ -42,11 +49,22 @@
     <div id="own-profile" hidden>
       <section data-profile-panel="overview">
       <section class="account-form profile-club" aria-labelledby="team-heading">
-        <div class="profile-section-heading"><h2 id="team-heading">Your team</h2><button id="add-team" type="button" aria-expanded="false" aria-controls="team-edit" aria-describedby="team-change-note">Add team</button></div>
+        <div class="profile-section-heading"><h2 id="team-heading">Your team</h2><button id="add-team" type="button" aria-haspopup="dialog" aria-controls="team-dialog" aria-describedby="team-change-note">Add team</button></div>
         <p id="team-change-note" class="muted" role="status"></p>
-        <form id="team-edit" hidden><label for="profile-team-select" class="sr-only">Premier League team</label><select id="profile-team-select" hidden></select><fieldset id="team-options" class="team-options"><legend class="sr-only">Premier League team</legend></fieldset>
-          <div class="actions"><button class="primary" id="save-team">Join team</button><button id="cancel-team" type="button">Cancel</button></div>
+      </section>
+      <section class="profile-kit" aria-labelledby="kit-heading">
+        <h2 id="kit-heading">Your kit</h2>
+        <form id="kit-form" hidden>
+          <div class="kit-layout">
+            <div class="kit-fields">
+              <fieldset id="kit-options" class="kit-options" aria-label="Kit"></fieldset>
+              <label class="kit-number">Shirt number<input id="kit-number" type="number" min="1" max="99" step="1" inputmode="numeric" value="10" required></label>
+              <div><button id="kit-save" type="submit">Save kit</button></div>
+            </div>
+            <figure class="kit-preview" aria-labelledby="kit-preview-name"><div class="kit-preview-images"><canvas id="kit-preview-front" role="img" aria-label="Front of selected kit"></canvas><canvas id="kit-preview-back" role="img" aria-label="Back of selected kit with shirt number"></canvas></div><figcaption id="kit-preview-name"></figcaption></figure>
+          </div>
         </form>
+        <p id="kit-status" role="status"></p><button id="kit-retry" type="button" hidden>Retry kits</button>
       </section>
       <div class="profile-links"><a class="team-rules-link" href="/history">Match history</a><a class="team-rules-link" href="/how-to-play#teams">About teams</a><a id="public-profile" href="/account">Public profile</a></div>
       </section>
@@ -55,55 +73,66 @@
         <p id="friend-status" role="status"></p><div id="friend-list"></div>
       </section>
       <section data-profile-panel="settings" hidden>
-      <details><summary>Sign-in email</summary>
+        <button type="button" data-profile-dialog="email-dialog" aria-haspopup="dialog" aria-controls="email-dialog">Sign-in email</button>
+        <button type="button" data-profile-dialog="profile-dialog" aria-haspopup="dialog" aria-controls="profile-dialog">Public profile</button>
+        <button type="button" data-profile-dialog="password-dialog" aria-haspopup="dialog" aria-controls="password-dialog">Password</button>
+        <button type="button" data-profile-dialog="preferences-dialog" aria-haspopup="dialog" aria-controls="preferences-dialog">Game preferences</button>
+        <button type="button" data-profile-dialog="sound-dialog" aria-haspopup="dialog" aria-controls="sound-dialog">Sound</button>
+        <button id="delete-open" type="button" data-profile-dialog="delete-dialog" aria-haspopup="dialog" aria-controls="delete-dialog">Delete account</button>
+      </section>
+    </div>
+  </section>
+  {% call profile_dialog('team-dialog', 'Your team') %}
+    <p id="team-edit-status" class="profile-dialog-status" role="status"></p>
+    <form id="team-edit" class="account-form" hidden><label for="profile-team-select" class="sr-only">Premier League team</label><select id="profile-team-select" hidden></select><fieldset id="team-options" class="team-options"><legend class="sr-only">Premier League team</legend></fieldset>
+      <div class="actions"><button class="primary" id="save-team">Join team</button><button id="cancel-team" type="button">Cancel</button></div>
+    </form>
+  {% endcall %}
+  {% call profile_dialog('email-dialog', 'Sign-in email') %}
       <form id="email-edit" class="account-form">
-        <h2>Sign-in email</h2>
         <label>Email<input id="account-email" type="email" autocomplete="email" required maxlength="254"></label>
         <label>Current password<input id="email-password" type="password" autocomplete="current-password" required maxlength="128"></label>
-        <button type="submit">Save email</button>
+        <button type="submit">Save email</button><p id="email-edit-status" class="profile-dialog-status" role="status"></p>
       </form>
-      </details><details><summary>Public profile</summary>
+  {% endcall %}
+  {% call profile_dialog('profile-dialog', 'Public profile') %}
       <form id="profile-edit" class="account-form">
-        <h2>Public profile</h2>
         <label>Username<input id="profile-username" readonly aria-describedby="username-permanent"></label>
         <small id="username-permanent" class="muted">Your username cannot be changed.</small>
         <label>Bio<textarea id="bio" rows="3" maxlength="160"></textarea></label>
         <div class="actions"><button class="primary">Save profile</button><button id="signout" type="button">Sign out</button></div>
+        <p id="profile-edit-status" class="profile-dialog-status" role="status"></p>
       </form>
-      </details><details><summary>Password</summary>
+  {% endcall %}
+  {% call profile_dialog('password-dialog', 'Password') %}
       <form id="password-edit" class="account-form">
-        <h2>Password</h2>
         <label>Current password<input id="current-password" type="password" autocomplete="current-password" required maxlength="128"></label>
         <label>New password<input id="new-password" type="password" autocomplete="new-password" required minlength="8" maxlength="128"></label>
         <label>Confirm new password<input id="confirm-password" type="password" autocomplete="new-password" required minlength="8" maxlength="128"></label>
         <button class="primary">Change password</button><p id="password-status" role="status"></p>
       </form>
-      </details><details><summary>Game preferences</summary>
+  {% endcall %}
+  {% call profile_dialog('preferences-dialog', 'Game preferences') %}
       <form id="preferences-edit" class="account-form">
-        <h2>Game preferences</h2>
         <label class="setting-toggle"><span>Animations</span><input id="setting-animations" type="checkbox" checked></label>
         <label class="setting-toggle"><span>Reduce motion</span><input id="setting-reduced-motion" type="checkbox"></label>
         <button class="primary">Save preferences</button><p id="preferences-status" role="status"></p>
       </form>
-      </details><details><summary>Sound</summary>
+  {% endcall %}
+  {% call profile_dialog('sound-dialog', 'Sound') %}
       <section class="sound-settings" aria-label="Sound settings">
         <div class="sound-volume"><label for="sound-volume">Volume</label><input id="sound-volume" data-sound-volume type="range" min="0" max="100" step="5" value="50"><output for="sound-volume" data-sound-level>50%</output></div>
       </section>
-      </details><details><summary>Delete account</summary>
-      <section class="account-form account-danger" aria-labelledby="delete-heading">
-        <h2 id="delete-heading">Delete account</h2>
-        <p class="muted">Your email, password and public profile will be removed. Anonymous game records are retained. This cannot be undone.</p>
-        <button id="delete-open" type="button">Delete account</button>
-      </section>
-      </details></section>
-    </div>
-  </section>
-</main>
-<dialog id="delete-dialog" aria-labelledby="delete-title"><form id="delete-account" class="account-form">
-  <h2 id="delete-title">Delete your account?</h2><p>Your profile will disappear from leaderboards. Your account and progress cannot be restored.</p>
+  {% endcall %}
+  {% call profile_dialog('delete-dialog', 'Delete your account?') %}
+  <form id="delete-account" class="account-form">
+  <p>Your profile will disappear from leaderboards. Your account and progress cannot be restored.</p>
+  <p class="muted">Your email, password and public profile will be removed. Anonymous game records are retained. This cannot be undone.</p>
   <label>Current password<input id="delete-password" type="password" autocomplete="current-password" required maxlength="128"></label>
   <label>Type DELETE to confirm<input id="delete-confirmation" required pattern="DELETE" autocomplete="off"></label>
   <p id="delete-status" role="alert"></p><div class="actions"><button class="danger-button">Delete permanently</button><button id="delete-cancel" type="button">Cancel</button></div>
-</form></dialog>
+</form>
+  {% endcall %}
+</main>
 {% endblock %}
-{% block scripts %}<script src="/trivia-assets/account_settings.js?v=1" defer></script><script src="/trivia-assets/social.js?v=1" defer></script><script src="/trivia-assets/solo.js?v=26" defer></script>{% endblock %}
+{% block scripts %}<script src="/trivia-assets/account_settings.js?v=2" defer></script><script src="/trivia-assets/social.js?v=1" defer></script><script src="/trivia-assets/solo.js?v=31" defer></script><script type="module" src="/trivia-assets/player_kit.js?v=6"></script>{% endblock %}

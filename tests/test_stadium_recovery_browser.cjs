@@ -40,6 +40,26 @@ async function enter(page){
             console.log('PASS non-multisampled WebGL fallback');
         }
         {
+            const {page,errors,writes}=await setup(browser);let retried=false;
+            // A hanging network import never reaches catch(). Its timeout must
+            // discard that promise, including Safari's cached dependency graph.
+            await page.addInitScript(()=>{
+                const later=window.setTimeout;
+                window.setTimeout=(fn,ms,...args)=>later(fn,ms===12000?500:ms,...args);
+            });
+            await page.route('**/stadium_scene.js?*',route=>{
+                if(route.request().url().includes('/_retry/')){retried=true;return route.continue();}
+                // Remain pending until page.close(), never reject the import.
+            });
+            await page.goto(origin+'/penalties',{waitUntil:'domcontentloaded'});assert.equal(await enter(page),false);
+            assert.equal(await page.evaluate(()=>PointsStadium.inspect().lastError),'Scene loading timed out');
+            await page.locator('#stadium-retry').click();
+            await page.waitForFunction(()=>PointsStadium.inspect().active&&PointsStadium.inspect().phase==='ready');
+            assert(retried);assert.equal(await page.locator('#stadium-layer canvas').count(),1);
+            assert.deepEqual(errors,[]);assert.deepEqual(writes,[]);await page.close();
+            console.log('PASS timed-out pending import uses a new graph on Retry');
+        }
+        {
             const {page,errors,writes}=await setup(browser);await page.goto(origin+'/penalties');assert(await enter(page));
             // A draw error happens on a later RAF, outside enter()'s try/catch.
             const result=await page.evaluate(async()=>{
@@ -137,6 +157,25 @@ async function enter(page){
             assert.equal(await page.evaluate(()=>PointsStadium.retry()),false,'Leaving the game must cancel recovery');
             assert.deepEqual(errors,[]);assert.deepEqual(writes,[]);
             await page.close();console.log(`PASS WebGL recovery ${width}: camera, catch, audio and nonblank canvas`);
+        }
+        {
+            const {page,errors,writes}=await setup(browser,1440);await page.goto(origin+'/penalties');assert(await enter(page));
+            await page.evaluate(async()=>{
+                await PointsStadium.enter('keeper',{maxDurationMs:0});
+                await PointsStadium.shot('save',PenaltyShots.plan('save','automatic-recovery'));
+                document.querySelector('#stadium-layer canvas').getContext('webgl2').getExtension('WEBGL_lose_context').loseContext();
+            });
+            await page.waitForFunction(()=>PointsStadium.inspect().compatibility&&PointsStadium.inspect().active&&PointsStadium.inspect().caught);
+            const recovered=await page.evaluate(()=>({scene:PointsStadium.inspect(),aa:document.querySelector('#stadium-layer canvas').getContext('webgl2').getContextAttributes().antialias}));
+            assert.equal(recovered.aa,false);assert.equal(recovered.scene.pixelRatio,1);assert.equal(recovered.scene.role,'keeper');
+            assert(recovered.scene.renderSize[0]*recovered.scene.renderSize[1]<=600000);
+            assert.equal(await page.locator('#stadium-layer canvas').count(),1);
+            // A second GPU loss must offer manual recovery, not a retry loop.
+            await page.locator('#stadium-layer canvas').evaluate(e=>e.dispatchEvent(new Event('webglcontextlost',{cancelable:true})));
+            await page.waitForTimeout(1000);assert.equal(await page.locator('#stadium-layer canvas').count(),0);
+            assert(await page.locator('#stadium-retry').isVisible());
+            assert.deepEqual(errors,[]);assert.deepEqual(writes,[]);await page.close();
+            console.log('PASS real context loss auto-recovers once in low-power 3D, preserving the catch');
         }
     }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

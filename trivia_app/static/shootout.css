@@ -7,7 +7,7 @@ body.stadium-playing #shootout-hud { position:fixed; z-index:5; left:24px; top:9
 #shootout-hud #leave:hover:not(:disabled) { --control-fill:#ff867c; }
 /* Hide both controls while Three.js loads. A failed renderer must still allow
  * the player to end the game, so the normal-flow fallback remains usable. */
-body:not(.stadium-playing):not(:has(#stadium-unavailable:not([hidden]))) #shootout-hud { display:none; }
+body:not(.stadium-inline):not(.stadium-playing):not(:has(#stadium-unavailable:not([hidden]))) #shootout-hud { display:none; }
 .shootout-team { display:grid; grid-template-columns:76px 22px auto; gap:10px; align-items:center; min-height:30px; font-size:13px; }
 .shootout-team strong { font-size:18px; text-align:center; font-variant-numeric:tabular-nums; }
 .shootout-kicks { display:flex; gap:7px; }

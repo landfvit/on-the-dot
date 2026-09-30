@@ -1,13 +1,14 @@
 /* Two isolated viewers, mocked game APIs. No account, room or score DB writes. */
-const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs'),sharp=require('sharp');
+const {chromium,webkit}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs'),sharp=require('sharp');
 const origin=process.env.MOBILE_TEST_URL||'http://127.0.0.1:8009',out='/tmp/on-the-dot-friend-decision';
 assert(['localhost','127.0.0.1'].includes(new URL(origin).hostname));fs.mkdirSync(out,{recursive:true});
-const question={text:'Who was Manchester United\'s top Premier League scorer in 2017/18?',options:[{id:'a',text:'Romelu Lukaku'},{id:'b',text:'Marcus Rashford'},{id:'c',text:'Anthony Martial'},{id:'d',text:'Paul Pogba'}]};
+const question={text:'Who was Manchester United\'s top Premier League scorer in 2017/18: Romelu Lukaku, Marcus Rashford, Anthony Martial or Paul Pogba?',options:[{id:'a',text:'Romelu Lukaku'},{id:'b',text:'Marcus Rashford'},{id:'c',text:'Anthony Martial'},{id:'d',text:'Paul Pogba'}]};
 function fresh(){return {run_id:'test-duel',phase:'ANSWERING',version:1,initial_shooter:0,code:'test-duel',rules:{tie_ms:150,answer_ms:15000},
-    players:[{name:'Alex',ready:true,is_guest:false},{name:'Sam',ready:true,is_guest:false}],score:[0,0],attempts:[0,0],history:[],winner:null,reason:null,
+    players:[{name:'Alex',ready:true,is_guest:false,outfit:{kit_id:'64-2026-home',number:27}},
+             {name:'Sam',ready:true,is_guest:false,outfit:{kit_id:'33-2026-home',number:11}}],score:[0,0],attempts:[0,0],history:[],winner:null,reason:null,
     stats:[{correct:0},{correct:0}],round:{id:1,shooter:0,pair:1,slot:0,opens_at:Date.now()-1000,deadline:Date.now()+60000},question};}
 (async()=>{
-    const browser=await chromium.launch({channel:'chrome',headless:true,args:['--enable-unsafe-swiftshader','--use-angle=swiftshader']});
+    const browser=process.env.TEST_BROWSER==='webkit'?await webkit.launch({headless:true}):await chromium.launch({channel:'chrome',headless:true,args:['--enable-unsafe-swiftshader','--use-angle=swiftshader']});
     try{
         for(const [width,height] of [[320,568],[390,700],[844,390],[1440,900]]){
             let state=fresh(),submitted=[false,false];const pages=[],errors=[];
@@ -26,6 +27,10 @@ function fresh(){return {run_id:'test-duel',phase:'ANSWERING',version:1,initial_
                 });
                 await page.goto(origin+'/friends/test-duel');
                 await page.waitForFunction(()=>PointsStadium.inspect().active&&!PointsStadium.inspect().entering);
+                await page.waitForFunction(()=>PointsStadium.inspect().strikerOutfit==='64-2026-home');
+                assert.equal(await page.locator('#question-title').textContent(),"Who was Manchester United's top Premier League scorer in 2017/18?");
+                const dressed=await page.evaluate(()=>PointsStadium.inspect());
+                assert.equal(dressed.keeperOutfit,'33-2026-home');assert.equal(dressed.strikerNumber,27);assert.equal(dressed.keeperNumber,11);
             }
             const answerBefore=await pages[0].locator('#choices').boundingBox();
             await pages[0].getByRole('button',{name:'Romelu Lukaku',exact:true}).click();
@@ -44,6 +49,8 @@ function fresh(){return {run_id:'test-duel',phase:'ANSWERING',version:1,initial_
                 if(me===0)assert.deepEqual(await page.locator('#choices').boundingBox(),answerBefore,'Result must not move the answer choices');
                 // Wait for the shot and camera to settle, then verify the real canvas.
                 await page.waitForFunction(role=>PointsStadium.inspect().role===role&&PointsStadium.inspect().phase==='ready',me===0?'keeper':'shooter');
+                const swapped=await page.evaluate(()=>PointsStadium.inspect());
+                assert.equal(swapped.strikerOutfit,'33-2026-home');assert.equal(swapped.keeperOutfit,'64-2026-home');
                 const pixels=await sharp(await page.locator('#stadium-layer canvas').screenshot()).stats();assert(pixels.channels.some(c=>c.stdev>10));
                 for(const theme of ['light','dark']){
                     await page.evaluate(t=>{document.documentElement.dataset.theme=t;dispatchEvent(new CustomEvent('points-theme'));},theme);
@@ -65,7 +72,7 @@ function fresh(){return {run_id:'test-duel',phase:'ANSWERING',version:1,initial_
                 round:{...state.round,outcome:'save',next_at:Date.now(),answers:[{option_id:'a',correct:true,elapsed_ms:2200},{option_id:'a',correct:true,elapsed_ms:3000}]}};
             for(const page of pages){
                 await page.locator('#summary:not([hidden])').waitFor();
-                await page.waitForFunction(()=>!document.body.classList.contains('stadium-playing')||PointsStadium.inspect().phase==='finished');
+                await page.waitForFunction(()=>!PointsStadium.inspect().active);
                 assert.equal(await page.locator('#friend-final-result .is-winner .friend-answer-time').textContent(),'2.20 s');
                 assert.equal(await page.locator('#friend-final-result p').count(),0);
                 assert(await page.locator('#friend-final-result .friend-answer').evaluateAll(rows=>rows.every(row=>row.scrollWidth<=row.clientWidth+1)),'Times must not overflow');

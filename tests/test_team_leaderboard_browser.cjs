@@ -77,7 +77,7 @@ const profile={username:'long_username_for_test',email:'example@example.com',bio
      const layout=await page.locator('.community-page').evaluate(root=>{
       const box=selector=>root.querySelector(selector).getBoundingClientRect(),tabs=box('.ranking-tabs');
       const buttons=[...root.querySelectorAll('.ranking-tabs span')].map(e=>{const r=e.getBoundingClientRect();return {x:r.x,right:r.right,width:r.width,height:r.height,overflow:e.scrollWidth>e.clientWidth||e.scrollHeight>e.clientHeight};});
-      return {width:tabs.width,left:tabs.left,right:tabs.right,buttons,boardGap:box('.board-tabs').top-box('#community-pagination').bottom,headingGap:tabs.top-box('.community-heading').bottom,boardWidth:box('.board-tabs').width,
+      return {width:tabs.width,left:tabs.left,right:tabs.right,buttons,boardGap:box('.board-tabs').top-box('#community-pagination').bottom,headingGap:tabs.top-document.querySelector('.page-return').getBoundingClientRect().bottom,boardWidth:box('.board-tabs').width,
        selected:getComputedStyle(root.querySelector('.ranking-tabs :checked+span')).backgroundColor,
        bars:[...root.querySelectorAll('.distribution-bar')].map(e=>getComputedStyle(e).backgroundColor)};
      });

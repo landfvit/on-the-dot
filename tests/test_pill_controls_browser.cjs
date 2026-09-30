@@ -96,8 +96,9 @@ async function selected(page,selector){
     await page.setViewportSize({width:390,height:844});await page.goto(origin+'/account');
     await page.locator('#profile-tabs').waitFor();await page.locator('[data-profile-tab=settings]').click();
     await selected(page,'[data-profile-tab=settings]');
-    await page.locator('[data-profile-panel=settings] summary').filter({hasText:'Password'}).click();
-    await selected(page,'[data-profile-panel=settings] details[open]>summary');await check(page);
+    await page.locator('[data-profile-dialog=password-dialog]').click();
+    assert(await page.locator('#password-dialog').isVisible());await check(page);
+    await page.locator('#password-dialog [data-close-dialog]').click();
     await page.locator('[data-profile-tab=overview]').click();await page.locator('#add-team').click();
     await page.locator('#team-options label').last().click();await selected(page,'#team-options label:has(:checked)');await check(page);
     assert.deepEqual(errors,[]);console.log('PASS profile settings, password toggles, team choices');

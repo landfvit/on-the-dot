@@ -1,65 +1,85 @@
+/* Contracts for the replacement of the old fading stadium with a small scene. */
 const test=require('node:test'),assert=require('node:assert/strict');
 
 async function setup(){
   const THREE=await import('../trivia_app/static/vendor/three/three.module.min.js');
   const {createStadiumWorld}=await import('../trivia_app/static/stadium_v6_world.js');
-  // Only textures need a canvas; no renderer or GPU is mocked in these contract tests.
-  const previous=global.document;
-  global.document={createElement:()=>({getContext:()=>({
-    createRadialGradient:()=>({addColorStop(){}}),fillRect(){},fillText(){},
-  })})};
-  const scene=new THREE.Scene();
-  let world;
-  try{world=createStadiumWorld(scene);}finally{global.document=previous;}
-  const environment=scene.children.find(o=>o.isGroup),materials=new Set();
-  environment.traverse(o=>{if(o.material)materials.add(o.material);});
-  return {THREE,scene,world,environment,materials};
+  const scene=new THREE.Scene(),world=createStadiumWorld(scene),materials=new Set(),geometries=new Set();
+  scene.traverse(o=>{if(o.geometry)geometries.add(o.geometry);for(const mat of [].concat(o.material||[]))materials.add(mat);});
+  return {scene,world,materials,dispose(){world.dispose();for(const r of [...materials,...geometries])r.dispose();}};
 }
 
-test('stadium fade never recompiles or changes occlusion during the transition',async()=>{
-  const {world,environment,materials}=await setup();
-  const initial=new Map([...materials].map(m=>[m,[m.version,m.transparent,m.depthWrite,m.forceSinglePass]]));
-  assert.equal(world.inspect().standsSolid,true);
-  for(const focus of [0,.00001,.25,.5,.75,.99995]){
-    world.setFocus(focus);
-    assert.equal(environment.visible,true,'do not hide lines before zero alpha');
-    for(const m of materials)assert.deepEqual([m.version,m.transparent,m.depthWrite,m.forceSinglePass],initial.get(m));
-  }
-  world.setFocus(1);assert.equal(environment.visible,false);
-  world.setFocus(0);assert.equal(world.inspect().standsSolid,true);
-  world.dispose();
+test('only the penalty area, goal, ball and two simple players are constructed',async()=>{
+  const {scene,world,materials,dispose}=await setup();
+  try{
+    assert.deepEqual(scene.children.map(o=>o.name),['penalty-area','goal','pixel-football','goalkeeper','striker']);
+    scene.traverse(o=>{assert(!o.isLight);assert(!/stadium|tunnel|stand|supporter|floodlight/.test(o.name));});
+    for(const m of materials){
+      assert(!m.isShaderMaterial);assert(!m.gradientMap);
+      if(m.map){assert(m.map.isDataTexture);assert.equal(m.map.generateMipmaps,false);}
+    }
+    assert.equal(world.inspect().stadiumObjects,0);
+    assert.equal(world.inspect().characterStyle,'pixel-art');
+    assert.equal(world.inspect().ballStyle,'pixel-art');
+    const football=scene.getObjectByName('pixel-football-sprite').material.map.image;
+    assert.equal(football.width,16);assert.equal(football.height,16);
+    assert(football.data.some((value,i)=>i%4===3&&value===0),'Round football has transparent corners');
+  }finally{dispose();}
 });
 
-test('all stadium meshes, lines and tunnel lights share the same final-output mask',async()=>{
-  const {THREE,world,materials,scene,environment}=await setup();
-  const uniforms=[];
-  for(const mat of materials){
-    const shader={uniforms:{},...THREE.ShaderLib.basic};
-    mat.onBeforeCompile(shader);
-    assert.ok(shader.uniforms.uStadiumFade,mat.type+' is missing its fade');
-    assert.match(shader.vertexShader,/vFadeWorld =/);
-    assert.ok(shader.fragmentShader.indexOf('gl_FragColor.a *=')>shader.fragmentShader.indexOf('#include <opaque_fragment>'));
-    assert.equal(mat.transparent,true);
-    assert.equal(mat.forceSinglePass,true);
-    uniforms.push(shader.uniforms.uStadiumFade);
-  }
-  world.setFocus(.5);
-  assert.ok(uniforms.every(u=>u===uniforms[0]&&u.value===.5));
-  for(const group of scene.children.filter(o=>o!==environment))group.traverse(o=>{
-    if(o.material)assert.notEqual(o.material.customProgramCacheKey(),'stadium-gradient-fade-v7','foreground must stay visible');
-  });
-  world.dispose();
+test('theme changes do not rebuild, fade or hide any geometry',async()=>{
+  const {scene,world,materials,dispose}=await setup();
+  try{
+    const initial=new Map([...materials].map(m=>[m,[m.version,m.transparent,m.depthWrite,m.opacity]]));
+    for(const theme of ['dark','light','dark']){
+      world.setTheme(theme);
+      assert.equal(world.inspect().theme,theme);
+      for(const key of ['markingsColor','goalColor','netColor'])assert.equal(world.inspect()[key],0xffffff);
+      scene.traverse(o=>assert(o.visible));
+      for(const m of materials)assert.deepEqual([m.version,m.transparent,m.depthWrite,m.opacity],initial.get(m));
+    }
+  }finally{dispose();}
 });
 
-test('no spectators, bounded turf and white paint in both themes',async()=>{
-  const {scene,world}=await setup();
-  assert.equal(scene.getObjectByName('supporters'),undefined);
-  const grass=scene.getObjectByName('soft-green-pitch');grass.geometry.computeBoundingBox();
-  const box=grass.geometry.boundingBox;
-  assert(box.min.x>=-59&&box.max.x<=59&&box.min.z>=-40&&box.max.z<=40);
-  for(const theme of ['dark','light','dark']){
-    world.setTheme(theme);assert.equal(world.inspect().markingsColor,0xffffff);
-    assert.equal(world.inspect().theme,theme);
-  }
-  world.dispose();
+test('the local blue kit follows the role without rebuilding sprites or losing the catch',async()=>{
+  const {world,dispose}=await setup();
+  try{
+    const {PerspectiveCamera,Vector3}=await import('../trivia_app/static/vendor/three/three.module.min.js');
+    const camera=new PerspectiveCamera(40,3,.1,100);camera.position.set(29.5,5,-10);camera.lookAt(47.5,.9,0);camera.updateMatrixWorld(true);
+    const count=world.inspect().spriteTextures;
+    const pixelColors=map=>{
+      const colors=new Set(),data=map.image.data;
+      for(let i=0;i<data.length;i+=4)if(data[i+3])colors.add(data[i]<<16|data[i+1]<<8|data[i+2]);
+      return colors;
+    };
+    for(const role of ['shooter','keeper','shooter','keeper']){
+      world.setRole(role);
+      const target=new Vector3(51.8,1.25,1);world.keeperRig.poseHands(target,1);world.prepareFrame(camera,240);
+      for(const [rig,local] of [[world.keeperRig,role==='keeper'],[world.strikerRig,role==='shooter']]){
+        const shirt=rig.group.getObjectByName('pixel-shirt').children[0].material.map;
+        const colors=pixelColors(shirt);
+        assert(colors.has(local?0x92a8d1:0x6f2c91));
+        assert(!colors.has(local?0x6f2c91:0x92a8d1));
+      }
+      assert.equal(world.inspect().spriteTextures,count);
+      assert(world.keeperRig.handCenter().distanceTo(target)<.001);
+    }
+  }finally{dispose();}
+});
+
+test('continuous turf, complete penalty markings and a deformable sparse net',async()=>{
+  const {scene,world,dispose}=await setup();
+  try{
+    const grass=scene.getObjectByName('penalty-turf');grass.geometry.computeBoundingBox();
+    const box=grass.geometry.boundingBox;
+    assert(box.max.x-box.min.x>=150&&box.max.y-box.min.y>=200,'Full rectangular grass continues offscreen');
+    for(const part of ['penalty-area','goal-area','penalty-arc','goal-line'])assert(scene.getObjectByName('pitch-marking-'+part));
+    const spot=scene.getObjectByName('penalty-spot');
+    assert.equal(spot.geometry.type,'CircleGeometry');assert.equal(spot.position.x,41.5);assert.equal(spot.position.z,0);
+    const net=scene.getObjectByName('goal-net'),positions=net.geometry.attributes.position;
+    assert(positions.count<400);assert(net.material.opacity<=.8);
+    const original=Array.from(positions.array);world.rippleNet(.15,1,1);
+    assert.notDeepEqual(Array.from(positions.array),original);
+    world.rippleNet(0);assert.deepEqual(Array.from(positions.array),original);
+  }finally{dispose();}
 });

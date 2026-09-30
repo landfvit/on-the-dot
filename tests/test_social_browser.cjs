@@ -60,7 +60,7 @@ const origin='http://127.0.0.1:8015',out='/tmp/on-the-dot-social';fs.mkdirSync(o
     await q.locator('[data-profile-tab=overview]').click();await q.locator('[data-profile-tab=friends]').click();await q.getByRole('link',{name:'Join invitation'}).waitFor();
     await q.screenshot({path:out+'/friend-invitation-desktop.png'});
     await p.locator('#friend-leave').click();await p.locator('#forfeit-confirm').click();
-    await p.goto(origin+'/account');await p.locator('[data-profile-tab=settings]').click();await p.locator('summary').filter({hasText:/^Password$/}).click();
+    await p.goto(origin+'/account');await p.locator('[data-profile-tab=settings]').click();await p.locator('[data-profile-dialog=password-dialog]').click();
     assert(await p.locator('#password-edit').isVisible());await p.screenshot({path:out+'/settings-mobile.png'});
     assert.deepEqual(errors,[]);console.log('PASS: first-use cancellation, guest duel, public result rich link, home logo card, friends request/accept/invite, compact profile/settings');
   }catch(e){for(const ctx of browser.contexts())for(const [i,p] of ctx.pages().entries())await p.screenshot({path:out+'/error-'+browser.contexts().indexOf(ctx)+'-'+i+'.png'}).catch(()=>{});throw e;}

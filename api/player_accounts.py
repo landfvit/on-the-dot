@@ -17,6 +17,7 @@ from api.solo_engine import streak
 from api.trivia_models import StrictModel
 from api.trivia_quizzes import same_origin
 from api import account_email
+from api.player_kits import by_id as kits_by_id, outfit
 
 router=APIRouter(prefix='/api/players',tags=['player accounts'])
 COOKIE='points_account'
@@ -123,6 +124,11 @@ class ClubEdit(StrictModel):
     team_id:int|None=Field(default=None,gt=0)
 
 
+class OutfitEdit(StrictModel):
+    kit_id:str|None=Field(default=None,max_length=40)
+    number:int=Field(ge=1,le=99,strict=True)
+
+
 def account(conn,request,lock=False):
     token=request.cookies.get(COOKIE,'')
     if not token or len(token)>100:raise HTTPException(401,'Sign in to play')
@@ -173,7 +179,7 @@ def anonymize_account(conn,ident):
     revoke_sessions(conn,ident,remember=True)
     conn.execute('DELETE FROM game_password_resets WHERE account_id=%s',(ident,))
     conn.execute("""UPDATE game_accounts SET username=%s,email=NULL,password_hash='!',bio='',club_id=NULL,
-        accent='green',animations=true,reduced_motion=false,deleted_at=clock_timestamp() WHERE account_id=%s""",
+        kit_id=NULL,shirt_number=10,accent='green',animations=true,reduced_motion=false,deleted_at=clock_timestamp() WHERE account_id=%s""",
         ('deleted_'+secrets.token_hex(8),ident))
 
 
@@ -205,7 +211,7 @@ def profile(conn,row):
     stats=conn.execute('''SELECT count(*) FILTER(WHERE won) wins,count(*) FILTER(WHERE NOT won) losses,
         count(*) played,round(100.0*count(*) FILTER(WHERE won)/NULLIF(count(*),0),1) win_rate
         FROM game_match_results WHERE account_id=%s''',(ident,)).fetchone()
-    return {'username':row['username'],'bio':row['bio'],'accent':row['accent'],'club':club,'stats':stats,
+    return {'username':row['username'],'bio':row['bio'],'accent':row['accent'],'club':club,'stats':stats,'outfit':outfit(row),
             **progress,
             'completed_quizzes':completed,'streak':streak(days,now.date()),
             'daily_reset':datetime.combine(now.date()+timedelta(days=1),datetime.min.time(),timezone.utc)}
@@ -271,8 +277,22 @@ def join_club(body:ClubEdit,request:Request):
         if next_change and now<next_change+timedelta(hours=72):
             available=(next_change+timedelta(hours=72)).astimezone(timezone.utc)
             raise HTTPException(409,f'You can change teams again on {available:%d %b %Y at %H:%M} UTC.')
-        row=conn.execute('UPDATE game_accounts SET club_id=%s WHERE account_id=%s RETURNING *',(body.team_id,row['account_id'])).fetchone()
+        row=conn.execute('UPDATE game_accounts SET club_id=%s,kit_id=NULL WHERE account_id=%s RETURNING *',(body.team_id,row['account_id'])).fetchone()
         return private_profile(conn,row)
+
+
+@router.put('/me/outfit',dependencies=[Depends(same_origin)])
+def update_outfit(body:OutfitEdit,request:Request):
+    rate_limit(request,'account-outfit',30)
+    with get_connection() as conn:
+        row=account(conn,request,lock=True)
+        if body.kit_id is not None and body.kit_id not in kits_by_id():
+            raise HTTPException(422,'Select a kit from the catalogue')
+        if body.kit_id is not None and kits_by_id()[body.kit_id]['team_id'] != row.get('club_id'):
+            raise HTTPException(422,'Choose a kit from your team')
+        conn.execute('UPDATE game_accounts SET kit_id=%s,shirt_number=%s WHERE account_id=%s',
+                     (body.kit_id,body.number,row['account_id']))
+        return {'outfit':outfit({**row,'kit_id':body.kit_id,'shirt_number':body.number})}
 
 
 @router.patch('/me',dependencies=[Depends(same_origin)])

@@ -2,6 +2,26 @@
 (() => {
     'use strict';
     const $=id=>document.getElementById(id);
+    const dialogTriggers=new WeakMap();
+    function openDialog(id,trigger=document.activeElement){
+        const dialog=$(id);
+        if(!dialog||dialog.open)return;
+        // Safari does not focus buttons on a pointer click, so remember the
+        // actual opener instead of relying on document.activeElement there.
+        dialogTriggers.set(dialog,trigger);
+        for(const status of dialog.querySelectorAll('[role=status],[role=alert]'))status.textContent='';
+        if(id==='delete-dialog')$('delete-account').reset();
+        dialog.showModal();
+    }
+    for(const trigger of document.querySelectorAll('[data-profile-dialog]')){
+        trigger.addEventListener('click',()=>openDialog(trigger.dataset.profileDialog,trigger));
+    }
+    for(const dialog of document.querySelectorAll('.profile-dialog')){
+        dialog.addEventListener('close',()=>{
+            const trigger=dialogTriggers.get(dialog);
+            if(trigger?.isConnected&&!trigger.disabled)trigger.focus({preventScroll:true});
+        });
+    }
     let resetToken=new URLSearchParams(location.hash.slice(1)).get('reset');
     if(resetToken)history.replaceState(null,'',location.pathname+location.search);
     async function api(path,data,method='POST'){
@@ -15,6 +35,8 @@
         const button=document.createElement('button'),icon=document.createElement('img');button.type='button';button.className='password-toggle';icon.alt='';button.append(icon);wrap.append(button);
         const update=()=>{const shown=input.type==='text';button.setAttribute('aria-label',shown?'Hide password':'Show password');button.title=shown?'Hide password':'Show password';button.setAttribute('aria-pressed',String(shown));icon.src='/trivia-assets/icons/'+(shown?'eye-off':'eye')+'.svg';};
         button.addEventListener('click',()=>{input.type=input.type==='password'?'text':'password';update();});
+        // Keep ordinary drafts, but clear and conceal credentials on close.
+        input.closest('.profile-dialog')?.addEventListener('close',()=>{input.value='';input.type='password';update();});
         input.form?.addEventListener('submit',()=>{input.type='password';update();});update();
     }
     async function submit(event,status,action){
@@ -30,7 +52,6 @@
         const value=await api('preferences',{animations:$('setting-animations').checked,reduced_motion:$('setting-reduced-motion').checked},'PUT');
         globalThis.PointsPreferences?.set(value);$('preferences-status').textContent='Preferences saved.';
     }));
-    $('delete-open').addEventListener('click',()=>{$('delete-account').reset();$('delete-status').textContent='';$('delete-dialog').showModal();});
     $('delete-cancel').addEventListener('click',()=>$('delete-dialog').close());
     $('delete-account').addEventListener('submit',event=>submit(event,'delete-status',async()=>{
         await api('me',{password:$('delete-password').value,confirmation:$('delete-confirmation').value},'DELETE');
@@ -49,7 +70,7 @@
         if(!resetToken)return;
         $('profile').hidden=true;$('authentication').hidden=false;$('auth-form').hidden=true;$('reset-request').hidden=true;$('reset-confirm').hidden=false;$('notice').textContent='';
     }
-    globalThis.PointsAccountSettings={setProfile(p){
+    globalThis.PointsAccountSettings={openDialog,setProfile(p){
         $('profile-username').value=p.username;
         $('setting-animations').checked=p.preferences?.animations!==false;$('setting-reduced-motion').checked=p.preferences?.reduced_motion===true;
         globalThis.PointsPreferences?.set(p.preferences||{});resetView();

@@ -115,3 +115,21 @@ the migration. An `already applied` response is safe. Never replace production
 data with the local database. After deploying, check `/`, `/penalties`, `/daily`,
 `/friends`, `/account`, `/leaderboard` and `/internal/dashboard`. An unauthenticated
 dashboard visit must redirect to login; `/api/developer/overview` must reject it.
+
+## September 30 Release
+
+The compact pixelart game, profile kit picker and illustrated guide require
+the additive kit migration before deploying the updated application:
+
+```sh
+.venv/bin/python -m tools.migrate_account_settings --render --migration 053_player_kits
+```
+
+The command prompts privately for the external database URL and creates a
+backup first. Proceed only after `Applied 053_player_kits.` or an `already
+applied` response. It adds kit selections and shirt numbers without replacing
+accounts, games or team memberships. Older application code remains compatible.
+
+After the deploy, verify the new guide images, an account's kit save and reload,
+and a completed game with stable question controls. Check that the private
+dashboard and editor still reject unauthenticated visitors.

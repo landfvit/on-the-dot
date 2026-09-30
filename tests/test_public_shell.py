@@ -35,6 +35,27 @@ class HeaderParser(HTMLParser):
             self.in_header = False
 
 
+class PageActionsParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.containers = []
+        self.controls = []
+        self.container_tag = None
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        classes = attrs.get('class', '').split()
+        if 'page-return' in classes or 'solo-heading' in classes:
+            self.containers.append(tag)
+            self.container_tag = tag
+        if self.container_tag and tag in ('a', 'button'):
+            self.controls.append(attrs)
+
+    def handle_endtag(self, tag):
+        if tag == self.container_tag:
+            self.container_tag = None
+
+
 class PublicShellTests(unittest.TestCase):
     def test_ads_are_scoped_to_game_and_leaderboard(self):
         client = TestClient(app)
@@ -78,10 +99,13 @@ class PublicShellTests(unittest.TestCase):
                 self.assertNotIn('<a ',footer)
                 self.assertNotIn('<button',footer)
                 self.assertIn('PL Seasons',footer)
-                actions=html.split('<nav class="page-return"',1)[1].split('</nav>',1)[0]
-                self.assertNotIn('data-theme-toggle',actions)
-                self.assertNotIn('data-sound-toggle',actions)
-                self.assertEqual('data-share-game' in actions,path=='/')
+                actions=PageActionsParser()
+                actions.feed(html)
+                self.assertEqual(len(actions.containers),1)
+                self.assertFalse(any('data-theme-toggle' in control for control in actions.controls))
+                self.assertFalse(any('data-sound-toggle' in control for control in actions.controls))
+                self.assertEqual(any('data-share-game' in control for control in actions.controls),path=='/')
+                self.assertEqual(sum('data-back' in control for control in actions.controls),int(path!='/'))
                 self.assertLessEqual(html.count('href="/how-to-play"'),1)
         self.assertEqual(client.get('/account').text.count('data-sound-toggle'),1)
         self.assertIn('href="/history">Match history',client.get('/account').text)

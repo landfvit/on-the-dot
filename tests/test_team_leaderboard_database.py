@@ -44,7 +44,8 @@ class TeamLeaderboardDatabaseTests(unittest.TestCase):
                 INSERT INTO game_clubs VALUES (33,'Manchester United',2026),(40,'Liverpool',2026),(50,'Manchester City',2026);
                 CREATE TABLE game_accounts(account_id uuid PRIMARY KEY,username text,club_id int REFERENCES game_clubs,
                     is_guest bool DEFAULT false,deleted_at timestamptz,blocked_at timestamptz,email text DEFAULT 'test@example.com',
-                    bio text DEFAULT '',accent text DEFAULT 'green',animations bool DEFAULT true,reduced_motion bool DEFAULT false);
+                    bio text DEFAULT '',accent text DEFAULT 'green',animations bool DEFAULT true,reduced_motion bool DEFAULT false,
+                    kit_id text,shirt_number smallint DEFAULT 10);
                 CREATE TABLE game_sessions(token_hash text,account_id uuid,expires_at timestamptz DEFAULT clock_timestamp()+INTERVAL '1 day');
                 CREATE TABLE game_levels(level int,minimum_xp int);
                 INSERT INTO game_levels VALUES (1,0),(2,100),(3,300),(4,1000);

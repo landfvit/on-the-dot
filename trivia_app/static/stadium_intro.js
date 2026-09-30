@@ -8,10 +8,28 @@
     if (!$('stadium-layer')) return;
     const reduced = matchMedia('(prefers-reduced-motion: reduce)');
     const motionToggle=$('motion-toggle');
+    const inline=Boolean($('stadium-stage'));
     let animationsEnabled=globalThis.PointsPreferences?.get().animations!==false;
     let engine = null, modules = null, version = 0, available = true, active = false, entering = false;
     let config = null, restoreFocus = null, lastShot = null;
     let loadAttempt=0,requestedRole='shooter',wanted=false,retrying=false,lastError=null;
+    let recoveryTimer=null,autoRecoveryUsed=false,compatibility=false;
+    let outfits=null,outfitKey='',outfitRevision=0;
+    async function setOutfits(local,opponent){
+        const key=JSON.stringify([local||null,opponent||null]);if(key===outfitKey)return;
+        outfitKey=key;const revision=++outfitRevision;
+        if(!local?.kit_id&&!opponent?.kit_id){outfits=[null,null];engine?.setOutfits(outfits);return;}
+        try {
+            const {loadKits}=await import('./kit_pixels.js?v=4');
+            const data=await loadKits();if(revision!==outfitRevision)return;
+            outfits=[local,opponent].map(choice=>({kit:data.kits.find(k=>k.id===choice?.kit_id)||null,number:choice?.number||10}));
+            engine?.setOutfits(outfits);
+        }catch(error){
+            // Cosmetics never gate Ready, start a question timer, or fail 3D.
+            outfitKey='';console.warn('Kit artwork unavailable; using default shirts.',error);
+        }
+    }
+    try { compatibility=sessionStorage.getItem('points.stadium.compatibility')==='1'; } catch {}
     const motion = () => !reduced.matches && animationsEnabled && globalThis.PointsPreferences?.get().reduced_motion!==true;
     function syncMotionControl(){
         if(!motionToggle)return;
@@ -30,16 +48,16 @@
             // Change the whole relative import graph, not just the entry URL:
             // Safari also caches failed world/config/Three.js dependencies.
             const prefix=loadAttempt++?`./_retry/${loadAttempt}/`:'./';
-            const pending=Promise.all([import(`${prefix}stadium_scene.js?v=20`), import(`${prefix}stadium_config.js?v=16`)]);
+            const pending=Promise.all([import(`${prefix}stadium_scene.js?v=36`), import(`${prefix}stadium_config.js?v=28`)]);
             modules=pending;
             pending.catch(()=>{if(modules===pending)modules=null;});
         }
         return modules;
     }
     async function prepare() { try { await load(); } catch { /* Chybu zobrazime az pri vstupu do hry. */ } }
-    function reveal(amount) { document.body.style.setProperty('--stadium-reveal',String(amount)); }
+    function reveal(amount) { document.body.style.setProperty('--stadium-reveal',String(inline?1:amount)); }
     function panels(inert) {
-        for (const selector of ['.solo-questions','.question-column','#shootout-hud']) {
+        for (const selector of inline?['.solo-questions']:['.solo-questions','.question-column','#shootout-hud']) {
             const panel = document.querySelector(selector); if (panel) panel.inert = inert;
         }
     }
@@ -58,17 +76,38 @@
         version++;active=false;entering=false;engine?.suspend();complete();
         document.body.classList.remove('stadium-playing','stadium-ending');$('stadium-layer').hidden=true;
         $('stadium-controls').hidden=true;$('stadium-outcome').hidden=true;
+        if(inline)$('stadium-loading').hidden=true;
         reveal(1);
     }
-    function leave() { wanted=false;lastShot=null;hide();$('stadium-unavailable').hidden=true; }
+    function leave() {
+        clearTimeout(recoveryTimer);
+        wanted=false;lastShot=null;hide();$('stadium-unavailable').hidden=true;
+        if(inline){$('stadium-stage').hidden=true;motionToggle.hidden=true;}
+    }
     function fallback(error) {
         lastError=error instanceof Error?error.message:String(error||'WebGL rendering failed');
         console.warn('Stadium 3D failed:',error||lastError);
         available=false;hide();engine?.dispose();engine=null;$('stadium-unavailable').hidden=false;
+        const message=$('stadium-error-message');
+        if(message)message.textContent=/timed out|fetch|import|module/i.test(lastError)?'Stadium download interrupted.':/context|WebGL/i.test(lastError)?'3D graphics could not start.':'Stadium rendering stopped.';
+        const detail=$('stadium-error-detail');
+        if(detail&&['127.0.0.1','localhost','[::1]'].includes(location.hostname)){
+            // Local diagnostics only: no telemetry, account data or remote logs.
+            detail.textContent=(error?.name||'Error')+': '+lastError;detail.hidden=false;
+        }
+        if(/WebGL.*context|context.*lost/i.test(lastError)){
+            // Context loss is often transient. Rebuild once with less GPU
+            // pressure; never loop indefinitely or advance a game/question.
+            compatibility=true;
+            try { sessionStorage.setItem('points.stadium.compatibility','1'); } catch {}
+            if(wanted&&!autoRecoveryUsed){autoRecoveryUsed=true;recoveryTimer=setTimeout(()=>retry(),750);}
+        }
     }
     async function enter(role, {intro=false, maxDurationMs=Infinity}={}) {
         requestedRole=role;wanted=true;
+        if(inline){$('stadium-stage').hidden=false;delete $('stadium-stage').dataset.ending;motionToggle.hidden=false;}
         if (!available) { $('stadium-unavailable').hidden=false;return false; }
+        if(inline)$('stadium-loading').hidden=false;
         const own=++version,requestedAt=performance.now();
         let timer,viewTimer;
         try {
@@ -77,14 +116,22 @@
             const [module, settings] = await Promise.race([load().catch(()=>load()),new Promise((_,reject)=>{
                 // Loading the Three.js module on a cold connection is not a
                 // WebGL failure. This timeout never changes the answer clock.
-                timer=setTimeout(()=>reject(new Error('Scene loading timed out')),12000);
+                timer=setTimeout(()=>{
+                    // A stalled import never rejects. Retire its entire module
+                    // graph so Retry cannot get stuck on the same promise.
+                    if(own===version)modules=null;
+                    reject(new Error('Scene loading timed out'));
+                },12000);
             })]);
+            clearTimeout(timer);
             if(own!==version)return false;
-            config=settings.STADIUM;
+            if(inline)$('stadium-loading').hidden=true;
+            config=inline?settings.COMPACT_STADIUM:settings.STADIUM;
             document.body.classList.remove('stadium-ending');
             $('stadium-layer').hidden=false;
-            if(!engine)engine=module.createStadium($('stadium-layer'),$('stadium-framing'),fallback,reveal);
-            active=true;document.body.classList.add('stadium-playing');$('stadium-controls').hidden=false;
+            if(!engine)engine=module.createStadium($('stadium-layer'),$('stadium-framing'),fallback,reveal,{compatibility,presentation:inline?'compact':'cinematic'});
+            if(outfits)engine.setOutfits(outfits);
+            active=true;document.body.classList.toggle('stadium-playing',!inline);$('stadium-controls').hidden=false;
             globalThis.PointsAudio?.setCrowdActive?.(true);
             $('stadium-unavailable').hidden=true;
             $('stadium-outcome').hidden=true;
@@ -115,6 +162,7 @@
     }
     async function retry() {
         if(!wanted||retrying)return false;
+        clearTimeout(recoveryTimer);
         retrying=true;available=true;
         const button=$('stadium-retry');if(button)button.disabled=true;
         try {
@@ -137,14 +185,33 @@
         lastShot={outcome,plan};return showShot(motion(),true);
     }
     async function finish(){
+        clearTimeout(recoveryTimer);
         wanted=false;
         if(!active||!engine){leave();return;}
         const own=++version;lastShot=null;entering=false;panels(true);
         document.body.style.setProperty('--stadium-result','0');
-        document.body.classList.add('stadium-ending');
-        await engine.finish(motion()?config.outroMs:0,amount=>document.body.style.setProperty('--stadium-result',String(amount)));
+        if(inline){
+            // Result layout replaces the question immediately. Pin the outgoing
+            // canvas to its last rendered rectangle so the crossfade cannot zoom.
+            const stage=$('stadium-stage'),viewport=engine.inspect().viewport;
+            if(viewport)for(const key of ['left','top','width','height'])stage.style.setProperty(`--stadium-result-${key}`,`${viewport[key]}px`);
+            stage.dataset.ending='true';
+        }else document.body.classList.add('stadium-ending');
+        const duration=motion()?config.outroMs:0;
+        let timer;
+        try {
+            await Promise.race([
+                engine.finish(duration,amount=>document.body.style.setProperty('--stadium-result',String(amount))),
+                new Promise(resolve=>{timer=setTimeout(()=>{if(own===version)engine?.skip();resolve();},duration+2000);})
+            ]);
+        } catch(error) {
+            if(own===version){fallback(error);leave();document.body.style.setProperty('--stadium-result','1');}
+        }
+        finally { clearTimeout(timer); }
         if(own!==version)return;
         panels(false);$('stadium-layer').hidden=true;$('stadium-controls').hidden=true;active=false;
+        document.body.style.setProperty('--stadium-result','1');
+        if(inline){$('stadium-stage').hidden=true;motionToggle.hidden=true;}
         globalThis.PointsAudio?.setCrowdActive?.(false);
     }
     function reset() { lastShot=null;if(active){engine?.reset();$('stadium-outcome').hidden=true;} }
@@ -163,6 +230,7 @@
     reduced.addEventListener('change',applyMotion);
     window.addEventListener('keydown',event=>{if(event.key==='Escape'&&entering)skip();});
     window.addEventListener('pagehide',event=>{
+        clearTimeout(recoveryTimer);
         // Back/forward cache keeps the game's JS state but not a reliable GPU
         // context. Keep the desired role/result, and rebuild only presentation.
         if(event.persisted)hide();else leave();
@@ -172,7 +240,7 @@
         if(event.persisted&&wanted)enter(requestedRole,{intro:false,maxDurationMs:0});
     });
     // inspect() je pouze diagnostika kamery pro vizualni testy, ne herni stav.
-    window.PointsStadium={prepare,enter,skip,leave,shot,reset,finish,retry,
-        inspect:()=>({active,entering,motionEnabled:motion(),lastError,...engine?.inspect()})};
+    window.PointsStadium={prepare,enter,skip,leave,shot,reset,finish,retry,setOutfits,
+        inspect:()=>({active,entering,motionEnabled:motion(),lastError,compatibility,...engine?.inspect()})};
     prepare();
 })();

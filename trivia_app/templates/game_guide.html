@@ -1,23 +1,25 @@
 {% extends 'trivia_base.html' %}
-{% block title %}How to play · ON THE DOT.{% endblock %}
-{% block styles %}<link rel="stylesheet" href="/trivia-assets/shootout.css?v=6"><link rel="stylesheet" href="/trivia-assets/game_guide.css?v=1">{% endblock %}
+{% block title %}How to play at ON THE DOT.{% endblock %}
+{% block styles %}<link rel="stylesheet" href="/trivia-assets/shootout.css?v=8"><link rel="stylesheet" href="/trivia-assets/game_modes.css?v=5">{% endblock %}
+{% block presentation_styles %}<link rel="stylesheet" href="/trivia-assets/game_guide.css?v=2">{% endblock %}
 {% block content %}
-<main class="game-guide">
-  <header class="guide-heading"><h1>How to play</h1></header>
+<main class="game-guide" aria-labelledby="page-title">
+  <h1 id="page-title" class="sr-only">How to play</h1>
   <p class="guide-intro">One question. One penalty. {{ rules.answer_ms // 1000 }} seconds to answer.</p>
-  <nav class="guide-jump" aria-label="Game rules"><a href="#shootout">Solo</a><a href="#daily">Daily Challenge</a><a href="#friends">Friend Duel</a><a href="#rewards">XP &amp; streaks</a><a href="#teams">Your team</a></nav>
+  <nav class="guide-jump" aria-label="Game rules"><a href="#shootout">Solo</a><a href="#daily">Daily Challenge</a><a href="#friends">Friend Duel</a><a href="#rewards">XP and streaks</a><a href="#teams">Your team</a></nav>
 
   <section id="shootout" class="guide-section" aria-labelledby="shootout-title">
-    <div class="guide-section-heading"><h2 id="shootout-title">Solo</h2><span class="guide-timer">{{ rules.answer_ms // 1000 }} seconds / answer</span></div>
+    <div class="guide-section-heading"><h2 id="shootout-title">Solo</h2><span class="guide-timer">{{ rules.answer_ms // 1000 }} seconds per answer</span></div>
     <div class="guide-roles">
-      <figure><img class="guide-scene" src="/trivia-assets/guide/shooter.png?v=5" width="900" height="600" alt="The game's penalty spot, football and goalkeeper facing your shot.">
-        <figcaption><h3>Shoot</h3><p>Correct: goal. Wrong or too late: no goal.</p></figcaption>
+      <figure><img class="guide-scene" src="/trivia-assets/guide/shooter.png?v=6" width="800" height="360" alt="Your player takes a penalty in the Hull City kit with number 27.">
+        <figcaption><h3>Shoot</h3><p>Answer correctly to score. A wrong answer or timeout means no goal.</p></figcaption>
       </figure>
-      <figure><img class="guide-scene" src="/trivia-assets/guide/keeper.png?v=5" width="900" height="600" alt="The game's goalkeeper holding the ball after saving a penalty.">
-        <figcaption><h3>Save</h3><p>Correct: save. Wrong or too late: opponent scores.</p></figcaption>
+      <figure><img class="guide-scene" src="/trivia-assets/guide/keeper.png?v=6" width="800" height="360" alt="Your goalkeeper holds the saved ball while wearing the Hull City kit.">
+        <figcaption><h3>Save</h3><p>Answer correctly to save the shot. A wrong answer or timeout lets the opponent score.</p></figcaption>
       </figure>
     </div>
-    <p>{{ rules.initial_kicks }} kicks each. Win early if your lead is unbeatable. Tied? Keep going until one side leads after equal kicks.</p>
+    <p>Pick an answer, then press <strong>Next penalty</strong> to continue. You alternate between shooting and saving. Your kit follows your role while the camera stays in place.</p>
+    <p>Each side takes {{ rules.initial_kicks }} kicks. An unbeatable lead ends the game early. If tied, keep going until one side leads after equal kicks.</p>
     <fieldset class="guide-scenarios" hidden><legend class="sr-only">Shootout examples</legend>
       {% for example in examples %}<label><input type="radio" name="guide-scenario" value="{{ example.code }}" aria-controls="example-{{ example.code }}" {% if loop.first %}checked{% endif %}><span>{{ example.title }}</span></label>{% endfor %}
     </fieldset>
@@ -25,7 +27,7 @@
       {% for example in examples %}
       <section id="example-{{ example.code }}" class="guide-example" aria-labelledby="example-title-{{ example.code }}">
         <h3 id="example-title-{{ example.code }}">{{ example.title }}</h3>
-        <div class="guide-scoreboard" role="img" aria-label="Example: you {{ example.score.player }}, opponent {{ example.score.opponent }}. {{ example.caption }}">
+        <div class="guide-scoreboard" role="img" aria-label="You have {{ example.score.player }} goals and your opponent has {{ example.score.opponent }}. {{ example.caption }}">
           {% for side,label in [('player','You'),('opponent','Opponent')] %}
           <div class="shootout-team" aria-hidden="true"><span>{{ label }}</span><strong>{{ example.score[side] }}</strong><div class="shootout-kicks">
             {% for goal in example.rows[side] %}<span class="shootout-kick {{ 'pending' if goal is none else 'goal' if goal else 'miss' }}"></span>{% endfor %}
@@ -41,15 +43,16 @@
   </section>
 
   <section id="rewards" class="guide-section" aria-labelledby="rewards-title">
-    <h2 id="rewards-title">XP &amp; streaks</h2>
+    <h2 id="rewards-title">XP and streaks</h2>
     <p>Correct answers earn XP. Win a Solo shootout to multiply it.</p>
     <table class="guide-rewards"><caption class="sr-only">XP rewards by difficulty</caption><thead><tr><th scope="col">Difficulty</th><th scope="col">Correct answer</th><th scope="col">Win multiplier</th></tr></thead><tbody>
-      {% for difficulty in ['easy','medium','hard'] %}<tr><th scope="row">{{ difficulty|title }}</th><td>{{ rules.xp_by_difficulty[difficulty] }} XP</td><td>&times;{{ rules.win_multipliers[difficulty] }}</td></tr>{% endfor %}
+      {% for difficulty in ['easy','medium','hard'] %}<tr><th scope="row">{{ difficulty|title }}</th><td>{{ rules.xp_by_difficulty[difficulty] }} XP</td><td>{{ rules.win_multipliers[difficulty] }} times</td></tr>{% endfor %}
     </tbody></table>
-    <p>XP builds your level. No win? You still keep your base XP.</p>
+    <p class="guide-xp-calculation"><strong>Win on Medium with {{ reward_example.correct }} correct answers to earn {{ reward_example.total_xp }} XP.</strong> You don't need a perfect game to get the win bonus.</p>
+    <p>XP builds your level. You keep your base XP even if you lose.</p>
     <div class="guide-progress-rules">
-      <section><h3>Daily streak</h3><div class="guide-streak" aria-label="Example of a three-day streak">{% for day in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] %}<span><i class="{{ 'complete' if loop.index <= 3 else '' }}" aria-hidden="true"></i>{{ day }}</span>{% endfor %}</div>
-        <p>Finish Solo or Daily with no timeouts each day to build your streak. You don't have to win. Days reset at 00:00 UTC.</p></section>
+      <section><h3>Daily streak</h3><div class="guide-streak" aria-label="Example of a streak lasting three days">{% for day in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] %}<span><i class="{{ 'complete' if loop.index <= 3 else '' }}" aria-hidden="true"></i>{{ day }}</span>{% endfor %}</div>
+        <p>Finish Solo or Daily with no timeouts each day to build your streak. You don't have to win. Days reset at midnight UTC.</p></section>
       <section><h3>Fresh questions</h3><p>Choose Easy, Medium or Hard, with mixed teams and topics. Registered players get no repeats until Monday's reset.</p></section>
     </div>
     <div class="guide-guest"><h3>Save your progress</h3><p>Solo and Friend Duels need no account. Register to save XP and streaks, play Daily Challenge and add friends. Guest results aren't saved.</p><a href="/account?mode=register">Create account</a></div>
@@ -57,28 +60,61 @@
 
   <section id="daily" class="guide-section" aria-labelledby="daily-title">
     <h2 id="daily-title">Daily Challenge</h2>
-    <p>Shoot only. Three lives. Score as many goals as you can; wrong or late answers cost a life.</p>
-    <p>Only your first attempt each day counts, even if you quit. Later games are practice. The leaderboard tracks your all-time best. Resets at 00:00 UTC.</p>
-    <p>Mixed difficulties. Correct answers earn XP, including in practice, with no win bonus. Account required.</p>
+    <p>You only shoot and have three lives. Score as many goals as you can. Each wrong answer or timeout costs a life.</p>
+    <figure class="guide-daily-example">
+      <div class="guide-scoreboard daily-survival-board" role="img" aria-label="This example shows 8 goals with two lives remaining and one life lost.">
+        <div class="shootout-team" aria-hidden="true"><span>Goals</span><strong>8</strong><div class="shootout-kicks"><i class="daily-life remaining"></i><i class="daily-life remaining"></i><i class="daily-life lost"></i></div></div>
+      </div>
+      <figcaption>One mistake leaves you with two lives. The third mistake ends your run.</figcaption>
+    </figure>
+    <p>Only your first attempt each day counts, even if you quit. Later games are practice. The leaderboard tracks your best score ever. Your daily attempt resets at midnight UTC.</p>
+    <p>Questions mix all difficulties. Correct answers earn XP, even in practice, with no win bonus. You need an account to play.</p>
     <a class="primary-link" href="/daily">Play Daily Challenge</a>
   </section>
 
   <section id="friends" class="guide-section" aria-labelledby="friends-title">
     <h2 id="friends-title">Challenge a friend</h2>
-    <p>Send an invite link, choose a difficulty and press Ready. You both answer the same question. No account needed; no XP or rating.</p>
+    <p>Choose a difficulty and create a duel. Send your friend the invite link, then both press <strong>Ready</strong> to start. No account is needed. Duels give no XP or rating.</p>
+    <p>You both answer the same question, one as the shooter and one as the keeper. If both answers are correct, the faster answer decides the penalty.</p>
     <table class="guide-rewards"><caption class="sr-only">Friend Duel answer rules</caption><thead><tr><th>Shooter</th><th>Keeper</th><th>Result</th></tr></thead><tbody>
       <tr><td>Correct</td><td>Incorrect</td><td>Goal</td></tr><tr><td>Incorrect</td><td>Correct</td><td>Save</td></tr>
       <tr><td>Correct</td><td>Correct</td><td>Faster correct answer wins</td></tr><tr><td>Incorrect</td><td>Incorrect</td><td>Replay with a new question</td></tr>
     </tbody></table>
-    <p>Near-simultaneous correct answers replay the kick too. Same five-kick format as Solo. Leaving or staying inactive forfeits the duel.</p>
+    <div class="guide-duel-example" role="img" aria-label="You answer correctly in 3.2 seconds and your friend in 5.1 seconds. Your faster answer wins the penalty.">
+      <div class="friend-answer-comparison" aria-hidden="true"><div class="friend-answer is-winner"><strong class="friend-answer-name">You</strong><span class="friend-answer-time">Correct in 3.2 s</span></div><div class="friend-answer"><strong class="friend-answer-name">Friend</strong><span class="friend-answer-time">Correct in 5.1 s</span></div></div>
+    </div>
+    <p>If both answer correctly at almost the same time, replay the kick. Each side takes five kicks, just like Solo. Leaving or staying inactive forfeits the duel.</p>
     <a class="primary-link" href="/friends">Create a Friend Duel</a>
   </section>
 
   <section id="teams" class="guide-section" aria-labelledby="teams-title">
-    <h2 id="teams-title">Your team</h2>
-    <div class="guide-team-identity"><span>your_username</span><img class="club-badge" src="/trivia-assets/clubs/33.png" width="40" height="40" alt="Manchester United example badge"><small>Example identity</small></div>
-    <p>Pick a club in your profile. Wear its badge and contribute your stats to the team leaderboard. No gameplay bonuses; change teams once every 3 days.</p>
+    <h2 id="teams-title">Your team, your look</h2>
+    <div class="guide-team-steps">
+      <figure>
+        <div class="guide-club-example" role="img" aria-label="Hull City is selected from six club badges.">
+          <div class="guide-club-options" aria-hidden="true">
+            {% for club in public_metadata.clubs if club.team_id in [33,42,40,64,49,50] %}<span class="{{ 'selected' if club.team_id == 64 else '' }}"><img src="/trivia-assets/clubs/{{ club.team_id }}.png" width="40" height="40" alt="" loading="lazy"></span>{% endfor %}
+          </div>
+          <div class="guide-team-identity" aria-hidden="true"><img src="/trivia-assets/clubs/64.png" width="32" height="32" alt=""><strong>Hull City</strong></div>
+        </div>
+        <figcaption><h3>Join your club</h3><p>Sign in and open <strong>Profile</strong>. Press <strong>Add team</strong>, choose a badge and press <strong>Join team</strong>. Your club badge appears beside your username.</p></figcaption>
+      </figure>
+      <figure>
+        <div class="guide-kit-example" role="img" aria-label="Hull City's three pixelart kits, with the home kit selected and number 27 on the back.">
+          <div class="guide-kit-options" aria-hidden="true">
+            <span class="selected"><img src="/trivia-assets/guide/kit-home.png?v=1" width="40" height="44" alt="" loading="lazy"></span>
+            <span><img src="/trivia-assets/guide/kit-away.png?v=1" width="40" height="44" alt="" loading="lazy"></span>
+            <span><img src="/trivia-assets/guide/kit-third.png?v=1" width="40" height="44" alt="" loading="lazy"></span>
+          </div>
+          <div class="guide-kit-number" aria-hidden="true"><img src="/trivia-assets/guide/kit-number.png?v=1" width="40" height="44" alt="" loading="lazy"><div><span>Shirt number</span><strong>27</strong></div></div>
+        </div>
+        <figcaption><h3>Your kit and number</h3><p>Under <strong>Your kit</strong>, choose one of your team's available kits and a shirt number from 1 to 99. Press <strong>Save kit</strong> to wear it in your next game.</p></figcaption>
+      </figure>
+    </div>
+    <p>The taker wears your kit when you shoot. The goalkeeper wears it when you save. In Friend Duels, each player wears their own choice.</p>
+    <p>You contribute your stats to the team leaderboard. Your club gives no gameplay bonuses. You can change teams once every 3 days using <strong>Change team</strong>. Changing teams switches you to the new club's home kit. Your shirt number stays the same.</p>
+    <a class="primary-link" href="/account">Open profile</a>
   </section>
 </main>
 {% endblock %}
-{% block scripts %}<script src="/trivia-assets/game_guide.js?v=1" defer></script>{% endblock %}
+{% block scripts %}<script src="/trivia-assets/game_guide.js?v=2" defer></script>{% endblock %}

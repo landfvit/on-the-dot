@@ -370,19 +370,29 @@ def delete_account(body:AccountDeletion,request:Request,response:Response):
     return {'deleted':True}
 
 
+def issue_password_reset(conn,account_id):
+    """Caller holds the account lock; self-service and admin share one cooldown."""
+    if conn.execute("SELECT 1 FROM game_password_resets WHERE account_id=%s AND created_at>clock_timestamp()-INTERVAL '1 minute'",(account_id,)).fetchone():
+        return None
+    token=secrets.token_urlsafe(32)
+    digest=hashlib.sha256(token.encode()).hexdigest()
+    conn.execute('DELETE FROM game_password_resets WHERE account_id=%s',(account_id,))
+    conn.execute('INSERT INTO game_password_resets(token_hash,account_id) VALUES(%s,%s)',(digest,account_id))
+    return token,digest
+
+
 @router.post('/password-reset/request',dependencies=[Depends(same_origin)],status_code=202)
 def request_reset(body:ResetRequest,request:Request):
     rate_limit(request,'password-reset-request',5)
     if not account_email.reset_enabled():raise HTTPException(503,'Password recovery is not available yet')
     message={'message':'If an account uses this email, a reset link will arrive shortly.'}
-    token=secrets.token_urlsafe(32);digest=hashlib.sha256(token.encode()).hexdigest()
     with get_connection() as conn:
         row=conn.execute('SELECT * FROM game_accounts WHERE email=%s AND NOT is_guest AND deleted_at IS NULL FOR UPDATE',
                          (str(body.email).lower(),)).fetchone()
         if not row or row.get('blocked_at'):return message
-        if conn.execute("SELECT 1 FROM game_password_resets WHERE account_id=%s AND created_at>clock_timestamp()-INTERVAL '1 minute'",(row['account_id'],)).fetchone():return message
-        conn.execute('DELETE FROM game_password_resets WHERE account_id=%s',(row['account_id'],))
-        conn.execute('INSERT INTO game_password_resets(token_hash,account_id) VALUES(%s,%s)',(digest,row['account_id']))
+        issued=issue_password_reset(conn,row['account_id'])
+        if issued is None:return message
+        token,digest=issued
     try:account_email.send_reset(row['email'],token)
     except (RuntimeError,account_email.requests.RequestException):
         with get_connection() as conn:conn.execute('DELETE FROM game_password_resets WHERE token_hash=%s',(digest,))

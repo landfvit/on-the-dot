@@ -1,14 +1,17 @@
 """Private operational reporting. Never return decks, answers or session tokens."""
 from contextlib import contextmanager
 from typing import Literal
-from uuid import UUID
+from uuid import UUID, uuid4
+import logging
 import os
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import Field, field_validator
 
 from api.database import get_connection
-from api.player_accounts import anonymize_account, revoke_sessions
+from api.player_accounts import anonymize_account, revoke_sessions, issue_password_reset
+from api import account_email
+from api.penalty_routes import rate_limit
 from api.solo_routes import active_releases
 from api.trivia_access import require_editor
 from api.trivia_models import StrictModel
@@ -155,14 +158,13 @@ def player(account_id: UUID):
         row['sessions'] = conn.execute('SELECT count(*) n FROM game_sessions WHERE account_id=%s AND expires_at>now()', (account_id,)).fetchone()['n']
         row['audit'] = conn.execute('''SELECT request_id,action,reason,actor,created_at FROM game_admin_audit
             WHERE account_id=%s ORDER BY created_at DESC LIMIT 30''',(account_id,)).fetchall()
+    row['password_reset_configured']=account_email.reset_enabled()
     return row
 
 
-class Action(StrictModel):
-    action: Literal['block','unblock','revoke_sessions','delete']
+class ConfirmedAction(StrictModel):
     reason: str = Field(min_length=3,max_length=500)
     confirmation: str = Field(min_length=3,max_length=24)
-    request_id: UUID
 
     @field_validator('reason')
     @classmethod
@@ -170,6 +172,43 @@ class Action(StrictModel):
         value=value.strip()
         if len(value)<3: raise ValueError('Enter a reason')
         return value
+
+
+class Action(ConfirmedAction):
+    action: Literal['block','unblock','revoke_sessions','delete']
+    request_id: UUID
+
+
+@router.post('/players/{account_id}/password-reset',status_code=202)
+def password_reset(account_id:UUID,body:ConfirmedAction,request:Request):
+    rate_limit(request,'admin-password-reset',10)
+    if not account_email.reset_enabled():
+        raise HTTPException(503,'Email recovery is not configured. Set up the email provider first.')
+    with connection(readonly=False) as conn:
+        row=conn.execute('''SELECT account_id,username,email,blocked_at FROM game_accounts
+            WHERE account_id=%s AND NOT is_guest AND deleted_at IS NULL FOR UPDATE''',(account_id,)).fetchone()
+        if not row:raise HTTPException(404,'Registered player not found')
+        if row['blocked_at']:raise HTTPException(409,'Unblock the account before requesting a password reset.')
+        if not row['email']:raise HTTPException(409,'This account has no email address.')
+        if body.confirmation!=row['username']:raise HTTPException(422,'Type the exact username to confirm')
+        issued=issue_password_reset(conn,account_id)
+        if issued is None:
+            raise HTTPException(429,'A reset link was requested recently. Check the inbox or wait a minute before trying again.',headers={'Retry-After':'60'})
+        token,digest=issued
+        # Audit the request, not a delivery guarantee. Neither the token nor
+        # its URL is ever returned to the admin or written to the audit log.
+        conn.execute('''INSERT INTO game_admin_audit(request_id,account_id,action,reason,actor,target_username)
+            VALUES(%s,%s,'password_reset_requested',%s,%s,%s)''',
+            (uuid4(),account_id,body.reason,os.environ['TRIVIA_EDITOR_USERNAME'],row['username']))
+    # Network I/O stays outside the account transaction. A concurrent email
+    # change, block or deletion can still invalidate the issued token.
+    try:account_email.send_reset(row['email'],token)
+    except (RuntimeError,account_email.requests.RequestException):
+        with connection(readonly=False) as conn:
+            conn.execute('DELETE FROM game_password_resets WHERE token_hash=%s',(digest,))
+        logging.getLogger(__name__).warning('Admin password reset delivery failed')
+        raise HTTPException(502,'The reset email could not be sent. Check email delivery and try again.') from None
+    return {'message':'Reset email sent to the address on this account. The link works once and expires in 30 minutes.'}
 
 
 @router.post('/players/{account_id}/actions')

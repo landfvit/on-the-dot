@@ -4,8 +4,8 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow"><title>Developer dashboard | ON THE DOT.</title>
   <link rel="icon" href="/trivia-assets/brand/favicon.svg?v=5">
-  <link rel="stylesheet" href="/trivia-assets/developer_dashboard.css?v=1">
-  <script src="/trivia-assets/developer_dashboard.js?v=2" defer></script>
+  <link rel="stylesheet" href="/trivia-assets/developer_dashboard.css?v=2">
+  <script src="/trivia-assets/developer_dashboard.js?v=3" defer></script>
 </head>
 <body>
   <header class="admin-header"><a href="/"><img src="/trivia-assets/brand/favicon.svg?v=4" width="36" height="36" alt="ON THE DOT."></a>
@@ -45,8 +45,9 @@
   </main>
   <dialog id="player-dialog" aria-labelledby="player-title">
     <div class="section-heading"><h2 id="player-title">Player</h2><button class="icon-button" id="close-player" aria-label="Close player details" title="Close player details"><img src="/trivia-assets/icons/x.svg" alt=""></button></div>
-    <p id="player-error" role="alert" hidden></p><div id="player-detail"></div>
-    <div id="player-actions" class="actions"><button data-action="revoke_sessions">Sign out all devices</button><button data-action="block" class="danger">Block account</button><button data-action="unblock">Unblock account</button><button data-action="delete" class="danger">Delete account</button></div>
+    <p id="player-error" role="alert" hidden></p><p id="player-notice" role="status" hidden></p><div id="player-detail"></div>
+    <div id="player-actions" class="actions"><button data-action="password_reset">Send password reset</button><button data-action="revoke_sessions">Sign out all devices</button><button data-action="block" class="danger">Block account</button><button data-action="unblock">Unblock account</button><button data-action="delete" class="danger">Delete account</button></div>
+    <p id="recovery-note" class="muted" hidden></p>
     <form id="action-form" hidden>
       <h3 id="action-title"></h3><p id="action-impact"></p>
       <label>Reason<textarea id="action-reason" minlength="3" maxlength="500" required rows="2"></textarea></label>

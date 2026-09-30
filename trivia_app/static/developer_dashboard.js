@@ -64,10 +64,16 @@
     }catch(e){if(serial===state.serial){error('error',e.message);$('updated').textContent='Refresh failed · previous data may be stale';}}
     finally{if(serial===state.serial)$('refresh').disabled=false;}
   }
-  async function openPlayer(id){
+  function actionControls(player,busy=false){
+    for(const button of document.querySelectorAll('[data-action]'))button.disabled=busy;
+    document.querySelector('[data-action=password_reset]').disabled=busy||!player?.password_reset_configured||!player.email||!!player.blocked_at||player.is_guest;
+  }
+  async function openPlayer(id,notice=''){
     const serial=++state.playerSerial;state.player=null;state.action=null;state.pending=null;
     $('player-title').textContent='Loading player…';$('player-detail').replaceChildren();$('player-games').replaceChildren();$('player-audit').replaceChildren();
     $('player-actions').hidden=true;$('action-form').hidden=true;error('player-error','');
+    error('player-notice',notice);error('recovery-note','');
+    $('confirm-action').disabled=false;$('cancel-action').disabled=false;
     if(!$('player-dialog').open)$('player-dialog').showModal();
     try{
       const p=await api('/players/'+id);const games=await api('/games?'+new URLSearchParams({account_id:id,limit:10}));
@@ -76,6 +82,8 @@
       for(const [label,value] of [['Email',p.email||'—'],['Joined',date(p.created_at)],['Team',p.club||'—'],['Bio',p.bio||'—'],['Status',p.blocked_at?'Blocked since '+date(p.blocked_at):'Active'],['Sessions',number(p.sessions)]])dl.append(el('dt',label),el('dd',value));
       $('player-detail').append(dl);$('player-actions').hidden=p.is_guest;
       document.querySelector('[data-action=block]').hidden=!!p.blocked_at;document.querySelector('[data-action=unblock]').hidden=!p.blocked_at;
+      actionControls(p);
+      if(!p.is_guest)error('recovery-note',!p.password_reset_configured?'Email recovery is not configured yet.':p.blocked_at?'Unblock this account before sending a reset email.':!p.email?'This account has no email address.':'');
       table('player-games',['Mode','Players','Started','Status','Difficulty','Rounds','XP'],gameRows(games.items));
       table('player-audit',['Time','Player','Action','Reason','Admin'],auditRows(p.audit.map(a=>({...a,username:p.username}))));
     }catch(e){if(serial===state.playerSerial)error('player-error',e.message);}
@@ -90,32 +98,39 @@
   $('close-player').onclick=()=>{$('player-dialog').close();state.playerSerial++;};
   $('player-dialog').addEventListener('close',()=>state.playerSerial++);
   document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>{
+    if(b.disabled||$('confirm-action').disabled||!state.player)return;
     state.action=b.dataset.action;state.pending=null;$('action-form').reset();$('action-form').hidden=false;
     $('action-title').textContent=b.textContent;
     $('action-impact').textContent={
       block:'The player will be signed out, cannot play on this account and will be hidden from all leaderboards. Their email cannot be used for another account, even after deletion.',
       unblock:'The player can sign in again and return to the leaderboards. Previous sessions stay revoked.',
       revoke_sessions:'Every signed-in device will need to sign in again. Existing results and XP stay unchanged.',
-      delete:'Permanently remove this account and its sign-in and profile details. Game history and the admin audit remain. A blocked email stays reserved. This cannot be undone.'
+      delete:'Permanently remove this account and its sign-in and profile details. Game history and the admin audit remain. A blocked email stays reserved. This cannot be undone.',
+      password_reset:`Send a link to ${state.player.email}. It works once and expires in 30 minutes. The password stays unchanged until the player uses it. Existing sessions are then signed out.`
     }[state.action];
-    $('confirm-action').textContent=state.action==='delete'?'Permanently delete':'Confirm';
+    error('player-notice','');error('player-error','');
+    $('confirm-action').textContent=state.action==='delete'?'Permanently delete':state.action==='password_reset'?'Send reset email':'Confirm';
+    $('confirm-action').classList.toggle('danger',state.action!=='password_reset');
     $('confirmation-label').textContent='Type '+state.player.username+' to confirm';$('action-reason').focus();
   });
   $('cancel-action').onclick=()=>{$('action-form').hidden=true;state.action=null;state.pending=null;};
   $('action-form').onsubmit=async e=>{
-    e.preventDefault();if(!state.player||!state.action)return;
+    e.preventDefault();if(!state.player||!state.action||$('confirm-action').disabled)return;
     const id=state.player.account_id,payload={action:state.action,reason:$('action-reason').value.trim(),confirmation:$('action-confirmation').value};
+    const serial=state.playerSerial,recovery=payload.action==='password_reset';
     // A network retry reuses its id, preventing duplicate moderation entries.
     const signature=JSON.stringify([id,payload]);if(state.pending?.signature!==signature)state.pending={signature,id:crypto.randomUUID()};
-    $('confirm-action').disabled=true;$('cancel-action').disabled=true;error('player-error','');
+    $('confirm-action').disabled=true;$('cancel-action').disabled=true;actionControls(state.player,true);error('player-error','');
     try{
-      await api('/players/'+id+'/actions',{...payload,request_id:state.pending.id});
+      const result=await api('/players/'+id+(recovery?'/password-reset':'/actions'),
+        recovery?{reason:payload.reason,confirmation:payload.confirmation}:{...payload,request_id:state.pending.id});
+      if(serial!==state.playerSerial||!$('player-dialog').open)return;
       if(payload.action==='delete'){$('player-dialog').close();state.player=null;state.players=0;}
-      else await openPlayer(id);
+      else await openPlayer(id,recovery?result.message:'');
       load();
     }
-    catch(e){error('player-error',e.message);}
-    finally{$('confirm-action').disabled=false;$('cancel-action').disabled=false;}
+    catch(e){if(serial===state.playerSerial)error('player-error',e.message);}
+    finally{if(serial===state.playerSerial){$('confirm-action').disabled=false;$('cancel-action').disabled=false;actionControls(state.player);}}
   };
   // No polling in background tabs or while an admin is inspecting/editing an account.
   setInterval(()=>{if(!document.hidden&&!$('player-dialog').open&&state.tab==='overview'&&!$('refresh').disabled)load();},30000);

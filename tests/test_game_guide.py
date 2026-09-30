@@ -48,12 +48,14 @@ class GameGuideTests(unittest.TestCase):
 
     def test_team_and_progress_copy_matches_current_capabilities(self):
         html = TestClient(app).get('/how-to-play').text
-        for text in ('no gameplay bonuses', 'contribute your stats to the team leaderboard',
-                     'change teams once every 3 days',
-                     'Solo and Friend Duels need no account', "Monday's reset",
-                     'Finish Solo or Daily with no timeouts', 'Ending a shootout early counts as a loss',
-                     'Only your first attempt each day counts', 'Later games are practice',
-                     'leaderboard tracks your best score ever', 'three lives'):
+        for text in ('No gameplay bonuses', "Your stats count towards your club's ranking",
+                     'Change teams once every 3 days',
+                     'Solo and Friend Duels need no account', 'until Monday',
+                     'Finish Solo or Daily without timeouts', 'Forfeiting counts as a loss',
+                     'First attempt counts, even if you quit', 'Later runs are practice',
+                     'Rankings use your all time best', 'three lives',
+                     'Correct answers earn XP, including practice', 'No win bonus',
+                     'Resets at midnight UTC'):
             self.assertIn(text, html)
         self.assertIn('/how-to-play#teams', TestClient(app).get('/account').text)
         self.assertIn('class="game-rules-link"', TestClient(app).get('/penalties').text)
@@ -63,17 +65,15 @@ class GameGuideTests(unittest.TestCase):
         for path in ('/how-to-play',):
             with self.subTest(path=path):
                 html = client.get(path).text
-                self.assertIn('Choose Easy, Medium or Hard,', html)
-                self.assertIn('with mixed teams and topics', html)
+                self.assertIn('Easy, Medium or Hard.', html)
+                self.assertIn('Mixed teams and topics.', html)
                 self.assertNotIn('Team / scope', html)
                 self.assertNotIn('Question availability:', html)
 
     def test_kit_guide_explains_own_team_number_and_role(self):
         html = TestClient(app).get('/how-to-play').text
-        for text in ('Your kit and number', "your team's available kits", 'shirt number from 1 to 99',
-                     'The taker wears your kit when you shoot', 'The goalkeeper wears it when you save',
-                     'each player wears their own choice', "new club's home kit",
-                     'Your shirt number stays the same'):
+        for text in ('Your kit and number', "your team's kit", 'number from 1 to 99',
+                     'Your kit follows you when shooting or saving, including duels'):
             self.assertIn(text, html)
 
     def test_game_selection_only_offers_difficulty_and_no_question_counts(self):
@@ -96,19 +96,20 @@ class GameGuideTests(unittest.TestCase):
         client = TestClient(app)
         html = client.get('/how-to-play').text
         for value in ('guide-club-example', 'guide-kit-example', 'guide-daily-example',
-                      'Join team', 'Save kit', 'Next penalty', '360 XP',
-                      'shirt number from 1 to 99', 'the third mistake'):
+                      'Join team', 'Save kit', 'Correct answer', 'Win multiplier',
+                      'number from 1 to 99', 'the third mistake'):
             self.assertIn(value.lower(), html.lower())
         for url in ('guide/shooter.png?v=6', 'guide/keeper.png?v=6'):
             self.assertIn(url, html)
             self.assertIn(url, client.get('/penalties').text)
 
-    def test_guide_prose_avoids_symbol_shorthand(self):
+    def test_guide_prose_is_short_and_avoids_symbol_shorthand(self):
         class GuideText(HTMLParser):
             def __init__(self):
                 super().__init__()
                 self.in_guide = False
                 self.parts = []
+                self.visible_parts = []
 
             def handle_starttag(self, tag, attrs):
                 if tag == 'main' and 'game-guide' in dict(attrs).get('class', '').split():
@@ -123,8 +124,17 @@ class GameGuideTests(unittest.TestCase):
             def handle_data(self, data):
                 if self.in_guide:
                     self.parts.append(data)
+                    self.visible_parts.append(data)
 
         copy = GuideText()
         copy.feed(TestClient(app).get('/how-to-play').text)
         self.assertTrue(copy.parts)
         self.assertNotRegex(' '.join(copy.parts), r'[;:\-/+=&\u2010-\u2015\u00b7\u00d7\u2192]')
+        self.assertLessEqual(len(' '.join(copy.visible_parts).split()), 500)
+
+    def test_short_duel_rules_keep_the_important_outcomes(self):
+        html = TestClient(app).get('/how-to-play').text
+        for text in ('answer the same question', 'No account, XP or rating',
+                     'Faster correct answer wins', 'Replay with a new question',
+                     'Tied response times replay the kick', 'Leaving or inactivity forfeits'):
+            self.assertIn(text, html)

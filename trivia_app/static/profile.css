@@ -2,8 +2,11 @@
 html:has(.profile-dialog[open]),body:has(.profile-dialog[open]) { overflow:hidden; }
 main.solo-page[data-page=account] { padding-bottom:24px; }
 body:has(main[data-page=account]) .site-footer { margin-top:0; }
-#profile .profile-title { display:flex; align-items:center; gap:16px; margin:0 0 20px; }
-#profile .profile-title > div { min-width:0; }
+#profile .profile-title { display:flex; flex-wrap:wrap; align-items:center; gap:16px; margin:0 0 20px; }
+#profile .profile-title > div { min-width:0; flex:1 1 160px; }
+/* Use the same coral pill as Forfeit; keep account actions out of edit dialogs. */
+#profile #signout { --control-fill:#ff6f61; --control-text:#111; --control-radius:999px; flex:none; margin-left:auto; min-height:44px; padding:10px 18px; font-size:14px; font-weight:700; line-height:1.2; }
+#profile #signout:hover:not(:disabled) { --control-fill:#ff867c; }
 #profile-name { font-size:28px; line-height:1.2; margin:0; overflow-wrap:anywhere; }
 #profile-bio { margin:8px 0 0; font-size:14px; line-height:1.5; color:var(--muted); }
 #profile-team { margin:0; flex:none; }

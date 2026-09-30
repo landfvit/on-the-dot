@@ -10,12 +10,18 @@ const initial={username:'matchday_player',email:'player@example.com',bio:'Footba
 (async()=>{
  const browser=process.env.TEST_BROWSER==='webkit'?await webkit.launch():await chromium.launch({channel:'chrome',headless:true,args:['--enable-unsafe-swiftshader','--use-angle=swiftshader']});
  try{
-  const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));let signedIn=true,profile=structuredClone(initial),resetToken;
+  const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));let signedIn=true,profile=structuredClone(initial),resetToken,logoutCalls=0;
   await page.route('**/api/**',async route=>{
    const path=new URL(route.request().url()).pathname,method=route.request().method(),body=method==='GET'?{}:route.request().postDataJSON();let data={},status=200;
    if(path==='/api/players/me'&&method==='GET'){data=signedIn?profile:{detail:'Sign in'};status=signedIn?200:401;}
    else if(path==='/api/players/me'&&method==='PATCH'){assert.deepEqual(Object.keys(body),['bio']);Object.assign(profile,body);data=profile;}
    else if(path==='/api/players/me'&&method==='DELETE'){assert.equal(body.confirmation,'DELETE');signedIn=false;data={deleted:true};}
+   else if(path.startsWith('/api/players/profiles/'))data=profile;
+   else if(path==='/api/players/logout'){
+    assert.equal(method,'POST');logoutCalls++;
+    if(logoutCalls===1){status=503;data={detail:'Please try again.'};}
+    else {signedIn=false;data={signed_out:true};}
+   }
    else if(path==='/api/players/settings')data={password_reset_available:true};
    else if(path==='/api/players/friends')data={friends:[]};
    else if(path==='/api/players/password'){assert.equal(body.current_password,'current-password');data={changed:true};}
@@ -62,7 +68,39 @@ const initial={username:'matchday_player',email:'player@example.com',bio:'Footba
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
    console.log(`PASS account ${width}: club badges, permanent username, bio, password, preferences and delete confirmation`);
   }
-  signedIn=false;await page.setViewportSize({width:390,height:844});await page.goto(origin+'/account');
+  // Logout stays in the identity row, outside every settings dialog and tab.
+  profile.username='long_profile_username';
+  for(const [width,height] of [[320,568],[390,844],[1440,1000]])for(const theme of ['light','dark']){
+   await page.setViewportSize({width,height});await page.goto(origin+'/account');await page.waitForSelector('#own-profile:not([hidden])');
+   await page.evaluate(theme=>document.documentElement.dataset.theme=theme,theme);
+   assert.equal(await page.getByRole('button',{name:'Sign out',exact:true}).count(),1);
+   assert.equal(await page.locator('dialog #signout').count(),0);
+   for(const tab of ['overview','friends','settings']){
+    await page.locator(`[data-profile-tab=${tab}]`).click();
+    assert(await page.locator('#signout').isVisible());
+   }
+   await page.locator('[data-profile-tab=overview]').click();
+   const geometry=await page.locator('#signout').evaluate(button=>{
+    const r=button.getBoundingClientRect(),style=getComputedStyle(button);
+    const siblings=[...button.parentElement.children].filter(e=>e!==button&&e.getBoundingClientRect().width>0);
+    return {fill:style.backgroundColor,text:style.color,rounding:parseFloat(style.borderRadius),
+     onscreen:r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<innerHeight,
+     overlap:siblings.some(e=>{const s=e.getBoundingClientRect();return r.left<s.right&&r.right>s.left&&r.top<s.bottom&&r.bottom>s.top;}),
+     overflow:document.documentElement.scrollWidth>innerWidth};
+   });
+   assert.equal(geometry.fill,'rgb(255, 111, 97)');assert.equal(geometry.text,'rgb(17, 17, 17)');
+   assert(geometry.rounding>=22);assert(geometry.onscreen);assert(!geometry.overlap);assert(!geometry.overflow);
+   await page.screenshot({path:`${output}/signout-${process.env.TEST_BROWSER||'chrome'}-${width}-${theme}.png`});
+  }
+  await page.locator('#signout').click();await page.waitForSelector('#error:not([hidden])');
+  assert.equal(await page.locator('#error').textContent(),'Please try again.');assert(await page.locator('#signout').isEnabled());
+  assert.equal(await page.locator('dialog[open]').count(),0);
+  await page.locator('#signout').click();await page.waitForSelector('#authentication:not([hidden])');
+  assert.equal(logoutCalls,2);assert(!signedIn);assert(!(await page.locator('#signout').isVisible()));
+  await page.goto(origin+'/u/'+profile.username);await page.waitForSelector('#profile:not([hidden])');
+  assert(!(await page.locator('#signout').isVisible()));
+  console.log('PASS signout visibility, coral styling, narrow layouts, public profile and retry after failure');
+  await page.setViewportSize({width:390,height:844});await page.goto(origin+'/account');
   await page.locator('#forgot-password').click();await page.locator('#reset-email').fill('player@example.com');await page.locator('#reset-request button').first().click();
   await page.waitForFunction(()=>document.querySelector('#reset-status').textContent.includes('reset link'));
   const token='a'.repeat(43);await page.goto(origin+'/account#reset='+token);await page.waitForSelector('#reset-confirm:not([hidden])');

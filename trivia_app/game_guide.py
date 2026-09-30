@@ -9,11 +9,11 @@ def guide_context():
     examples = []
     cases = (
         ('early', 'Early finish', [True] * 6,
-         'You have an unbeatable lead. The shootout ends without taking the remaining penalties.'),
+         'An unbeatable lead ends the game early.'),
         ('last', 'Last kick', [True, False] * 4 + [True],
-         'Your opponent has one kick left. A goal keeps the game going. A save wins it for you.'),
+         'Save to win. A goal forces sudden death.'),
         ('sudden', 'Sudden death', [True, False] * 5 + [True, True],
-         'The first five kicks end level. Both sides take another kick. You score and save to win.'),
+         'After five kicks each, score and save to win.'),
     )
     for code, title, answers, caption in cases:
         state = {'history': [{'correct': answer, 'option_id': '0'} for answer in answers]}

@@ -326,6 +326,21 @@ test('profile edits send only bio, never a modified username input',async()=>{
   assert.equal(s.get('profile-name').textContent,'tester');assert.equal(s.get('profile-bio').textContent,'New bio');
 });
 
+test('visible profile signout prevents duplicate requests and shows errors outside dialogs',async()=>{
+  const s=setup('account'),profile={...user,bio:'',level_xp:0,next_level_xp:200,streak:{current:0,longest:0}};
+  reply(s.requests[0],profile);await flush();
+  assert.equal(s.get('signout').hidden,false);
+  const first=s.get('signout').emit('click');await flush();
+  assert.equal(s.get('signout').disabled,true);
+  s.get('signout').emit('click');await flush();assert.equal(s.requests.length,2);
+  assert.equal(s.requests[1].url,'/api/players/logout');assert.equal(s.requests[1].options.method,'POST');
+  reply(s.requests[1],{detail:'Please try again'},503);await first;
+  assert.equal(s.get('signout').disabled,false);assert.equal(s.get('error').hidden,false);
+  assert.equal(s.get('error').textContent,'Please try again');
+  const retry=s.get('signout').emit('click');await flush();reply(s.requests[2],{});await retry;
+  assert.equal(s.location.href,'/account');assert.equal(s.get('error').hidden,true);
+});
+
 test('returning to selection refreshes weekly counts before enabling start',async()=>{
   const s=setup();await boot(s,true,run({phase:'ABANDONED'}));
   const returning=s.get('another').emit('click');await flush();

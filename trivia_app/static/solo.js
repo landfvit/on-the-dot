@@ -23,6 +23,7 @@
 
   function showProfile(p,own){
     $('notice').textContent='';$('authentication').hidden=true;$('profile').hidden=false;$('own-profile').hidden=!own;
+    $('signout').hidden=!own;
     $('profile-name').textContent=p.username;$('profile-bio').textContent=p.bio;
     const badge=globalThis.PointsUI?.badge(p.club);
     $('profile-team').replaceChildren(...(badge?[badge]:[]));
@@ -72,7 +73,12 @@
       try{showProfile(await api('/api/players/me',{bio:$('bio').value},'PATCH'),true);$('profile-edit-status').textContent='Profile saved.';}
       catch(e){$('profile-edit-status').textContent=e.message;}finally{button.disabled=false;}
     });
-    $('signout').addEventListener('click',async()=>{try{await api('/api/players/logout',{});globalThis.PointsPreferences?.clear();location.href='/account';}catch(e){$('profile-edit-status').textContent=e.message;}});
+    $('signout').addEventListener('click',async()=>{
+      const button=$('signout');if(button.disabled)return;
+      button.disabled=true;error('');
+      try{await api('/api/players/logout',{});globalThis.PointsPreferences?.clear();location.href='/account';}
+      catch(e){error(e.message);button.disabled=false;}
+    });
     const closeTeam=()=>$('team-dialog').close();
     let teamRequest=0;
     $('team-dialog').addEventListener('close',()=>{teamRequest++;teamChangeStatus();});

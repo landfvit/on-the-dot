@@ -1,7 +1,7 @@
 {% extends 'trivia_base.html' %}
 {% block title %}Player profile · ON THE DOT.{% endblock %}
 {% block styles %}<link rel="stylesheet" href="/trivia-assets/solo.css?v=1">{% endblock %}
-{% block presentation_styles %}<link rel="stylesheet" href="/trivia-assets/player_kit.css?v=5"><link rel="stylesheet" href="/trivia-assets/profile.css?v=4">{% endblock %}
+{% block presentation_styles %}<link rel="stylesheet" href="/trivia-assets/player_kit.css?v=5"><link rel="stylesheet" href="/trivia-assets/profile.css?v=5">{% endblock %}
 {% block final_styles %}<link rel="stylesheet" href="/trivia-assets/account_settings.css?v=2"><link rel="stylesheet" href="/trivia-assets/xp_progress.css?v=1">{% endblock %}
 {% block content %}
 {% macro profile_dialog(id, title) %}
@@ -33,7 +33,7 @@
     <p id="reset-status" role="status" class="muted"></p>
   </section>
   <section id="profile" hidden>
-    <div class="profile-title"><p id="profile-team" class="muted"></p><div><h2 id="profile-name"></h2><p id="profile-bio"></p></div></div>
+    <div class="profile-title"><p id="profile-team" class="muted"></p><div><h2 id="profile-name"></h2><p id="profile-bio"></p></div><button id="signout" type="button" hidden>Sign out</button></div>
     <section class="profile-progress" aria-label="Level progress">
       <div class="xp-heading"><strong id="profile-level"></strong><span id="profile-xp-total"></span></div>
       <progress id="level-progress" class="xp-progress" max="100" value="0" aria-label="Level progress"></progress>
@@ -100,7 +100,7 @@
         <label>Username<input id="profile-username" readonly aria-describedby="username-permanent"></label>
         <small id="username-permanent" class="muted">Your username cannot be changed.</small>
         <label>Bio<textarea id="bio" rows="3" maxlength="160"></textarea></label>
-        <div class="actions"><button class="primary">Save profile</button><button id="signout" type="button">Sign out</button></div>
+        <button class="primary">Save profile</button>
         <p id="profile-edit-status" class="profile-dialog-status" role="status"></p>
       </form>
   {% endcall %}
@@ -135,4 +135,4 @@
   {% endcall %}
 </main>
 {% endblock %}
-{% block scripts %}<script src="/trivia-assets/account_settings.js?v=2" defer></script><script src="/trivia-assets/social.js?v=1" defer></script><script src="/trivia-assets/solo.js?v=31" defer></script><script type="module" src="/trivia-assets/player_kit.js?v=6"></script>{% endblock %}
+{% block scripts %}<script src="/trivia-assets/account_settings.js?v=2" defer></script><script src="/trivia-assets/social.js?v=1" defer></script><script src="/trivia-assets/solo.js?v=32" defer></script><script type="module" src="/trivia-assets/player_kit.js?v=6"></script>{% endblock %}

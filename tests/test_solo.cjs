@@ -311,7 +311,7 @@ test('registration submits email and username while login submits an identifier'
   submit=s.get('auth-form').emit('submit');await flush();
   assert.equal(s.requests[2].url,'/api/players/login');
   assert.deepEqual(JSON.parse(s.requests[2].options.body),{identifier:'person@example.com',password:'eight888'});
-  reply(s.requests[2],{detail:'Invalid email or password'},401);await submit;
+  reply(s.requests[2],{detail:'Invalid username, email or password'},401);await submit;
 });
 
 test('profile edits send only bio, never a modified username input',async()=>{

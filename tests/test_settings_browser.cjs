@@ -10,13 +10,17 @@ const initial={username:'matchday_player',email:'player@example.com',bio:'Footba
 (async()=>{
  const browser=process.env.TEST_BROWSER==='webkit'?await webkit.launch():await chromium.launch({channel:'chrome',headless:true,args:['--enable-unsafe-swiftshader','--use-angle=swiftshader']});
  try{
-  const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));let signedIn=true,profile=structuredClone(initial),resetToken,logoutCalls=0;
+  const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));let signedIn=true,profile=structuredClone(initial),resetToken,logoutCalls=0,loginIdentifier;
   await page.route('**/api/**',async route=>{
    const path=new URL(route.request().url()).pathname,method=route.request().method(),body=method==='GET'?{}:route.request().postDataJSON();let data={},status=200;
    if(path==='/api/players/me'&&method==='GET'){data=signedIn?profile:{detail:'Sign in'};status=signedIn?200:401;}
    else if(path==='/api/players/me'&&method==='PATCH'){assert.deepEqual(Object.keys(body),['bio']);Object.assign(profile,body);data=profile;}
    else if(path==='/api/players/me'&&method==='DELETE'){assert.equal(body.confirmation,'DELETE');signedIn=false;data={deleted:true};}
    else if(path.startsWith('/api/players/profiles/'))data=profile;
+   else if(path==='/api/players/login'){
+    assert.equal(method,'POST');assert.deepEqual(body,{identifier:loginIdentifier,password:'login-test-password'});
+    signedIn=true;data=profile;
+   }
    else if(path==='/api/players/logout'){
     assert.equal(method,'POST');logoutCalls++;
     if(logoutCalls===1){status=503;data={detail:'Please try again.'};}
@@ -97,6 +101,15 @@ const initial={username:'matchday_player',email:'player@example.com',bio:'Footba
   assert.equal(await page.locator('dialog[open]').count(),0);
   await page.locator('#signout').click();await page.waitForSelector('#authentication:not([hidden])');
   assert.equal(logoutCalls,2);assert(!signedIn);assert(!(await page.locator('#signout').isVisible()));
+  for(const identifier of [profile.username,'PLAYER@EXAMPLE.COM']){
+   loginIdentifier=identifier;
+   await page.getByLabel('Email or username',{exact:true}).fill(identifier);
+   await page.locator('#password').fill('login-test-password');
+   await page.locator('#authenticate').click();await page.waitForSelector('#own-profile:not([hidden])');
+   assert.equal(await page.locator('#profile-name').textContent(),profile.username);
+   await page.locator('#signout').click();await page.waitForSelector('#authentication:not([hidden])');
+  }
+  console.log('PASS username and email sign-in form submission');
   await page.goto(origin+'/u/'+profile.username);await page.waitForSelector('#profile:not([hidden])');
   assert(!(await page.locator('#signout').isVisible()));
   console.log('PASS signout visibility, coral styling, narrow layouts, public profile and retry after failure');

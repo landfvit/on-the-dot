@@ -236,9 +236,9 @@ def login(body:Login,request:Request,response:Response):
     rate_limit(request,'account-login',8)
     with get_connection() as conn:
         row=conn.execute('''SELECT * FROM game_accounts WHERE NOT is_guest AND deleted_at IS NULL AND
-            (email=%s OR (email IS NULL AND username=%s)) FOR UPDATE''',(body.identifier,body.identifier)).fetchone()
+            (email=%s OR username=%s) FOR UPDATE''',(body.identifier,body.identifier)).fetchone()
         valid=verify_password(body.password,row['password_hash'] if row else DUMMY_HASH)
-        if not row or not valid:raise HTTPException(401,'Invalid email or password')
+        if not row or not valid:raise HTTPException(401,'Invalid username, email or password')
         if row.get('blocked_at'):raise HTTPException(403,BLOCKED_MESSAGE)
         new_session(conn,row['account_id'],request,response)
         return private_profile(conn,row)

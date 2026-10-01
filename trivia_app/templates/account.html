@@ -17,7 +17,7 @@
     <form id="auth-form" class="account-form">
       <fieldset class="auth-options"><legend>Account</legend><label><input type="radio" name="auth-mode" value="login" checked> Sign in</label><label><input type="radio" name="auth-mode" value="register"> Create account</label></fieldset>
       <p class="muted">Save XP, levels and streaks. Unlock Daily Challenge and add friends. Friend Duels are open to everyone, without XP or rating.</p>
-      <label id="login-field">Email or legacy username<input id="identifier" autocomplete="username" required minlength="3" maxlength="254"></label>
+      <label id="login-field">Email or username<input id="identifier" autocomplete="username" required minlength="3" maxlength="254" autocapitalize="none" spellcheck="false"></label>
       <div id="registration-fields" class="account-fields" hidden>
         <label>Email<input id="email" type="email" autocomplete="email" required disabled maxlength="254"></label>
         <label>Username<input id="username" autocomplete="nickname" required disabled minlength="3" maxlength="24" pattern="[A-Za-z0-9_]+" aria-describedby="username-format"></label>

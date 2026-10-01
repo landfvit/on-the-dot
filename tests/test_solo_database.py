@@ -535,7 +535,8 @@ class SoloDatabaseTests(unittest.TestCase):
         self.assertEqual(new.post('/api/players/register',json=data).status_code,201)
         self.assertEqual(new.post('/api/players/register',json={**data,'username':'different_player','email':'NEW@EXAMPLE.COM'}).status_code,409)
         new.post('/api/players/logout')
-        self.assertEqual(new.post('/api/players/login',json={'identifier':'new_player','password':'eight888'}).status_code,401)
+        self.assertEqual(new.post('/api/players/login',json={'identifier':'new_player','password':'eight888'}).status_code,200)
+        new.post('/api/players/logout')
         self.assertEqual(new.post('/api/players/login',json={'identifier':'NEW@EXAMPLE.COM','password':'eight888'}).status_code,200)
         self.assertEqual(new.get('/api/players/me').json()['email'],'new@example.com')
         self.assertNotIn('email',new.get('/api/players/profiles/new_player').json())
@@ -553,6 +554,8 @@ class SoloDatabaseTests(unittest.TestCase):
         self.assertNotEqual(legacy.cookies.get(COOKIE),old_token)
         stale=TestClient(app);stale.cookies.set(COOKIE,old_token)
         self.assertEqual(stale.get('/api/players/me').status_code,401)
+        legacy.post('/api/players/logout')
+        self.assertEqual(legacy.post('/api/players/login',json={'identifier':'legacy_player','password':'legacy-password-1234'}).status_code,200)
         legacy.post('/api/players/logout')
         self.assertEqual(legacy.post('/api/players/login',json={'identifier':'legacy@example.com','password':'legacy-password-1234'}).status_code,200)
 

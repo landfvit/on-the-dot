@@ -17,9 +17,10 @@
 New accounts require a unique, normalized email address and a public username.
 Email addresses are syntactically validated and case-folded; provider-specific
 dot/plus alias rewriting is not performed. Email is included only in authenticated
-account responses, never public profiles. Sign-in uses email and password.
-Legacy accounts without email may still sign in with their existing username and
-add email in Profile, with current-password confirmation. Changing sign-in email
+account responses, never public profiles. Sign-in accepts either email or username
+with the account password. Both identifiers ignore case and surrounding spaces;
+passwords remain case-sensitive and are never trimmed. Legacy accounts without email
+can also add email in Profile, with current-password confirmation. Changing sign-in email
 revokes previous sessions and rotates the current session.
 
 Case-insensitive ASCII usernames (3-24 letters, digits or underscores) are unique

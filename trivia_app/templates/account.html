@@ -1,7 +1,7 @@
 {% extends 'trivia_base.html' %}
 {% block title %}Player profile · ON THE DOT.{% endblock %}
 {% block styles %}<link rel="stylesheet" href="/trivia-assets/solo.css?v=1">{% endblock %}
-{% block presentation_styles %}<link rel="stylesheet" href="/trivia-assets/player_kit.css?v=5"><link rel="stylesheet" href="/trivia-assets/profile.css?v=5">{% endblock %}
+{% block presentation_styles %}<link rel="stylesheet" href="/trivia-assets/player_kit.css?v=5"><link rel="stylesheet" href="/trivia-assets/profile.css?v=6">{% endblock %}
 {% block final_styles %}<link rel="stylesheet" href="/trivia-assets/account_settings.css?v=2"><link rel="stylesheet" href="/trivia-assets/xp_progress.css?v=1">{% endblock %}
 {% block content %}
 {% macro profile_dialog(id, title) %}
@@ -16,7 +16,7 @@
   <section id="authentication" hidden>
     <form id="auth-form" class="account-form">
       <fieldset class="auth-options"><legend>Account</legend><label><input type="radio" name="auth-mode" value="login" checked> Sign in</label><label><input type="radio" name="auth-mode" value="register"> Create account</label></fieldset>
-      <p class="muted">Save XP, levels and streaks. Unlock Daily Challenge and add friends. Friend Duels are open to everyone, without XP or rating.</p>
+      <p class="muted">An account saves XP, levels and streaks and lets you play Daily Challenge. You can also add friends.</p>
       <label id="login-field">Email or username<input id="identifier" autocomplete="username" required minlength="3" maxlength="254" autocapitalize="none" spellcheck="false"></label>
       <div id="registration-fields" class="account-fields" hidden>
         <label>Email<input id="email" type="email" autocomplete="email" required disabled maxlength="254"></label>
@@ -66,7 +66,7 @@
         </form>
         <p id="kit-status" role="status"></p><button id="kit-retry" type="button" hidden>Retry kits</button>
       </section>
-      <div class="profile-links"><a class="team-rules-link" href="/history">Match history</a><a class="team-rules-link" href="/how-to-play#teams">About teams</a><a id="public-profile" href="/account">Public profile</a></div>
+      <div class="profile-links"><a class="team-rules-link" href="/my-questions">My questions</a><a class="team-rules-link" href="/history">Match history</a><a class="team-rules-link" href="/how-to-play#teams">About teams</a><a id="public-profile" href="/account">Public profile</a></div>
       </section>
       <section data-profile-panel="friends" hidden>
         <form id="friend-add" class="friend-add"><label for="friend-username">Add friend by username</label><div><input id="friend-username" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_]+" autocomplete="off"><button class="primary">Send request</button></div></form>
@@ -126,8 +126,8 @@
   {% endcall %}
   {% call profile_dialog('delete-dialog', 'Delete your account?') %}
   <form id="delete-account" class="account-form">
-  <p>Your profile will disappear from leaderboards. Your account and progress cannot be restored.</p>
-  <p class="muted">Your email, password and public profile will be removed. Anonymous game records are retained. This cannot be undone.</p>
+  <p>This permanently deletes your account and progress and removes you from leaderboards.</p>
+  <p class="muted">Your email, password and profile are removed. Anonymous game records remain. This cannot be undone.</p>
   <label>Current password<input id="delete-password" type="password" autocomplete="current-password" required maxlength="128"></label>
   <label>Type DELETE to confirm<input id="delete-confirmation" required pattern="DELETE" autocomplete="off"></label>
   <p id="delete-status" role="alert"></p><div class="actions"><button class="danger-button">Delete permanently</button><button id="delete-cancel" type="button">Cancel</button></div>
@@ -135,4 +135,4 @@
   {% endcall %}
 </main>
 {% endblock %}
-{% block scripts %}<script src="/trivia-assets/account_settings.js?v=2" defer></script><script src="/trivia-assets/social.js?v=1" defer></script><script src="/trivia-assets/solo.js?v=32" defer></script><script type="module" src="/trivia-assets/player_kit.js?v=6"></script>{% endblock %}
+{% block scripts %}<script src="/trivia-assets/account_settings.js?v=2" defer></script><script src="/trivia-assets/social.js?v=1" defer></script><script src="/trivia-assets/solo.js?v=33" defer></script><script type="module" src="/trivia-assets/player_kit.js?v=6"></script>{% endblock %}

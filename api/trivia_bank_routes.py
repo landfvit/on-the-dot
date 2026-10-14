@@ -15,7 +15,9 @@ router = APIRouter(prefix='/api/trivia/bank', dependencies=[Depends(require_edit
 
 def latest(conn):
     run = conn.execute('''SELECT r.*,b.source_name,b.question_count,b.answer_authority FROM trivia_bank_validation_runs r
-        JOIN trivia_bank_batches b USING(batch_id) ORDER BY r.created_at DESC LIMIT 1''').fetchone()
+        JOIN trivia_bank_batches b USING(batch_id) WHERE b.source_name NOT LIKE 'community-%%'
+        AND NOT EXISTS(SELECT 1 FROM game_retired_bank_batches x WHERE x.batch_id=b.batch_id)
+        ORDER BY r.created_at DESC LIMIT 1''').fetchone()
     if not run: raise HTTPException(404, 'No imported question bank')
     return run
 
@@ -78,6 +80,10 @@ def authoring(conn, question):
     run = latest(conn)
     model = conn.execute('''SELECT * FROM trivia_bank_models WHERE validation_run_id=%s
         ORDER BY created_at DESC LIMIT 1''', (run['run_id'],)).fetchone()
+    if not model:
+        # A new audited bank is not a new language model. Keep the existing
+        # intent classifier available; answers still use the current dataset.
+        model = conn.execute('SELECT * FROM trivia_bank_models ORDER BY created_at DESC LIMIT 1').fetchone()
     if not model: raise HTTPException(409, 'Train an authoring model for the current validation run first')
     result = suggest(model['artifact'], model['corpus'], question)
     evaluator, inputs = load_evaluator(conn, run['dataset_id'])

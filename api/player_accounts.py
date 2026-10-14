@@ -275,8 +275,7 @@ def join_club(body:ClubEdit,request:Request):
         now=conn.execute('SELECT clock_timestamp() AS now').fetchone()['now']
         next_change=row.get('club_changed_at')
         if next_change and now<next_change+timedelta(hours=72):
-            available=(next_change+timedelta(hours=72)).astimezone(timezone.utc)
-            raise HTTPException(409,f'You can change teams again on {available:%d %b %Y at %H:%M} UTC.')
+            raise HTTPException(409,'You can change teams 3 days after your last change.')
         row=conn.execute('UPDATE game_accounts SET club_id=%s,kit_id=NULL WHERE account_id=%s RETURNING *',(body.team_id,row['account_id'])).fetchone()
         return private_profile(conn,row)
 

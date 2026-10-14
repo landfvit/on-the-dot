@@ -3,9 +3,9 @@
 (() => {
   const dialog=document.getElementById('mode-intro');if(!dialog)return;
   const copy={
-    solo:{title:'Solo penalties',items:['15 seconds per answer. Correct when shooting: goal. Correct when defending: save.','Five penalties each. A lead can win early; a tie goes to paired sudden death.','Earn 10 / 20 / 30 XP per correct Easy / Medium / Hard answer. Winning multiplies XP by 2x / 3x / 4x. Guest XP is not saved.']},
-    daily:{title:'Daily Challenge',items:['You only shoot. Correct answers score goals. Wrong answers and timeouts cost a life. Three mistakes end your run. You have 15 seconds per answer.','Your first attempt today counts towards your all-time high score, even if you leave early. Further runs are practice only. A new scoring attempt unlocks at 00:00 UTC.','Play mixed difficulties from a pool of up to 1,000 questions. Correct answers earn 10 / 20 / 30 XP, including practice, with no multiplier. Used questions stay excluded until the weekly reset.']},
-    friend:{title:'Friend Duel',items:['Share an invitation link. No account needed. Both players press Ready, then answer the same question in 15 seconds.','Only you are correct: you win that penalty. Both wrong: replay. Both correct: the faster answer wins; within 0.15 seconds: replay.','Take turns shooting and defending, five kicks each, then paired sudden death. No XP, rating or Solo stats. Forfeiting or a prolonged disconnect loses the duel.']}
+    solo:{title:'Solo penalties',items:['You have 15 seconds. Answer correctly to score or save. Wrong or late answers lose the penalty.','Five kicks each, then sudden death if tied. An unbeatable lead ends it early.','Correct answers earn XP. Wins add a bonus. Guest progress is not saved.']},
+    daily:{title:'Daily Challenge',items:['You only shoot, with 15 seconds per answer. Wrong or late answers cost a life. Three mistakes end the run.','Your first attempt each day counts, even if you quit. Later runs are practice. Rankings use your best score.','Mixed difficulty. Correct answers earn XP, including practice, with no win bonus. Questions reset weekly.']},
+    friend:{title:'Friend Duel',items:['Share a link. No account needed. Both press Ready, then answer the same question in 15 seconds.','A correct answer wins the penalty. If both are correct, faster wins. Both wrong or correct within 0.15 seconds means a replay.','Five kicks each, then sudden death if tied. No XP or rating. Forfeiting or a long disconnect loses the duel.']}
   };
   let pending=null;
   function show(mode,force=false){

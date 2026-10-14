@@ -341,6 +341,18 @@ test('visible profile signout prevents duplicate requests and shows errors outsi
   assert.equal(s.location.href,'/account');assert.equal(s.get('error').hidden,true);
 });
 
+test('short team cooldown copy keeps the server deadline and button lock',async()=>{
+  for(const remaining of [null,-60000,7200000]){
+    const s=setup('account'),profile={...user,bio:'',level_xp:0,next_level_xp:200,streak:{current:0,longest:0},
+      team_change:{next_change_at:remaining===null?null:new Date(Date.now()+remaining).toISOString()}};
+    reply(s.requests[0],profile);await flush();
+    assert.equal(s.get('add-team').disabled,remaining>0);
+    assert.equal(s.get('team-change-note').textContent,remaining>0
+      ?'You can change teams 3 days after your last change.'
+      :'You can change teams once every 3 days.');
+  }
+});
+
 test('returning to selection refreshes weekly counts before enabling start',async()=>{
   const s=setup();await boot(s,true,run({phase:'ABANDONED'}));
   const returning=s.get('another').emit('click');await flush();
@@ -350,7 +362,7 @@ test('returning to selection refreshes weekly counts before enabling start',asyn
   await returning;
   assert.equal(s.get('start').disabled,true);
   assert.match(s.get('availability').textContent,/No new shootout/);
-  assert.match(s.get('weekly-reset').textContent,/2026-09-28 at 00:00 UTC/);
+  assert.equal(s.get('weekly-reset').textContent,'Questions reset weekly.');
   s.radio.value='medium';s.get('medium').emit('change');assert.equal(s.get('start').disabled,false);
 });
 

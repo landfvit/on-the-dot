@@ -57,6 +57,17 @@ class PageActionsParser(HTMLParser):
 
 
 class PublicShellTests(unittest.TestCase):
+    def test_adsense_account_is_in_each_public_page_head_once(self):
+        client = TestClient(app)
+        tag = '<meta name="google-adsense-account" content="ca-pub-5554974776030042">'
+        for path in ('/', '/how-to-play', '/penalties', '/daily', '/friends',
+                     '/account', '/leaderboard', '/history', '/my-questions'):
+            with self.subTest(path=path):
+                response = client.get(path)
+                self.assertEqual(response.status_code, 200)
+                self.assertIn(tag, response.text.split('</head>', 1)[0])
+                self.assertEqual(response.text.count(tag), 1)
+
     def test_ads_are_scoped_to_game_and_leaderboard(self):
         client = TestClient(app)
         for path in ('/penalties', '/leaderboard'):

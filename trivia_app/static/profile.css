@@ -1,6 +1,27 @@
 /* Profile uses unframed rows; identity and XP remain visible in every tab. */
 html:has(.profile-dialog[open]),body:has(.profile-dialog[open]) { overflow:hidden; }
 main.solo-page[data-page=account] { padding-bottom:24px; }
+/* Auth is a single compact form, not another page-sized panel. Keep native
+ * radio semantics while using the same segmented selection as the game. */
+#authentication { max-width:480px; margin:0 auto; }
+#authentication .account-form { gap:16px; margin:0; }
+#authentication .account-form > p { margin:0; font-size:13px; line-height:1.6; }
+#authentication .auth-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin:0; }
+#authentication .auth-options label { position:relative; min-width:0; font-size:14px; padding:10px; }
+#authentication .auth-options legend,#authentication .auth-options input {
+  position:absolute; width:1px; height:1px; margin:0; padding:0; border:0;
+  overflow:hidden; clip-path:inset(50%); white-space:nowrap;
+}
+body:has(.public-header) .account-form :is(input:not([type=radio]):not([type=checkbox]):not([type=range]),textarea,select) {
+  min-height:48px; padding:12px; border:1px solid var(--field-border);
+  background:var(--surface-raised); color:var(--text); font-size:16px; line-height:1.4;
+}
+body:has(.public-header) .account-form input:-webkit-autofill {
+  -webkit-box-shadow:0 0 0 1000px var(--surface-raised) inset;
+  -webkit-text-fill-color:var(--text); caret-color:var(--text);
+}
+.account-form .password-field input { padding-right:52px!important; }
+#authentication #reset-status:empty { display:none; }
 body:has(main[data-page=account]) .site-footer { margin-top:0; }
 #profile .profile-title { display:flex; flex-wrap:wrap; align-items:center; gap:16px; margin:0 0 20px; }
 #profile .profile-title > div { min-width:0; flex:1 1 160px; }
@@ -26,7 +47,8 @@ body:has(main[data-page=account]) .site-footer { margin-top:0; }
 #profile .profile-club { padding:0; border:0; gap:12px; }
 #profile .profile-section-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; }
 #profile .profile-section-heading h2 { font-size:18px; }
-#profile .profile-links { display:flex; flex-wrap:wrap; gap:8px; padding-top:16px; }
+#profile .profile-links { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; padding-top:16px; }
+#profile .profile-links > a { display:flex; align-items:center; justify-content:center; min-height:44px; padding:10px 12px; font-size:14px; }
 #profile [data-profile-panel=settings] { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; align-items:start; }
 #profile [data-profile-panel=settings] > button { min-width:0; min-height:48px; font-size:14px; text-align:center; }
 #profile #delete-open { color:var(--coral); }

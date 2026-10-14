@@ -26,7 +26,7 @@
     <label><input type="radio" name="board" value="players" checked><span>Players</span></label>
     <label><input type="radio" name="board" value="teams"><span>Teams</span></label>
   </fieldset>
-  <p id="team-ranking-note" class="muted" hidden>Team totals follow current members. Win rate averages members with recorded games.</p>
+  <p id="team-ranking-note" class="muted" hidden>Members' totals. Win rate averages members who have played.</p>
   <section id="distribution" class="score-distribution" hidden aria-labelledby="distribution-title">
     <div class="section-heading"><h2 id="distribution-title">XP distribution</h2><span id="participant-count"></span></div>
     <div id="distribution-bars"></div>
@@ -35,4 +35,4 @@
   {% endif %}
 </main>
 {% endblock %}
-{% block scripts %}<script src="/trivia-assets/community.js?v=11" defer></script>{% endblock %}
+{% block scripts %}<script src="/trivia-assets/community.js?v=12" defer></script>{% endblock %}

@@ -1,0 +1,49 @@
+{% extends 'trivia_base.html' %}
+{% block title %}{{ 'Player submissions' if review_mode else 'My questions' }} · ON THE DOT.{% endblock %}
+{% block presentation_styles %}<link rel="stylesheet" href="/trivia-assets/community_questions.css?v=2">{% endblock %}
+{% block content %}
+<main class="question-workspace" data-review="{{ 'true' if review_mode else 'false' }}">
+  <h1 class="sr-only">{{ 'Player submissions' if review_mode else 'My questions' }}</h1>
+  <div class="question-toolbar">
+    {% if review_mode %}<label>Review queue <select id="queue-status"><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option><option value="all">All submissions</option></select></label>
+    {% else %}<button id="new-question" type="button">New question</button><span id="library-count"></span>{% endif %}
+  </div>
+  <p id="workspace-message" role="status"></p>
+  <div id="workspace-error" role="alert" hidden></div>
+  <p id="question-signin" hidden><a href="/account">Sign in</a> to write questions and create custom duels.</p>
+  {% if not review_mode %}
+  <section class="custom-duel-controls" aria-label="Custom duel">
+    <label class="fallback-choice"><input type="checkbox" id="bank-fallback">Continue with ON THE DOT questions when mine run out</label>
+    <label id="fallback-difficulty" hidden>Bank difficulty <select id="duel-difficulty"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select></label>
+    <button id="create-custom-duel" type="button" disabled>Create duel <span id="selected-count">0</span></button>
+    <p class="muted">Select your questions below. Private questions are unverified. Only approved submissions enter the public bank.</p>
+  </section>
+  {% endif %}
+  <div id="question-list"></div>
+  <nav class="question-pagination" aria-label="Question pages"><button id="page-previous" type="button" disabled>Previous</button><span id="page-position"></span><button id="page-next" type="button" disabled>Next</button></nav>
+</main>
+<dialog id="question-editor" class="question-dialog" aria-labelledby="editor-heading">
+  <div class="drawer-heading"><h2 id="editor-heading">New question</h2><button type="button" data-question-close aria-label="Close editor"><img src="/trivia-assets/icons/x.svg" alt=""></button></div>
+  <form id="question-form">
+    <label>Question<textarea name="question" required minlength="12" maxlength="240" rows="3" placeholder="Which club did Thierry Henry join after leaving Arsenal in 2007?"></textarea></label>
+    <fieldset class="question-options"><legend>Answers <small>Select the correct one</small></legend>
+      {% for i in range(4) %}<div><input type="radio" name="correct" value="{{ i }}" aria-label="Answer {{ i+1 }} is correct" required {% if i == 0 %}checked{% endif %}><input name="option{{ i }}" required maxlength="100" aria-label="Answer {{ i+1 }}" placeholder="Answer {{ i+1 }}"></div>{% endfor %}
+    </fieldset>
+    <div class="question-fields"><label>Difficulty<select name="difficulty"><option value="easy">Easy</option><option value="medium" selected>Medium</option><option value="hard">Hard</option></select></label><label>Topic<select name="topic" id="question-topic"></select></label></div>
+    <label>Note for the reviewer <small>Optional</small><textarea name="explanation" maxlength="500" rows="2"></textarea></label>
+    <p id="editor-error" role="alert" hidden></p>
+    <div class="question-actions"><button type="button" data-question-close>Cancel</button><button type="submit">Save question</button></div>
+  </form>
+</dialog>
+<dialog id="question-review" class="question-dialog" aria-labelledby="review-title">
+  <div class="drawer-heading"><h2 id="review-title">Review question</h2><button type="button" data-question-close aria-label="Close review"><img src="/trivia-assets/icons/x.svg" alt=""></button></div>
+  <div id="review-content"></div>
+  <form id="review-form">
+    <label class="fallback-choice"><input name="verified" type="checkbox">I checked the facts, the wording and that only one answer is correct</label>
+    <label>Review note<textarea name="note" required minlength="10" maxlength="500" rows="3"></textarea></label>
+    <p id="review-error" role="alert" hidden></p>
+    <div class="question-actions"><button type="submit" name="decision" value="rejected">Request changes</button><button type="submit" name="decision" value="approved">Approve and publish</button></div>
+  </form>
+</dialog>
+{% endblock %}
+{% block scripts %}<script src="/trivia-assets/community_questions.js?v=1" defer></script>{% endblock %}

@@ -97,7 +97,7 @@ test('current streak stays all-time and shows its current-day meaning',async()=>
   assert.match(s.requests.at(-1).url,/period=all&metric=streak/);
   reply(s.requests.at(-1),{...board,metric:'streak',period:'all',since:null,entries:[{...player,streak:7}]});await flush();
   assert.equal(s.get('ranking-rows').children[0].children[2].textContent,'7');
-  assert.match(s.get('ranking-period').textContent,/All time.*current streak.*days/);
+  assert.equal(s.get('ranking-period').textContent,'Current streak in days');
 });
 
 test('every player and team metric always requests all time and 25 rows',()=>{

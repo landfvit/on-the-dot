@@ -1,9 +1,9 @@
 /* Rules tabs only. Scores, accounts and game eligibility stay server-owned. */
 (() => {
   const modes={
-    solo:{steps:[['Shoot.', 'Answer given question correctly to score. Wrong answers or missing the timer result in a miss!'],['Save.',"You are the keeper now. Correct answers lead to a save, incorrect or late ones let the ball in!"],['Win!',"Five penalties each, unless it's decided early. Sudden death with equal kicks for both sides if the game is tied!"]],note:'An account is not required to play Solo.'},
-    daily:{steps:[['Shoot.','Every correct answer scores a goal. You always take the penalty, with 15 seconds to answer.'],['Keep going.','You have three lives. Wrong answers and timeouts cost one life. Score as many goals as you can.'],['Set your record.','Your first attempt each day counts towards your all-time high score. Keep playing in practice after that.']],note:'An account is required. Your scoring attempt resets at 00:00 UTC.'},
-    duel:{steps:[['Invite a friend.','Create a duel and share the invitation link. You can both join without an account.'],['Go head-to-head.','Answer the same question in 15 seconds. Correct beats incorrect and faster wins.'],['Play fair.','Replay the kick if both answers are wrong or if the time difference is within 150 ms.']],note:'XP and other stats are not gained or affected by Friend Duel. This helps keep the integrity of the Leaderboard.'}
+    solo:{steps:[['Shoot','Answer correctly to score. Wrong or late answers miss.'],['Save','Answer correctly to save. Wrong or late answers concede.'],['Shootout','Five kicks each, then sudden death if tied.']],note:'No account needed.'},
+    daily:{steps:[['Shoot','Answer correctly to score. You have 15 seconds.'],['Three lives','Wrong or late answers cost a life. Lose all three and the run ends.'],['Daily score','Your first attempt each day counts towards your best score. Later runs are practice.']],note:'Account required.'},
+    duel:{steps:[['Invite','Share a duel link. No account needed.'],['Answer','You get the same question. A correct answer wins the penalty. If both are correct, faster wins.'],['Replay','Both wrong means a replay. So do correct answers within 0.15 seconds of each other.']],note:'No XP, rating or changes to Solo stats.'}
   };
   const panel=document.getElementById('rules-panel'),tablist=document.querySelector('.rule-tabs');
   if(!panel||!tablist)return;

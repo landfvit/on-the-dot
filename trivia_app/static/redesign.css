@@ -47,7 +47,7 @@ button,a,input,textarea,select { -webkit-tap-highlight-color:transparent; }
 .solo-choices button { font-weight:650; }
 .ranking-table td { background:transparent; border-top:2px solid var(--ink); }
 .ranking-table .own-rank td { background:var(--selection); }
-.ranking-self { border:2px solid var(--ink); background:transparent; }
+.ranking-self { border:0; border-bottom:1px solid var(--ui-divider); border-radius:0; background:transparent; padding:0 0 16px; margin-bottom:16px; }
 .ranking-self a,.ranking-self span { color:var(--ink); }
 .profile-tabs,.friend-row,.guide-section,.guide-end,.guide-guest,.history-row,.public-result { border-width:2px; }
 .guide-rewards th,.guide-rewards td { border-bottom-width:2px; }
@@ -70,12 +70,14 @@ button,a,input,textarea,select { -webkit-tap-highlight-color:transparent; }
  * Only controls share the bold weight; ordinary copy and headings keep theirs. */
 body:has(.public-header) {
   --control-base:#e2e4de; --control-hover:#d4d8d0;
+  --ui-divider:#11111126; --field-border:#86867b;
   --control-fill:var(--control-base); --control-text:var(--text);
   --control-icon:0; --control-width:2px; --control-radius:999px; --control-font-weight:700;
   --selected-fill:#111; --selected-text:#f6f3eb; --selected-icon:1;
 }
 html[data-theme=dark] body:has(.public-header) {
   --control-base:#343a35; --control-hover:#454d47;
+  --ui-divider:#f6f3eb33; --field-border:#7b847d;
   --control-icon:1; --selected-fill:#f6f3eb; --selected-text:#111; --selected-icon:0;
 }
 body:has(.public-header) :is(
@@ -109,6 +111,25 @@ body:has(.public-header) :is([aria-selected=true],[aria-pressed=true],[aria-curr
   --control-fill:var(--selected-fill); --control-text:var(--selected-text); --control-icon:var(--selected-icon);
 }
 .difficulty-options label,.solo-choices button { --control-radius:6px; }
+/* Primary commands are distinct from the surrounding navigation. Only Play
+ * uses the pitch green; selection and other commands keep the paper/ink skin. */
+body:has(.public-header) :is(.account-form .primary,#summary #another,#friend-ready,#mode-intro button[value=play],#new-question,#question-form button[type=submit]) {
+  --control-fill:var(--selected-fill); --control-text:var(--selected-text); --control-icon:var(--selected-icon);
+}
+body:has(.public-header) .solo-penalties #start {
+  --control-fill:var(--brand-green); --control-text:#111; --control-icon:0;
+  min-height:56px; margin:4px 0 0;
+}
+body:has(.public-header) .solo-penalties #start:hover:enabled { --control-fill:#99bd64; }
+body:has(.public-header) #trial-note { margin:0; text-align:center; font-size:12px; line-height:1.5; }
+body:has(.public-header) .game-mode-tabs { margin-bottom:24px; }
+body:has(.public-header) .game-mode-tabs a { font-size:14px; }
+.difficulty-options label { cursor:pointer; }
+.difficulty-options label:not(:has(:checked)):hover { --control-fill:var(--control-hover); }
+body:has(.public-header) :is(button,a,input,select,textarea):focus-visible,
+body:has(.public-header) .auth-options label:has(:focus-visible) {
+  outline:2px solid var(--ink); outline-offset:4px;
+}
 body:has(.public-header) .solo-choices button.correct {
   --control-fill:var(--brand-green); --control-text:#111; --control-icon:0;
 }
@@ -202,7 +223,7 @@ body:has(.public-header):not(.stadium-playing) :is(.public-header,.page-return,.
 }
 /* Page names remain available to screen readers. The toolbar is the only
  * visual heading row, matching the compact game screens. */
-body:has(main:is([data-page=account],.community-page,.game-guide)) .page-return {
+body:has(main:is([data-page=account],.community-page,.game-guide,.question-workspace)) .page-return {
   margin-top:0; padding-block:10px; border-bottom:var(--line-width) solid var(--ink); justify-content:space-between;
 }
 body:has(.public-header) :is(.solo-page[data-page=account],.community-page,.game-guide) { margin-top:0; padding-top:24px; }
@@ -218,13 +239,26 @@ body:has(.public-header) :is(.solo-page[data-page=account],.community-page,.game
 .friend-row > a { min-width:0; }
 .friend-row .actions { flex:none; }
 .friend-row .actions > * { text-align:center; }
-#profile .profile-links { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); }
+#profile .profile-links { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
 #profile .profile-links a { min-width:0; text-align:center; }
 .result-dialog .actions > * { min-width:0; overflow-wrap:anywhere; }
 .result-dialog .actions { align-items:stretch; }
 body:has(.public-header) #delete-dialog .actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
 body:has(.public-header) .password-toggle { top:2px; bottom:2px; right:2px; min-height:0; height:auto; --control-fill:transparent; --control-radius:4px; }
 .xp-heading > *, .xp-caption > * { min-width:0; overflow-wrap:anywhere; }
+/* Keep the result actions on complete rows, including the fourth Home link.
+ * Sharing and review remain secondary, with equal tap areas on small screens. */
+#summary .result-actions { grid-template-columns:repeat(3,minmax(0,1fr)); }
+#summary .result-actions #another { grid-column:1/-1; min-height:48px; }
+#summary .result-actions > * { min-width:0; }
+#summary #share-result span { max-width:none; }
+#summary .metrics { border-color:var(--ui-divider); }
+#summary #guest-benefits { border-color:var(--ui-divider); }
+#summary .metric strong { font-variant-numeric:tabular-nums; }
+@media(max-width:800px) {
+  #summary { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  #summary #share-result,#summary #result-review { min-height:44px; padding:8px; font-size:12px; }
+}
 .ui-tooltip {
   position:fixed; inset:auto; z-index:100; width:max-content; max-width:min(260px,calc(100vw - 24px));
   margin:0; padding:8px 12px; border:0; border-radius:6px;

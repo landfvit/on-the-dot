@@ -93,7 +93,8 @@ def released_question(item, check, release_id, question_id):
 
 
 def catalog(conn):
-    release = conn.execute('SELECT release_id FROM penalty_bank_releases ORDER BY created_at DESC,release_id DESC LIMIT 1').fetchone()
+    from api.bank_lifecycle import active_releases
+    release = conn.execute('SELECT release_id FROM penalty_bank_releases WHERE release_id=ANY(%s) ORDER BY created_at DESC,release_id DESC LIMIT 1',(active_releases(conn),)).fetchone()
     if not release: return []
     rows = conn.execute('''SELECT section_code,section_name,count(*) AS count,
         count(*) FILTER(WHERE question->>'authority'='database_matched') AS verified_count
@@ -123,6 +124,8 @@ def load_pack(conn, pack):
     from uuid import UUID
     try: release_id = UUID(match[1])
     except ValueError: raise HTTPException(422,'Invalid pack release')
+    from api.bank_lifecycle import active_releases
+    if release_id not in active_releases(conn):raise HTTPException(410,'This question pack is no longer available')
     params = [release_id]
     where = 'release_id=%s'
     if match[2] != 'ALL': where += ' AND section_code=%s'; params.append(match[2])

@@ -19,6 +19,7 @@ from api.trivia_access import require_editor, credential_tag, basic
 from api.sports_query_routes import router as sports_query
 from api.query_training import router as query_training
 from api.trivia_bank_routes import router as trivia_bank
+from api.community_questions import router as community_questions
 from api.player_accounts import router as player_accounts, account, COOKIE as ACCOUNT_COOKIE
 from api.database import get_connection, start_pool, close_pool
 from psycopg_pool import PoolTimeout, TooManyRequests
@@ -81,7 +82,7 @@ app.mount('/trivia-assets', TriviaAssets(directory=ROOT / 'trivia_app' / 'static
     public_files=('app.css','penalties.css','penalty_scene.js','solo.css','solo.js',
                   'stadium.css','stadium_inline.css','stadium_intro.js','stadium_scene.js','stadium_config.js','stadium_v6_world.js','stadium_motion.js','crowd_reaction.js','penalty_shots.js','points_theme.css','redesign.css','home.css','home.js','theme.js','dark_mode.css','icons/sun.svg','icons/moon.svg',
                   'community.css','community.js','shell.js','shootout.css','result_share.js','solo_mobile.css','solo_mobile.js','solo_results.css','friends.js','game_modes.css',
-                  'account_settings.css','account_settings.js','profile.css','xp_progress.css','xp_progress.js','public_ui.css','public_ui.js','question_text.js','social.css','social.js','mode_intro.js',
+                  'account_settings.css','account_settings.js','profile.css','xp_progress.css','xp_progress.js','public_ui.css','public_ui.js','question_text.js','social.css','social.js','mode_intro.js','community_questions.css','community_questions.js',
                   'player_kit.css','player_kit.js','kit_pixels.js','player-kits/catalog.json',
                   'audio.css','audio.js','icons/volume-2.svg','icons/volume-x.svg','icons/monitor.svg','icons/monitor-off.svg',
                   'game_guide.css','game_guide.js','guide/shooter.png','guide/keeper.png','icons/circle-help.svg',
@@ -98,6 +99,7 @@ app.include_router(quizzes,dependencies=[Depends(require_editor)])
 app.include_router(sports_query)
 app.include_router(query_training)
 app.include_router(trivia_bank)
+app.include_router(community_questions)
 app.include_router(player_accounts)
 app.include_router(solo)
 app.include_router(solo_difficulty)
@@ -238,6 +240,16 @@ def friends_page(request:Request,code:str=''):
 @app.get('/account',response_class=HTMLResponse)
 def account_page(request:Request):
     return templates.TemplateResponse(request=request,name='account.html',context={'active_page':'account'})
+
+
+@app.get('/my-questions',response_class=HTMLResponse)
+def my_questions_page(request:Request):
+    return templates.TemplateResponse(request=request,name='community_questions.html',context={'active_page':'questions','review_mode':False})
+
+
+@app.get('/internal/trivia/community-questions',response_class=HTMLResponse,dependencies=[Depends(require_editor)])
+def community_review_page(request:Request):
+    return templates.TemplateResponse(request=request,name='community_questions.html',context={'private_navigation':True,'review_mode':True})
 
 
 @app.get('/how-to-play',response_class=HTMLResponse)

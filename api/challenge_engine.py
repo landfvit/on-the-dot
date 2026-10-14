@@ -102,6 +102,13 @@ def friend_finish(s,now,reason,winner=None):
     s['finished_at']=now
 
 
+def friend_custom_finish(s,now):
+    """A finite custom deck can end in a draw without adding/repeating questions."""
+    winner=None if s['score'][0]==s['score'][1] else int(s['score'][1]>s['score'][0])
+    penalty.finish(s,'FINISHED','custom_questions_complete',winner)
+    s['finished_at']=now
+
+
 def sporting_winner(scores,kicks):
     if max(kicks)<=5:
         for side in (0,1):

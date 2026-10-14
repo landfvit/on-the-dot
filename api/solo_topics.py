@@ -46,11 +46,16 @@ def label(code):
     return 'Mixed topics' if code=='ALL' else TOPICS[code][0]
 
 
-def balanced_sample(rows,topic='ALL',size=10,rng=None):
-    """Round-robin available topics, then shuffle order; never expand the filters."""
+def balanced_sample(rows,topic='ALL',size=10,rng=None,recent=()):
+    """Mix available formats, falling back to topics for older bank metadata."""
     rng=rng or secrets.SystemRandom()
+    eligible=[r for r in rows if SOURCE_TOPIC.get(r['source_topic']) is not None
+              and (topic=='ALL' or SOURCE_TOPIC[r['source_topic']]==topic)]
+    if any(r.get('family') for r in eligible):
+        from api.question_mix import sample
+        return sample(eligible,size=size,rng=rng,recent=recent)
     buckets=defaultdict(list)
-    for row in rows:
+    for row in eligible:
         code=SOURCE_TOPIC.get(row['source_topic'])
         if code is not None and (topic=='ALL' or code==topic):
             buckets[code if topic=='ALL' else row['source_topic']].append(row)

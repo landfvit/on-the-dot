@@ -3,7 +3,7 @@
 {% set mode_title = 'Daily Challenge' if mode == 'daily' else 'Friend Duel' if mode == 'friend' else 'Penalties' %}
 {% block title %}{{ mode_title }} · ON THE DOT.{% endblock %}
 {% block body_class %}stadium-inline{% endblock %}
-{% block presentation_styles %}<link rel="stylesheet" href="/trivia-assets/stadium_inline.css?v=8">{% endblock %}
+{% block presentation_styles %}<link rel="stylesheet" href="/trivia-assets/stadium_inline.css?v=9">{% endblock %}
 {% block page_actions %}{% endblock %}
 {% block game_controls %}<button class="icon-button" type="button" id="motion-toggle" data-nav-slot="play" aria-label="Disable animations" title="Disable animations" aria-pressed="true" hidden><img src="/trivia-assets/icons/monitor.svg" alt=""></button>{% endblock %}
 {% block final_styles %}<link rel="stylesheet" href="/trivia-assets/solo_mobile.css?v=4"><link rel="stylesheet" href="/trivia-assets/solo_results.css?v=2"><link rel="stylesheet" href="/trivia-assets/xp_progress.css?v=1"><link rel="stylesheet" href="/trivia-assets/game_modes.css?v=5">{% endblock %}
@@ -27,10 +27,11 @@
 </div>
 </section>
   <div id="notice" role="status" aria-live="polite"></div><div id="error" role="alert" hidden></div>
+  {% if mode == 'friend' %}<p id="custom-notice" class="muted" hidden></p>{% endif %}
   <div class="solo-penalty-layout"><div class="solo-questions">
   <section id="selection" aria-label="Choose a quiz">
     <nav class="game-mode-tabs" aria-label="Game mode"><a href="/penalties" {% if mode == 'solo' %}aria-current="page"{% endif %}>Solo</a><a href="/daily" {% if mode == 'daily' %}aria-current="page"{% endif %}>Daily Challenge</a><a href="/friends" {% if mode == 'friend' %}aria-current="page"{% endif %}>Friend Duel</a></nav>
-    <section id="mode-auth" hidden><h2>Play with an account</h2><p>Unlock Daily Challenge, save XP and build your streak. Add friends and invite them from your profile.</p><div class="actions"><a id="mode-signin" class="primary-link" href="/account">Sign in</a><a id="mode-register" class="primary-link" href="/account?mode=register">Create account</a></div></section>
+    <section id="mode-auth" hidden><h2>Account required</h2><p>Sign in to play Daily Challenge.</p><div class="actions"><a id="mode-signin" class="primary-link" href="/account">Sign in</a><a id="mode-register" class="primary-link" href="/account?mode=register">Create account</a></div></section>
     <form id="quiz-start" class="quiz-selection">
       <fieldset class="difficulty-options" {% if mode == 'daily' %}hidden{% endif %}><legend>Difficulty</legend>
         <label><input type="radio" name="difficulty" value="easy" checked><span>Easy <small id="easy-rate">10 XP / answer</small><small id="easy-perfect">Win: 2x XP</small></span></label>
@@ -38,8 +39,9 @@
         <label><input type="radio" name="difficulty" value="hard"><span>Hard <small id="hard-rate">30 XP / answer</small><small id="hard-perfect">Win: 4x XP</small></span></label>
       </fieldset>
       <p id="quiz-rules" class="muted" {% if mode != 'daily' %}hidden{% endif %}></p>
-      <p id="trial-note" class="muted" hidden>Guest mode · Progress is not saved</p>
+      {% if mode == 'friend' %}<a href="/my-questions">Create a custom duel</a>{% endif %}
       <p id="availability" class="muted" role="status"></p><p id="weekly-reset" class="muted" hidden></p><button class="primary" id="start" disabled>Start quiz</button>
+      <p id="trial-note" class="muted" hidden>Guest progress is not saved.</p>
     </form>
     {% if mode == 'daily' %}<a class="daily-ranking-link" href="/leaderboard?metric=daily_highscore">Daily high scores <img src="/trivia-assets/icons/arrow-right.svg" alt=""></a>{% endif %}
     {% if mode == 'friend' %}<section id="friend-lobby" hidden aria-labelledby="lobby-title"><h2 id="lobby-title">Invite a friend</h2><p id="lobby-players"></p><p id="lobby-status" role="status"></p><div id="invite-controls"><label for="invite-link">Invitation link</label><div class="invite-link-row"><input id="invite-link" readonly><button id="invite-copy" type="button" title="Copy invitation" aria-label="Copy invitation"><img src="/trivia-assets/icons/copy.svg" alt=""></button><button id="invite-share" type="button" title="Share invitation" aria-label="Share invitation"><img src="/trivia-assets/icons/share-2.svg" alt=""></button></div></div><div class="actions"><button id="friend-join" class="primary" hidden>Join duel</button><button id="friend-ready" class="primary" hidden>Ready to play</button><button id="friend-leave" hidden>Leave duel</button></div></section>{% endif %}
@@ -65,7 +67,7 @@
       <div id="result-level" hidden><div class="xp-heading"><strong id="result-level-label"></strong><span id="result-level-up" role="status" hidden></span></div><progress id="result-level-progress" class="xp-progress" aria-label="Level progress"></progress><div class="xp-caption"><span id="result-level-remaining"></span><span id="result-xp-total"></span></div></div>
       <div class="actions result-actions"><button id="another" class="primary" hidden>New shootout</button><a id="summary-account" class="primary-link" href="/account">View profile</a><a class="primary-link" href="/leaderboard{{ '?metric=daily_highscore' if mode == 'daily' else '' }}">Leaderboard</a><a class="primary-link" href="/">Home</a></div>
       <section id="guest-benefits" class="guest-benefits" aria-labelledby="guest-heading" hidden>
-        <div><h3 id="guest-heading">Make it count</h3><p>Save XP, levels and streaks. Unlock Daily Challenge and add friends. Guest progress stays separate.</p></div>
+        <div><h3 id="guest-heading">Account</h3><p>An account saves future progress and lets you play Daily Challenge. Guest progress is not transferred.</p></div>
         <a class="primary-link" href="/account?mode=register">Create account</a>
       </section>
       {% with ad_slot='shootout-results' %}{% include 'ad_slot.html' %}{% endwith %}
@@ -79,7 +81,7 @@
   <h2 id="mode-intro-title" tabindex="-1"></h2>
   <div class="mode-intro-scenes"><img src="/trivia-assets/guide/shooter.png?v=6" alt="Shooting a penalty in the current pixelart game"><img src="/trivia-assets/guide/keeper.png?v=6" alt="Your goalkeeper holding the saved ball"></div>
   <ul id="mode-intro-rules"></ul>
-  <form method="dialog" class="actions"><button value="cancel">Back</button><button class="primary" value="play">Let's play</button></form>
+  <form method="dialog" class="actions"><button value="cancel">Back</button><button class="primary" value="play">Play</button></form>
 </dialog>
 {% if mode == 'friend' %}
 <dialog id="forfeit-dialog" class="result-dialog" aria-labelledby="forfeit-heading" aria-describedby="forfeit-description">
@@ -107,4 +109,4 @@
   </div>
 </dialog>
 {% endblock %}
-{% block scripts %}<script src="/trivia-assets/penalty_shots.js?v=1" defer></script><script src="/trivia-assets/stadium_intro.js?v=38" defer></script><script src="/trivia-assets/penalty_scene.js?v=6" defer></script><script src="/trivia-assets/xp_progress.js?v=1" defer></script><script src="/trivia-assets/result_share.js?v=3" defer></script><script src="/trivia-assets/mode_intro.js?v=4" defer></script><script src="/trivia-assets/{{ 'friends.js?v=15' if mode == 'friend' else 'solo.js?v=30' }}" defer></script><script src="/trivia-assets/solo_mobile.js?v=2" defer></script>{% endblock %}
+{% block scripts %}<script src="/trivia-assets/penalty_shots.js?v=1" defer></script><script src="/trivia-assets/stadium_intro.js?v=38" defer></script><script src="/trivia-assets/penalty_scene.js?v=6" defer></script><script src="/trivia-assets/xp_progress.js?v=1" defer></script><script src="/trivia-assets/result_share.js?v=3" defer></script><script src="/trivia-assets/mode_intro.js?v=5" defer></script><script src="/trivia-assets/{{ 'friends.js?v=17' if mode == 'friend' else 'solo.js?v=33' }}" defer></script><script src="/trivia-assets/solo_mobile.js?v=2" defer></script>{% endblock %}

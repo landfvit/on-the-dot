@@ -17,8 +17,8 @@
     const locked=teamChangeAt&&Date.parse(teamChangeAt)>Date.now();
     $('add-team').disabled=Boolean(locked);
     $('team-change-note').textContent=locked
-      ?`You can change teams again on ${new Date(teamChangeAt).toLocaleString('en-GB',{timeZone:'UTC',day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})} UTC.`
-      :'After joining, switching or leaving a team, you must wait 3 days before changing again.';
+      ?'You can change teams 3 days after your last change.'
+      :'You can change teams once every 3 days.';
   }
 
   function showProfile(p,own){
@@ -257,12 +257,12 @@
       const count=counts[difficulty()]||0;
       if(daily){
         $('availability').hidden=false;
-        $('availability').textContent=catalogLoading?'Preparing Daily Challenge...':catalogReady&&count<1?'No unused questions remain. Come back after the pool resets.':!catalogReady?'Daily Challenge is not available yet.':rankedAvailable?'First attempt today · Counts towards your high score.':'Practice · Today\'s scored attempt is complete.';
+        $('availability').textContent=catalogLoading?'Loading...':catalogReady&&count<1?'No unused questions. Try again after the weekly reset.':!catalogReady?'Daily Challenge is unavailable.':rankedAvailable?'This attempt counts towards your best score.':'Practice only. Today\'s scored attempt is complete.';
         $('weekly-reset').hidden=!catalogReady;
         $('start').disabled=!catalogReady||count<1||busy;$('start').textContent=rankedAvailable?'Play Daily Challenge':'Play practice';
-        $('trial-note').hidden=true;$('quiz-rules').textContent='3 lives · You only shoot · 15 seconds per answer';return;
+        $('trial-note').hidden=true;$('quiz-rules').textContent='Three lives. You only shoot. 15 seconds per answer.';return;
       }
-      $('availability').textContent=catalogLoading?'Preparing shootout...':!catalogReady?'Could not load shootouts. Refresh to try again.':count>=10?'':'No new shootout at this difficulty right now. Try another difficulty.';
+      $('availability').textContent=catalogLoading?'Loading...':!catalogReady?'Could not load shootouts. Please refresh.':count>=10?'':'No new shootout at this difficulty. Try another.';
       $('availability').hidden=catalogReady&&count>=10;
       $('weekly-reset').hidden=!catalogReady||count>=10||!$('weekly-reset').textContent;
       $('start').disabled=!catalogReady||count<10||busy;$('start').textContent=user?'Start shootout':'Play as guest';
@@ -273,11 +273,11 @@
       catalogReady=false;catalogLoading=true;selection();
       try{
         const catalog=await api(base+'/catalog');
-        if(daily){counts={mixed:catalog.remaining};rules=catalog.rules;rankedAvailable=catalog.ranked_available;catalogReset=Date.parse(catalog.resets_at);$('weekly-reset').textContent='Resets at 00:00 UTC.';catalogReady=true;return;}
+        if(daily){counts={mixed:catalog.remaining};rules=catalog.rules;rankedAvailable=catalog.ranked_available;catalogReset=Date.parse(catalog.resets_at);$('weekly-reset').textContent='One scored attempt each day.';catalogReady=true;return;}
         // Keep eligibility checks internal; every new game uses all clubs and topics.
         counts=catalog.topics.find(t=>t.code==='ALL')?.counts_by_team.ALL||{};rules=catalog.rules;
         catalogReset=catalog.resets_at?Date.parse(catalog.resets_at):Infinity;
-        $('weekly-reset').textContent=catalog.resets_at?`Question pool resets ${catalog.resets_at.slice(0,10)} at 00:00 UTC`:'';
+        $('weekly-reset').textContent=catalog.resets_at?'Questions reset weekly.':'';
         for(const level of ['easy','medium','hard']){
           $(level+'-rate').textContent=`${rules.xp_by_difficulty[level]} XP / answer`;
           $(level+'-perfect').textContent=rules.bonus_mode==='win'?`Win: ${rules.win_multipliers[level]}x XP`:rules.format==='shootout'?`Perfect game: ${rules.perfect_multipliers[level]}x XP`:`10/10: ${10*rules.xp_by_difficulty[level]*rules.perfect_multipliers[level]} XP`;

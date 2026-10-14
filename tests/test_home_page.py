@@ -22,7 +22,7 @@ class HomePageTests(unittest.TestCase):
 
     def test_home_has_meaningful_rules_without_javascript(self):
         html=TestClient(app).get('/').text
-        for text in ('Shoot.','Save.','Win!','Full rules'):
+        for text in ('<h3>Shoot</h3>','<h3>Save</h3>','<h3>Shootout</h3>','Full rules'):
             self.assertIn(text,html)
         self.assertNotIn('class="step-index"',html)
 
@@ -33,12 +33,14 @@ class HomePageTests(unittest.TestCase):
         self.assertNotIn('15 seconds per answer',html)
         self.assertIn('id="tab-daily"',html)
         self.assertIn('id="tab-duel"',html)
+        self.assertIn('<span>Play</span>',html)
+        self.assertNotIn('<span>Play.</span>',html)
 
     def test_explicit_game_and_guide_urls_remain_public(self):
         with patch('trivia_app.main.get_connection') as connection:
             client=TestClient(app,cookies={COOKIE:'unknown-session'})
-            self.assertIn('<h1>Penalties</h1>',client.get('/penalties').text)
-            self.assertIn('<h1>How to play</h1>',client.get('/how-to-play').text)
+            self.assertIn('<h1 class="sr-only">Penalties</h1>',client.get('/penalties').text)
+            self.assertIn('<h1 id="page-title" class="sr-only">How to play</h1>',client.get('/how-to-play').text)
             connection.assert_not_called()
 
     def test_public_pages_have_no_redundant_brand_section_labels(self):
@@ -50,8 +52,8 @@ class HomePageTests(unittest.TestCase):
                 for label in ('class="section-label"','class="eyebrow"','ON THE DOT. /','POINTS /'):
                     self.assertNotIn(label,response.text)
                 self.assertIn('class="brand-mark"',response.text)
-        self.assertIn('<h1>Leaderboard</h1>',client.get('/leaderboard').text)
-        self.assertIn('<h1>Your history</h1>',client.get('/history').text)
+        self.assertIn('<h1 id="page-title" class="sr-only">Leaderboard</h1>',client.get('/leaderboard').text)
+        self.assertIn('<h1 id="page-title" class="sr-only">Your history</h1>',client.get('/history').text)
 
     def test_volume_is_only_in_account_settings_and_other_pages_use_mute(self):
         client=TestClient(app)
@@ -61,7 +63,8 @@ class HomePageTests(unittest.TestCase):
             self.assertNotIn('class="header-sound"',html)
             self.assertNotIn('data-sound-volume',html)
         html=client.get('/account').text
-        self.assertIn('<summary>Sound</summary>',html)
+        self.assertIn('data-profile-dialog="sound-dialog"',html)
+        self.assertIn('id="sound-dialog"',html)
         self.assertIn('data-sound-volume',html)
 
     def test_game_toolbar_replaces_duplicate_metadata_and_score(self):
@@ -71,7 +74,7 @@ class HomePageTests(unittest.TestCase):
             self.assertIn('id="motion-toggle"',html)
             self.assertIn('icons/monitor.svg',html)
             self.assertIn('id="shootout-board"',html)
-            hud=html.split('id="shootout-hud"',1)[1].split('<header class="solo-heading"',1)[0]
+            hud=html.split('id="shootout-hud"',1)[1].split('id="stadium-layer"',1)[0]
             self.assertIn('id="leave"',hud)
             self.assertIn('>Forfeit</button>',hud)
             self.assertEqual(html.count('id="leave"'),1)

@@ -9,6 +9,7 @@ from pydantic import Field
 from psycopg.types.json import Jsonb
 
 from api.database import get_connection
+from api.bank_lifecycle import active_releases
 from api.game_state import checkpoint,progress
 from api import solo_engine as game
 from api.numeric_choices import refresh as refresh_numeric_choices
@@ -16,6 +17,7 @@ from api.player_accounts import account,profile,xp_transition,COOKIE as ACCOUNT_
 from api.solo_trials import trial_player
 from api.solo_history import week_window
 from api import solo_topics as topics
+from api.question_mix import metadata,enrich_deck
 from api.penalty_routes import rate_limit,now_ms
 from api.trivia_models import StrictModel
 from api.trivia_quizzes import same_origin
@@ -41,15 +43,8 @@ class Next(StrictModel):
 
 
 def latest_release(conn):
-    row=conn.execute('SELECT release_id FROM penalty_bank_releases ORDER BY created_at DESC,release_id DESC LIMIT 1').fetchone()
+    row=conn.execute('SELECT release_id FROM penalty_bank_releases WHERE release_id=ANY(%s) ORDER BY created_at DESC,release_id DESC LIMIT 1',(active_releases(conn),)).fetchone()
     return row['release_id'] if row else None
-
-
-def active_releases(conn):
-    rows=conn.execute('''SELECT DISTINCT ON(v.batch_id) r.release_id
-        FROM penalty_bank_releases r JOIN trivia_bank_validation_runs v ON v.run_id=r.validation_run_id
-        ORDER BY v.batch_id,r.created_at DESC,r.release_id DESC''').fetchall()
-    return [r['release_id'] for r in rows]
 
 
 @router.get('/catalog')
@@ -88,11 +83,13 @@ def history(request:Request):
     return {'week_start':week,'resets_at':reset,'days':days}
 
 
-def load_deck(conn,ident,body,now,size=10,exclude=()):
-    week,reset=week_window(now)
+def load_deck(conn,ident,body,now,size=10,exclude=(),recent=()):
+    week,_=week_window(now)
     releases=active_releases(conn)
-    candidates=conn.execute('''SELECT p.question_id,p.section_name,p.question->>'topic' source_topic,d.revision_id
+    candidates=conn.execute('''SELECT p.question_id,p.section_name,p.question->>'topic' source_topic,d.revision_id,
+        b.content->>'family' family,b.content->'evidence' mix_evidence
         FROM penalty_bank_questions p
+        JOIN trivia_bank_questions b USING(question_id)
         JOIN game_current_difficulty d USING(release_id,question_id)
         WHERE p.release_id=ANY(%s) AND d.approved AND d.difficulty=%s AND (%s='ALL' OR p.section_code=%s)
         AND p.question->>'topic'=ANY(%s)
@@ -101,9 +98,9 @@ def load_deck(conn,ident,body,now,size=10,exclude=()):
         ORDER BY p.question_id''',
         (releases,body.difficulty,body.category,body.category,topics.sources(body.topic),ident,week)).fetchall()
     candidates=[r for r in candidates if str(r['question_id']) not in exclude]
-    rows=topics.balanced_sample(candidates,body.topic,size=size)
+    rows=topics.balanced_sample(candidates,body.topic,size=size,recent=recent)
     if len(rows)!=size:
-        raise HTTPException(409,f'No new shootout is available for this selection right now. Try a different difficulty or wait for the weekly reset: {reset:%Y-%m-%d %H:%M} UTC.')
+        raise HTTPException(409,'No new shootout at this difficulty. Try another or wait for the weekly reset.')
     snapshots={r['question_id']:r for r in conn.execute('''SELECT question_id,release_id,question
         FROM penalty_bank_questions WHERE release_id=ANY(%s) AND question_id=ANY(%s)''',
         (releases,[r['question_id'] for r in rows])).fetchall()}
@@ -115,7 +112,7 @@ def load_deck(conn,ident,body,now,size=10,exclude=()):
         for i,o in enumerate(q['options']):
             o['id']=str(i)
             if o is answer:q['correct']=str(i)
-        q.update(release_id=str(snapshot['release_id']),question_id=str(row['question_id']),difficulty_revision=row['revision_id'],allocated_at=now)
+        q.update(release_id=str(snapshot['release_id']),question_id=str(row['question_id']),difficulty_revision=row['revision_id'],allocated_at=now,**metadata(row))
         deck.append(q)
     return deck,{'code':body.category,'label':'All clubs' if body.category=='ALL' else rows[0]['section_name'],
                  'topic_code':body.topic,'topic_label':topics.label(body.topic)}
@@ -220,7 +217,7 @@ def action(run_id,request,command='view',body=None):
                                     difficulty=s['difficulty'],request_id=uuid4())
                     try:
                         extra,_=load_deck(conn,None if user['is_guest'] else user['account_id'],selection,now,size=2,
-                                         exclude={q['question_id'] for q in s['deck']})
+                                         exclude={q['question_id'] for q in s['deck']},recent=enrich_deck(conn,s['deck'][-9:]))
                         s['deck'].extend(extra)
                     except HTTPException as exc:
                         if exc.status_code!=409:raise

@@ -34,7 +34,7 @@
     }
     const noun=teams?'team':'player';
     $('distribution').hidden=!data.participants||selected==='daily_highscore';$('participant-count').textContent=`${number(data.participants)} ${noun}${data.participants===1?'':'s'}`;
-    if(teams)$('team-ranking-note').textContent=selected==='daily_highscore'?'Sum of current members\' personal Daily high scores.':'Totals for XP, levels, streaks and wins. Win rate is the average of members\' win rates.';
+    if(teams)$('team-ranking-note').textContent=selected==='daily_highscore'?'Members\' Daily high scores combined.':'Members\' totals. Win rate averages members who have played.';
     const maximum=Math.max(1,...data.distribution.map(b=>b.count));
     $('distribution-bars').replaceChildren(...data.distribution.map(b=>{
       const col=node('div',undefined,'distribution-column'),bar=node('div',undefined,'distribution-bar');
@@ -42,7 +42,7 @@
       col.append(node('span',number(b.count)),bar,node('small',b.label));
       col.setAttribute('aria-label',`${b.label} XP: ${b.count} ${noun}${b.count===1?'':'s'}`);return col;
     }));
-    $('ranking-period').textContent=selected==='streak'?'All time · current streak · days · UTC':'All time';
+    $('ranking-period').textContent=selected==='streak'?'Current streak in days':'All time';
     $('community-status').textContent=data.participants?'':'No scores yet.';
     return offset+size<data.participants;
   }

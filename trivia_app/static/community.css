@@ -117,7 +117,11 @@ progress::-moz-progress-bar { background:var(--accent); }
 .community-page .period-tabs { display:grid; width:100%; min-width:0; gap:8px; }
 .community-page .period-tabs label { display:block; min-width:0; }
 .community-page .period-tabs span { display:flex; align-items:center; justify-content:center; height:100%; min-height:48px; padding:10px 12px; line-height:1.3; font-size:13px; text-align:center; }
-.ranking-tabs { grid-template-columns:repeat(3,minmax(0,1fr)); margin-bottom:24px; }
+.ranking-tabs { grid-template-columns:repeat(6,minmax(0,1fr)); grid-auto-rows:1fr; margin-bottom:24px; }
+.community-page .ranking-tabs span { padding:8px; }
+body:has(.public-header) .ranking-table td { border-top:1px solid var(--ui-divider); }
+.ranking-table th { font-size:12px; }
+.ranking-table tbody tr:hover td { background:var(--surface-raised); }
 .ranking-table td:nth-child(2)>span { font-weight:750; overflow-wrap:anywhere; }
 #team-ranking-note { font-size:13px; line-height:1.6; margin:0 0 20px; }
 .board-tabs { grid-template-columns:repeat(2,minmax(0,1fr)); border:0; padding:0; margin:24px 0 16px; }
@@ -133,5 +137,5 @@ progress::-moz-progress-bar { background:var(--accent); }
   .ranking-table th:last-child { width:90px; }
 }
 @media(max-width:600px) {
-  .ranking-tabs { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .ranking-tabs { grid-template-columns:repeat(3,minmax(0,1fr)); }
 }

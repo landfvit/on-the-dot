@@ -118,7 +118,7 @@
     }).catch(()=>{stadium.leave();if(terminal(room)){$('question-panel').hidden=true;$('summary').hidden=false;}});
   }
   function summary(s){
-    $('result-heading').textContent=s.winner===null?'Duel ended':s.winner===s.me?'You won the duel!':`${playerName(s,s.winner)} wins`;
+    $('result-heading').textContent=s.winner===null?(s.reason==='custom_questions_complete'?'Draw':'Duel ended'):s.winner===s.me?'You won the duel!':`${playerName(s,s.winner)} wins`;
     const reason={resigned:'Forfeit',disconnect_forfeit:'Connection forfeit',inactivity:'Inactivity',time_limit:'Session expired',question_pool_exhausted:'No unused questions remain'}[s.reason];
     $('result-completion').textContent=`${s.score[s.me]} : ${s.score[1-s.me]}${reason?' · '+reason:''}`;
     const entries=[[`${s.stats[s.me].correct} / ${s.history.length}`,'Correct answers'],['Friendly','No XP or rating']];
@@ -132,6 +132,7 @@
   function render(s){
     if(room&&room.run_id===s.run_id&&s.server_now<room.server_now)return;
     room=s;offset=s.server_now-Date.now();
+    customNotice(s);
     stadium?.setOutfits?.(s.players[s.me]?.outfit,s.players[1-s.me]?.outfit);
     updateClock();
     if(terminal(s)&&$('forfeit-dialog').open)$('forfeit-dialog').close();
@@ -237,6 +238,7 @@
     try{await navigator.share({title:'ON THE DOT. | Friend Duel',text:'Join my penalty shootout.',url:$('invite-link').value});}catch(e){if(e.name!=='AbortError')error('Could not share. Copy the invitation link instead.');}
   });
   $('another').addEventListener('click',()=>{
+    customNotice({});
     presentation++;stadium?.leave();remember('');room=null;role=null;lastDecision=null;entered=finished=introducing=false;renderKey='';animated.clear();sharing.reset();
     page.classList.remove('shootout-active','shootout-finished');$('shootout-board').hidden=true;$('quiz-run').hidden=true;$('selection').hidden=false;$('friend-lobby').hidden=true;$('quiz-start').hidden=false;error();
   });
@@ -250,6 +252,11 @@
     if(active&&remaining===0)for(const b of $('choices').children)b.disabled=true;
   }
   setInterval(updateClock,100);
+  function customNotice(s){
+    const el=$('custom-notice');if(!el)return;
+    el.hidden=!s.custom_count;
+    el.textContent=s.custom_count?`${s.custom_count} unverified questions from the host. ${s.bank_fallback?'Bank questions follow if needed.':'A tie after the last question ends in a draw.'} No XP or rating.`:'';
+  }
   async function init(){
     page.classList.toggle('friend-motion-off',globalThis.PointsPreferences?.get?.().animations===false||globalThis.PointsPreferences?.get?.().reduced_motion===true);
     $('start').textContent='Create invitation';$('quiz-rules').textContent='5 penalties each · 15 seconds · No XP or rating';$('availability').hidden=true;
@@ -258,10 +265,11 @@
     if(!code){const active=await api('friends/active');if(active.code)remember(active.code);}
     if(code){
       const invite=await api('friends/invites/'+encodeURIComponent(code));
+      customNotice(invite);
       if(invite.member){await refresh();return;}
       $('quiz-start').hidden=true;$('friend-lobby').hidden=false;$('invite-controls').hidden=true;
       $('lobby-title').textContent=invite.host+' invited you';$('lobby-players').textContent=invite.difficulty+' · Friend Duel';
-      $('lobby-status').textContent=invite.joinable?'No XP, rating or Solo stats are affected.':'This invitation is no longer available.';
+      $('lobby-status').textContent=invite.joinable?'No XP, rating or changes to Solo stats.':'This invitation is no longer available.';
       $('friend-join').hidden=!invite.joinable;
     }else $('start').disabled=false;
   }

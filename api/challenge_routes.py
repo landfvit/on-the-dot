@@ -6,9 +6,11 @@ from typing import Literal
 from uuid import UUID,uuid4
 
 from fastapi import APIRouter,Depends,HTTPException,Request,Response
+from pydantic import Field
 from psycopg.types.json import Jsonb
 
 from api.database import get_connection
+from api.bank_lifecycle import retired_releases,retirement_key
 from api.game_state import checkpoint,progress,QuestionWindow
 from api.player_accounts import account,profile,xp_transition,COOKIE as ACCOUNT_COOKIE
 from api.player_kits import outfit
@@ -18,6 +20,7 @@ from api.solo_routes import active_releases,Answer,Next
 from api.solo_history import week_window
 from api.solo_topics import sources
 from api.numeric_choices import refresh as refresh_choices
+from api.question_mix import sample as mixed_sample,metadata,enrich_deck
 from api.trivia_models import StrictModel
 from api.trivia_quizzes import same_origin
 from api import challenge_engine as game
@@ -44,6 +47,8 @@ class Start(StrictModel):
 
 class FriendStart(Start):
     difficulty:Literal['easy','medium','hard']='medium'
+    question_ids:list[UUID]=Field(default_factory=list,max_length=100)
+    bank_fallback:bool=False
 
 
 def day_window(now):
@@ -53,8 +58,10 @@ def day_window(now):
 
 
 def candidates(conn):
-    return conn.execute('''SELECT DISTINCT ON(p.question_id) p.question_id,p.release_id,d.revision_id,d.difficulty
+    return conn.execute('''SELECT DISTINCT ON(p.question_id) p.question_id,p.release_id,d.revision_id,d.difficulty,
+        p.question->>'topic' source_topic,b.content->>'family' family,b.content->'evidence' mix_evidence
         FROM penalty_bank_questions p JOIN game_current_difficulty d USING(release_id,question_id)
+        JOIN trivia_bank_questions b USING(question_id)
         WHERE p.release_id=ANY(%s) AND d.approved AND p.question->>'topic'=ANY(%s)
         ORDER BY p.question_id,d.revision_id DESC''',(active_releases(conn),sources('ALL'))).fetchall()
 
@@ -75,10 +82,10 @@ def snapshots(conn,rows):
             o['id']=str(i)
             if o is answer:q['correct']=str(i)
         q.update(question_id=str(row['question_id']),release_id=str(row['release_id']),
-                 difficulty=meta['difficulty'],difficulty_revision=meta['revision_id'])
+                 difficulty=meta['difficulty'],difficulty_revision=meta['revision_id'],**metadata(meta))
         deck.append(q)
-    RANDOM.shuffle(deck)
-    return deck
+    by_id={q['question_id']:q for q in deck}
+    return [by_id[str(row['question_id'])] for row in rows]
 
 
 def used_questions(conn,identities,now):
@@ -91,11 +98,11 @@ def daily_pool(conn,now):
     day,reset=day_window(now)
     # Existing pools are immutable: readers must not queue behind every start.
     row=conn.execute('SELECT deck,version FROM game_daily_pools WHERE day=%s',(day,)).fetchone()
-    if row and row['version']==2:return row['deck'],day,reset
+    if row and row['version']==2:return current_daily_pool(conn,row['deck'],day),day,reset
     # Only creation/legacy upgrades serialize, with a recheck under the lock.
     conn.execute('SELECT pg_advisory_xact_lock(%s,%s)',(47001,day.toordinal()))
     row=conn.execute('SELECT deck,version FROM game_daily_pools WHERE day=%s',(day,)).fetchone()
-    if row and row['version']==2:return row['deck'],day,reset
+    if row and row['version']==2:return current_daily_pool(conn,row['deck'],day),day,reset
     existing=row['deck'] if row else []
     ids={q['question_id'] for q in existing}
     eligible=[r for r in candidates(conn) if str(r['question_id']) not in ids]
@@ -105,7 +112,26 @@ def daily_pool(conn,now):
     if not deck:raise HTTPException(503,'Daily Challenge is unavailable: no approved questions.')
     if row:conn.execute('UPDATE game_daily_pools SET deck=%s,version=2 WHERE day=%s',(Jsonb(deck),day))
     else:conn.execute('INSERT INTO game_daily_pools(day,deck,version) VALUES(%s,%s,2)',(day,Jsonb(deck)))
-    return deck,day,reset
+    return current_daily_pool(conn,deck,day),day,reset
+
+
+def current_daily_pool(conn,deck,day):
+    """Cache a new shared pool after retirement without changing past attempts."""
+    retired=retired_releases(conn)
+    if not any(q.get('release_id') in retired for q in deck):return deck
+    key=retirement_key(retired)
+    def cached():
+        return conn.execute('SELECT deck FROM game_daily_bank_pools WHERE day=%s AND bank_key=%s',(day,key)).fetchone()
+    row=cached()
+    if row:return row['deck']
+    conn.execute('SELECT pg_advisory_xact_lock(%s,%s)',(47001,day.toordinal()))
+    row=cached()
+    if row:return row['deck']
+    eligible=candidates(conn)
+    if not eligible:raise HTTPException(503,'Daily Challenge is unavailable: no approved questions.')
+    replacement=snapshots(conn,RANDOM.sample(eligible,min(len(eligible),1000)))
+    conn.execute('INSERT INTO game_daily_bank_pools(day,bank_key,deck) VALUES(%s,%s,%s)',(day,key,Jsonb(replacement)))
+    return replacement
 
 
 def ensure_free(conn,ident,except_run=None):
@@ -124,7 +150,9 @@ def mark_seen(conn,row,now):
     if not position:return
     opened=s['opened_at'] if row['mode']=='daily' else s['round']['opens_at']
     if not opened:return
-    q=s['deck'][position-1];week,_=week_window(opened);day,_=day_window(opened)
+    q=s['deck'][position-1]
+    if q.get('custom'):return
+    week,_=week_window(opened);day,_=day_window(opened)
     for m in conn.execute('SELECT account_id FROM game_mode_members WHERE run_id=%s',(row['run_id'],)).fetchall():
         conn.execute('''INSERT INTO game_mode_seen(account_id,week_start,day,question_id,release_id,run_id,position)
             VALUES(%s,%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING''',
@@ -224,7 +252,7 @@ def daily_start(body:Start,request:Request):
             rows=[q for q in candidates(conn) if str(q['question_id']) not in used]
             deck=snapshots(conn,RANDOM.sample(rows,min(len(rows),1000)))
         if not deck:raise HTTPException(409,'No unused questions remain. Try again after the question pool resets.')
-        RANDOM.shuffle(deck)
+        deck=mixed_sample(enrich_deck(conn,deck),size=len(deck),rng=RANDOM)
         state=game.daily_create(deck,now,int(reset.timestamp()*1000),ranked=ranked)
         row=conn.execute('''INSERT INTO game_mode_runs(run_id,mode,owner_id,start_request_id,day,state)
             VALUES(%s,'daily',%s,%s,%s,%s) RETURNING *''',(uuid4(),ident,body.request_id,day,Jsonb(state))).fetchone()
@@ -271,7 +299,9 @@ def daily_leave(run_id:UUID,request:Request):return daily_action(run_id,request,
 
 def friend_public(row,user,now):
     result={**game.penalty.view(row['state'],str(user['account_id']),now),'code':row['invite'],
-            'run_id':str(row['run_id']),'difficulty':row['state']['difficulty'],'xp_saved':False,'is_guest':user['is_guest']}
+            'run_id':str(row['run_id']),'difficulty':row['state']['difficulty'],'xp_saved':False,'is_guest':user['is_guest'],
+            'custom_count':len(row['state']['rules'].get('custom_question_ids',[])),
+            'bank_fallback':row['state']['rules'].get('bank_fallback',False)}
     for shown,frozen in zip(result['players'],row['state']['players']):
         shown['is_guest']=frozen.get('is_guest',False)
         shown['outfit']=frozen.get('outfit')
@@ -286,10 +316,12 @@ def friend_identity(conn,request,*,response=None,create=False,lock=False):
 
 
 def replenish(conn,s,ids,now):
+    if s['rules'].get('custom_question_ids') and not s['rules'].get('bank_fallback'):return False
     used=used_questions(conn,ids,now)|{q['question_id'] for q in s['deck']}
     rows=[r for r in candidates(conn) if r['difficulty']==s['difficulty'] and str(r['question_id']) not in used]
     if not rows:return False
-    s['deck'].extend(snapshots(conn,RANDOM.sample(rows,min(50,len(rows)))))
+    s['deck'].extend(snapshots(conn,mixed_sample(rows,size=min(50,len(rows)),rng=RANDOM,
+                                              recent=enrich_deck(conn,s['deck'][-9:]))))
     return True
 
 
@@ -300,12 +332,18 @@ def friend_create(body:FriendStart,request:Request,response:Response):
         user=friend_identity(conn,request,response=response,create=True,lock=True);ident=user['account_id'];now=now_ms(conn)
         row=conn.execute('SELECT * FROM game_mode_runs WHERE owner_id=%s AND start_request_id=%s',(ident,body.request_id)).fetchone()
         if row:
-            if row['mode']!='friend' or row['state']['difficulty']!=body.difficulty:raise HTTPException(409,'Request ID already used')
+            if row['mode']!='friend' or row['state']['difficulty']!=body.difficulty or row['state']['rules'].get('custom_question_ids',[])!=[str(i) for i in body.question_ids] or bool(row['state']['rules'].get('bank_fallback'))!=bool(body.question_ids and body.bank_fallback):raise HTTPException(409,'Request ID already used')
             return friend_public(row,user,now)
         ensure_free(conn,ident)
         s=game.friend_create(str(ident),'Friend' if user['is_guest'] else user['username'],body.difficulty,now)
         s['players'][0]['is_guest']=user['is_guest']
         s['players'][0]['outfit']=outfit(user)
+        if body.question_ids:
+            if user['is_guest']:raise HTTPException(401,'Sign in to create a custom question duel.')
+            from api.community_questions import private_deck
+            s['deck']=private_deck(conn,ident,body.question_ids)
+            s['rules']['custom_question_ids']=[str(i) for i in body.question_ids]
+            s['rules']['bank_fallback']=body.bank_fallback
         s['first']=s['shooter']=secrets.randbelow(2)
         row=conn.execute('''INSERT INTO game_mode_runs(run_id,mode,owner_id,start_request_id,invite,state)
             VALUES(%s,'friend',%s,%s,%s,%s) RETURNING *''',(uuid4(),ident,body.request_id,secrets.token_urlsafe(32),Jsonb(s))).fetchone()
@@ -332,6 +370,8 @@ def friend_invite(code:str,request:Request):
         member=user and conn.execute('SELECT 1 FROM game_mode_members WHERE run_id=%s AND account_id=%s',(row['run_id'],user['account_id'])).fetchone()
         now=now_ms(conn);s=row['state']
         return {'member':bool(member),'host':s['players'][0]['name'],'difficulty':s['difficulty'],
+                'custom_count':len(s['rules'].get('custom_question_ids',[])),
+                'bank_fallback':s['rules'].get('bank_fallback',False),
                 'joinable':not member and s['phase']=='LOBBY' and len(s['players'])==1 and now-s['created_at']<s['rules']['max_match_ms']}
 
 
@@ -370,7 +410,9 @@ def friend_action(code,request,command='view',body=None,response=None):
                 other=next((i for i,p in enumerate(s['players']) if p['id']!=pid),None)
                 game.friend_finish(s,now,'resigned',other)
             if s['phase']=='RESOLVED' and now>=s['round']['next_at'] and all(now-p['seen']<8000 for p in s['players']):
-                if s['cursor']>=len(s['deck']) and not replenish(conn,s,ids,now):game.friend_finish(s,now,'question_pool_exhausted')
+                if s['cursor']>=len(s['deck']) and not replenish(conn,s,ids,now):
+                    if s['rules'].get('custom_question_ids'):game.friend_custom_finish(s,now)
+                    else:game.friend_finish(s,now,'question_pool_exhausted')
                 else:game.penalty.schedule(s,now)
         except (game.penalty.GameError,HTTPException) as exc:failure=exc
         persist(conn,row,now,before)

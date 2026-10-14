@@ -50,13 +50,13 @@ class GameGuideTests(unittest.TestCase):
         html = TestClient(app).get('/how-to-play').text
         for text in ('No gameplay bonuses', "Your stats count towards your club's ranking",
                      'Change teams once every 3 days',
-                     'Solo and Friend Duels need no account', 'until Monday',
+                     'Solo and Friend Duels need no account', 'weekly reset',
                      'Finish Solo or Daily without timeouts', 'Forfeiting counts as a loss',
-                     'First attempt counts, even if you quit', 'Later runs are practice',
-                     'Rankings use your all time best', 'three lives',
-                     'Correct answers earn XP, including practice', 'No win bonus',
-                     'Resets at midnight UTC'):
+                     'first attempt each day counts, even if you quit', 'Later runs are practice',
+                     'Rankings use your best score', 'three lives',
+                     'Correct answers earn XP, including practice', 'No win bonus'):
             self.assertIn(text, html)
+        self.assertNotRegex(html, r'UTC|midnight|00:00')
         self.assertIn('/how-to-play#teams', TestClient(app).get('/account').text)
         self.assertIn('class="game-rules-link"', TestClient(app).get('/penalties').text)
 
@@ -65,15 +65,15 @@ class GameGuideTests(unittest.TestCase):
         for path in ('/how-to-play',):
             with self.subTest(path=path):
                 html = client.get(path).text
-                self.assertIn('Easy, Medium or Hard.', html)
-                self.assertIn('Mixed teams and topics.', html)
+                self.assertIn('Easy, Medium or Hard', html)
+                self.assertIn('mixed teams and topics', html)
                 self.assertNotIn('Team / scope', html)
                 self.assertNotIn('Question availability:', html)
 
     def test_kit_guide_explains_own_team_number_and_role(self):
         html = TestClient(app).get('/how-to-play').text
         for text in ('Your kit and number', "your team's kit", 'number from 1 to 99',
-                     'Your kit follows you when shooting or saving, including duels'):
+                     'You wear your kit when shooting or saving, including duels'):
             self.assertIn(text, html)
 
     def test_game_selection_only_offers_difficulty_and_no_question_counts(self):

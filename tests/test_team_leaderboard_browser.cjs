@@ -111,7 +111,7 @@ const profile={username:'long_username_for_test',email:'example@example.com',bio
    console.log(`PASS ${width}: all-time metrics, full-width controls, green charts, both themes and 25-row pagination`);
   }
   locked=true;await page.goto(origin+'/account');await page.waitForSelector('#own-profile:not([hidden])');
-  assert(await page.locator('#add-team').isDisabled());assert.match(await page.locator('#team-change-note').textContent(),/change teams again.*UTC/);
+  assert(await page.locator('#add-team').isDisabled());assert.equal(await page.locator('#team-change-note').textContent(),'You can change teams 3 days after your last change.');
   await page.screenshot({path:`${output}/team-cooldown.png`,fullPage:true});
   locked=false;await page.reload();await page.waitForSelector('#own-profile:not([hidden])');assert(await page.locator('#add-team').isEnabled());
   await page.locator('#add-team').click();await page.waitForSelector('#team-edit:not([hidden])');assert.equal(await page.locator('#team-options input').count(),3);

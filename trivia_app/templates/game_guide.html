@@ -5,7 +5,7 @@
 {% block content %}
 <main class="game-guide" aria-labelledby="page-title">
   <h1 id="page-title" class="sr-only">How to play</h1>
-  <p class="guide-intro">One question. One penalty. {{ rules.answer_ms // 1000 }} seconds to answer.</p>
+  <p class="guide-intro">You have {{ rules.answer_ms // 1000 }} seconds to answer.</p>
   <nav class="guide-jump" aria-label="Game rules"><a href="#shootout">Solo</a><a href="#daily">Daily Challenge</a><a href="#friends">Friend Duel</a><a href="#rewards">XP and streaks</a><a href="#teams">Your team</a></nav>
 
   <section id="shootout" class="guide-section" aria-labelledby="shootout-title">
@@ -18,7 +18,7 @@
         <figcaption><h3>Save</h3><p>Answer correctly to save.</p></figcaption>
       </figure>
     </div>
-    <p>Take turns shooting and saving. Wrong answers or timeouts lose the penalty.</p>
+    <p>Take turns shooting and saving. Wrong or late answers lose the penalty.</p>
     <p>{{ rules.initial_kicks }} kicks each, then sudden death if tied. An unbeatable lead ends it early.</p>
     <fieldset class="guide-scenarios" hidden><legend class="sr-only">Shootout examples</legend>
       {% for example in examples %}<label><input type="radio" name="guide-scenario" value="{{ example.code }}" aria-controls="example-{{ example.code }}" {% if loop.first %}checked{% endif %}><span>{{ example.title }}</span></label>{% endfor %}
@@ -44,35 +44,35 @@
 
   <section id="rewards" class="guide-section" aria-labelledby="rewards-title">
     <h2 id="rewards-title">XP and streaks</h2>
-    <p>Earn XP to level up. Solo wins multiply it.</p>
+    <p>Correct answers earn XP. Solo wins multiply it.</p>
     <table class="guide-rewards"><caption class="sr-only">XP rewards by difficulty</caption><thead><tr><th scope="col">Difficulty</th><th scope="col">Correct answer</th><th scope="col">Win multiplier</th></tr></thead><tbody>
       {% for difficulty in ['easy','medium','hard'] %}<tr><th scope="row">{{ difficulty|title }}</th><td>{{ rules.xp_by_difficulty[difficulty] }} XP</td><td>{{ rules.win_multipliers[difficulty] }} times</td></tr>{% endfor %}
     </tbody></table>
     <p>You keep base XP even if you lose.</p>
     <div class="guide-progress-rules">
       <section><h3>Daily streak</h3><div class="guide-streak" aria-label="Example of a streak lasting three days">{% for day in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] %}<span><i class="{{ 'complete' if loop.index <= 3 else '' }}" aria-hidden="true"></i>{{ day }}</span>{% endfor %}</div>
-        <p>Finish Solo or Daily without timeouts each day. Winning is optional. Resets at midnight UTC.</p></section>
-      <section><h3>Fresh questions</h3><p>Easy, Medium or Hard. Mixed teams and topics. No repeats for registered players until Monday.</p></section>
+        <p>Finish Solo or Daily without timeouts each day. You do not need to win.</p></section>
+      <section><h3>Questions</h3><p>Easy, Medium or Hard, with mixed teams and topics. For registered players, used questions return after the weekly reset.</p></section>
     </div>
-    <div class="guide-guest"><h3>Save your progress</h3><p>Solo and Friend Duels need no account. Register to save progress, unlock Daily Challenge and add friends.</p><a href="/account?mode=register">Create account</a></div>
+    <div class="guide-guest"><h3>Account</h3><p>Solo and Friend Duels need no account. An account saves your progress and lets you play Daily Challenge.</p><a href="/account?mode=register">Create account</a></div>
   </section>
 
   <section id="daily" class="guide-section" aria-labelledby="daily-title">
     <h2 id="daily-title">Daily Challenge</h2>
-    <p>Score goals with three lives. Wrong answers or timeouts cost a life.</p>
+    <p>You only shoot, with three lives. Wrong or late answers cost a life.</p>
     <figure class="guide-daily-example">
       <div class="guide-scoreboard daily-survival-board" role="img" aria-label="This example shows 8 goals with two lives remaining and one life lost.">
         <div class="shootout-team" aria-hidden="true"><span>Goals</span><strong>8</strong><div class="shootout-kicks"><i class="daily-life remaining"></i><i class="daily-life remaining"></i><i class="daily-life lost"></i></div></div>
       </div>
       <figcaption>The third mistake ends your run.</figcaption>
     </figure>
-    <p>First attempt counts, even if you quit. Later runs are practice. Resets at midnight UTC.</p>
-    <p>Registered players only. Mixed difficulty. Correct answers earn XP, including practice. No win bonus. Rankings use your all time best.</p>
+    <p>Your first attempt each day counts, even if you quit. Later runs are practice. Rankings use your best score.</p>
+    <p>Account required. Mixed difficulty. Correct answers earn XP, including practice. No win bonus.</p>
     <a class="primary-link" href="/daily">Play Daily Challenge</a>
   </section>
 
   <section id="friends" class="guide-section" aria-labelledby="friends-title">
-    <h2 id="friends-title">Challenge a friend</h2>
+    <h2 id="friends-title">Friend Duel</h2>
     <p>Share an invite link. Both press <strong>Ready</strong> and answer the same question. No account, XP or rating.</p>
     <table class="guide-rewards"><caption class="sr-only">Friend Duel answer rules</caption><thead><tr><th>Shooter</th><th>Keeper</th><th>Result</th></tr></thead><tbody>
       <tr><td>Correct</td><td>Incorrect</td><td>Goal</td></tr><tr><td>Incorrect</td><td>Correct</td><td>Save</td></tr>
@@ -86,7 +86,7 @@
   </section>
 
   <section id="teams" class="guide-section" aria-labelledby="teams-title">
-    <h2 id="teams-title">Your team, your look</h2>
+    <h2 id="teams-title">Team and kit</h2>
     <div class="guide-team-steps">
       <figure>
         <div class="guide-club-example" role="img" aria-label="Hull City is selected from six club badges.">
@@ -95,7 +95,7 @@
           </div>
           <div class="guide-team-identity" aria-hidden="true"><img src="/trivia-assets/clubs/64.png" width="32" height="32" alt=""><strong>Hull City</strong></div>
         </div>
-        <figcaption><h3>Join your club</h3><p>In <strong>Profile</strong>, choose <strong>Add team</strong>, then <strong>Join team</strong>.</p></figcaption>
+        <figcaption><h3>Choose a team</h3><p>In <strong>Profile</strong>, choose <strong>Add team</strong>, then <strong>Join team</strong>.</p></figcaption>
       </figure>
       <figure>
         <div class="guide-kit-example" role="img" aria-label="Hull City's three pixelart kits, with the home kit selected and number 27 on the back.">
@@ -109,7 +109,7 @@
         <figcaption><h3>Your kit and number</h3><p>Pick your team's kit and a number from 1 to 99. Press <strong>Save kit</strong>.</p></figcaption>
       </figure>
     </div>
-    <p>Your kit follows you when shooting or saving, including duels.</p>
+    <p>You wear your kit when shooting or saving, including duels.</p>
     <p>Your stats count towards your club's ranking. Change teams once every 3 days. No gameplay bonuses.</p>
     <a class="primary-link" href="/account">Open profile</a>
   </section>

@@ -31,7 +31,7 @@ class StadiumAssetsTests(unittest.TestCase):
     def test_only_explicitly_allowed_game_assets_are_public(self):
         client = TestClient(app)
         for filename in ('stadium.css', 'stadium_inline.css', 'stadium_intro.js', 'stadium_scene.js', 'stadium_config.js', 'stadium_v6_world.js', 'stadium_motion.js', 'points_theme.css', 'penalty_shots.js', 'result_share.js', 'solo_results.css', 'icons/copy.svg', 'icons/download.svg',
-                         'kit_pixels.js','player_kit.js','player_kit.css','player-kits/catalog.json','question_text.js',
+                         'kit_pixels.js','player_kit.js','player_kit.css','player-kits/catalog.json','question_text.js','classic_ball.js','game_exit.js',
                          'vendor/three/three.module.min.js', 'vendor/three/three.core.min.js', 'vendor/three/LICENSE'):
             with self.subTest(filename=filename):
                 self.assertEqual(client.get('/trivia-assets/' + filename).status_code, 200)
@@ -41,7 +41,7 @@ class StadiumAssetsTests(unittest.TestCase):
     def test_retry_namespace_serves_the_same_public_dependency_graph(self):
         client=TestClient(app)
         for filename in ('stadium_scene.js','stadium_config.js','stadium_v6_world.js',
-                         'stadium_motion.js','crowd_reaction.js','kit_pixels.js','vendor/three/three.module.min.js',
+                         'stadium_motion.js','crowd_reaction.js','kit_pixels.js','classic_ball.js','vendor/three/three.module.min.js',
                          'vendor/three/three.core.min.js'):
             with self.subTest(filename=filename):
                 original=client.get('/trivia-assets/'+filename)
@@ -52,3 +52,11 @@ class StadiumAssetsTests(unittest.TestCase):
         for path in ('_retry/2/writer.js','_retry/2/bank.js','_retry/2/../writer.js',
                      '_retry/2/%2e%2e%2fwriter.js','_retry/0/stadium_scene.js','_retry/no/stadium_scene.js'):
             self.assertNotEqual(client.get('/trivia-assets/'+path).status_code,200)
+
+    def test_exit_handler_loads_before_each_game_controller(self):
+        client=TestClient(app)
+        for path,controller in (('/penalties','solo.js'),('/daily','solo.js'),('/friends','friends.js')):
+            with self.subTest(path=path):
+                html=client.get(path).text
+                self.assertIn('game_exit.js?v=1',html)
+                self.assertLess(html.index('game_exit.js'),html.index(controller))

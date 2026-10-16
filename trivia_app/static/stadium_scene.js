@@ -4,7 +4,7 @@
  */
 import * as THREE from './vendor/three/three.module.min.js';
 import {STADIUM,COMPACT_STADIUM} from './stadium_config.js?v=28';
-import {createStadiumWorld} from './stadium_v6_world.js?v=30';
+import {createStadiumWorld} from './stadium_v6_world.js?v=31';
 import {ballistic,bounceHeight} from './stadium_motion.js';
 import {reactionForShot} from './crowd_reaction.js?v=1';
 
@@ -43,7 +43,9 @@ export function createStadium(host,framing,onFailure,onReveal=()=>{},{compatibil
     const {ball,keeperRig,strikerRig}=world,shooter=strikerRig.group,keeper=keeperRig.group;
     function focus(amount) { onReveal(amount); }
     function render() {
-        if(disposed)return;
+        // Outfits may arrive before ResizeObserver has framed the camera.
+        // Projecting the pitch from the initial origin would produce NaNs.
+        if(disposed||!viewport)return;
         if(renderer.getContext().isContextLost())throw new Error('WebGL context lost');
         world.shadows();
         world.prepareFrame(camera,renderer.domElement.height);

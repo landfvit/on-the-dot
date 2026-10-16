@@ -107,6 +107,35 @@ class ChallengeEngineTests(unittest.TestCase):
         self.assertEqual(s['phase'],'ABANDONED');self.assertIsNone(s['winner'])
         self.assertEqual(s['attempts'],[0,0])
 
+    def test_disconnect_also_finishes_lobby_and_countdown(self):
+        for phase in ('LOBBY','COUNTDOWN','ANSWERING','RESOLVED'):
+            for offline in (0,1):
+                with self.subTest(phase=phase,offline=offline):
+                    s=self.friend();s['phase']=phase
+                    s['players'][1-offline]['seen']=32000
+                    g.friend_tick(s,32000)
+                    self.assertEqual(s['phase'],'FINISHED')
+                    self.assertEqual(s['winner'],1-offline)
+                    self.assertEqual(s['reason'],'disconnect_forfeit')
+                    frozen=deepcopy(s);g.friend_tick(s,33000)
+                    self.assertEqual(s,frozen)
+
+    def test_unjoined_invitation_expires_without_awarding_a_nonexistent_player(self):
+        s=g.friend_create('a','Alice','easy',1000)
+        g.friend_tick(s,31000)
+        self.assertEqual(s['phase'],'LOBBY')
+        g.friend_tick(s,31001)
+        self.assertEqual(s['phase'],'ABANDONED')
+        self.assertIsNone(s['winner'])
+
+    def test_connected_lobby_remains_open(self):
+        s=g.friend_create('a','Alice','easy',1000)
+        g.penalty.join(s,'b','Bob',1000)
+        for now in range(1000,90000,1000):
+            for player in s['players']:player['seen']=now
+            g.friend_tick(s,now)
+        self.assertEqual(s['phase'],'LOBBY')
+
     def test_daily_exhaustion_and_exact_xp(self):
         s=g.daily_create(deck(3),1000,100000)
         for i in range(3):

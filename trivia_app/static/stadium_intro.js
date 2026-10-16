@@ -48,7 +48,7 @@
             // Change the whole relative import graph, not just the entry URL:
             // Safari also caches failed world/config/Three.js dependencies.
             const prefix=loadAttempt++?`./_retry/${loadAttempt}/`:'./';
-            const pending=Promise.all([import(`${prefix}stadium_scene.js?v=36`), import(`${prefix}stadium_config.js?v=28`)]);
+            const pending=Promise.all([import(`${prefix}stadium_scene.js?v=37`), import(`${prefix}stadium_config.js?v=28`)]);
             modules=pending;
             pending.catch(()=>{if(modules===pending)modules=null;});
         }

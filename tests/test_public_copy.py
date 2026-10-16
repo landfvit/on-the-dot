@@ -64,4 +64,4 @@ class PublicCopyTests(unittest.TestCase):
     def test_shared_public_script_uses_the_same_new_cache_version(self):
         client = TestClient(app)
         for path in ('/account', '/penalties', '/daily'):
-            self.assertIn('/trivia-assets/solo.js?v=33', client.get(path).text)
+            self.assertIn('/trivia-assets/solo.js?v=34', client.get(path).text)

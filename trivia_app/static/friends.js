@@ -8,6 +8,7 @@
   const node=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
   let code=page.dataset.invite,user=null,room=null,busy=false,polling=false,offset=0,renderKey='',startRequest=null,pending=null;
   let entered=false,introducing=false,presentation=0,role=null,animation=Promise.resolve(),finished=false,openTimer=null;
+  const exit=globalThis.PointsGameExit?.bind(()=>{presentation++;clearTimeout(openTimer);});
   const sharing=globalThis.PointsResultShare.bind(()=>room?{run_id:room.run_id,mode:'friend'}:null);
   const inviteFriend=new URLSearchParams(location.search).get('invite');
   const animated=new Set();
@@ -131,6 +132,8 @@
   }
   function render(s){
     if(room&&room.run_id===s.run_id&&s.server_now<room.server_now)return;
+    exit?.watch(terminal(s)?null:`/api/friends/rooms/${encodeURIComponent(s.code)}/leave`);
+    if(exit?.closed)return;
     room=s;offset=s.server_now-Date.now();
     customNotice(s);
     stadium?.setOutfits?.(s.players[s.me]?.outfit,s.players[1-s.me]?.outfit);
@@ -175,14 +178,14 @@
     if(done)summary(s);present(s);
   }
   async function refresh(){
-    if(!code||polling||busy)return;polling=true;
+    if(!code||polling||busy||exit?.closed)return;polling=true;
     const own=code;
     try{const s=await api(roomPath());if(code!==own)return;error();render(s);}
     catch(e){if(code!==own)return;error(e.message);$('retry').hidden=false;for(const b of $('choices').children)b.disabled=true;}
     finally{polling=false;}
   }
   async function command(action,body={}){
-    if(busy)return;busy=true;error();for(const b of $('choices').children)b.disabled=true;
+    if(busy||exit?.closed)return;busy=true;error();for(const b of $('choices').children)b.disabled=true;
     try{const s=await api(roomPath()+'/'+action,body);busy=false;renderKey='';render(s);pending=null;}
     catch(e){error(e.message);busy=false;renderKey='';await refresh();}
     finally{busy=false;}
@@ -198,6 +201,7 @@
     if(startRequest?.difficulty!==difficulty)startRequest={difficulty,request_id:crypto.randomUUID()};
     try{
       if(!await globalThis.PointsModeIntro.show('friend'))return;
+      if(exit?.closed)return;
       const s=await api('friends/rooms',startRequest);remember(s.code);busy=false;render(s);startRequest=null;
       if(inviteFriend&&user){await api('players/friends/'+encodeURIComponent(inviteFriend)+'/invite',{run_id:s.run_id});$('lobby-status').textContent='Invitation sent to '+inviteFriend+'. You can also share the link.';}
     }
@@ -258,6 +262,7 @@
     el.textContent=s.custom_count?`${s.custom_count} unverified questions from the host. ${s.bank_fallback?'Bank questions follow if needed.':'A tie after the last question ends in a draw.'} No XP or rating.`:'';
   }
   async function init(){
+    if(exit)await exit.flush();
     page.classList.toggle('friend-motion-off',globalThis.PointsPreferences?.get?.().animations===false||globalThis.PointsPreferences?.get?.().reduced_motion===true);
     $('start').textContent='Create invitation';$('quiz-rules').textContent='5 penalties each · 15 seconds · No XP or rating';$('availability').hidden=true;
     try{user=await api('players/me');}catch(e){if(e.status!==401)throw e;}

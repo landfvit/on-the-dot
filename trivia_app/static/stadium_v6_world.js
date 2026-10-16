@@ -5,6 +5,7 @@
 import * as THREE from './vendor/three/three.module.min.js';
 import {V6_WORLD as C} from './stadium_config.js?v=28';
 import {kitPixels} from './kit_pixels.js?v=4';
+import {classicFootball} from './classic_ball.js?v=1';
 
 export function createStadiumWorld(scene) {
   const v=(x=0,y=0,z=0)=>new THREE.Vector3(x,y,z);
@@ -146,35 +147,10 @@ export function createStadiumWorld(scene) {
     map.colorSpace=THREE.SRGBColorSpace;map.needsUpdate=true;
     textures.add(map);textureCache.set(key,map);return map;
   }
-  // A 16px football with broad black panels and quiet grey seams. Four exact
-  // quarter-turns keep the silhouette crisp; no smoothing or image downloads.
-  // These are cosmetic pixels: the ball still follows the same 3D trajectory.
-  const football=[
-    '.....KKKKKK.....',
-    '...KKWWWWWWKK...',
-    '..KWWWKKKKWWWK..',
-    '.KWWWWKKKKWWWWK.',
-    '.KWWWWWGGWWWWWK.',
-    'KWWWWGGWWGGWWWWK',
-    'KKWWGWWKKWWGWWKK',
-    'KKKWWWKKKKWWWKKK',
-    'KKKWWWKKKKWWWKKK',
-    'KKWWGWKKKKWGWWKK',
-    'KWWWWGGKKGGWWWWK',
-    '.KWWGWWGGWWGWWK.',
-    '.KWWKKWWWWKKWWK.',
-    '..KWKKKGGKKKWK..',
-    '...KKSSSSSSKK...',
-    '.....KKKKKK.....',
-  ];
-  const ballFrames=[];let rotated=football;
-  for(let turn=0;turn<4;turn++){
-    ballFrames.push(texture(rotated,{K:C.colors.ballBlack,W:C.colors.ballWhite,G:0x9aa49a,S:0xd9dfd6}));
-    rotated=rotated[0].split('').map((_,x)=>rotated.map(row=>row[x]).reverse().join(''));
-  }
+  // The approved preview's stitched ball, with real rotating black/white
+  // panels. Keep the parent group so flight and held saves remain unchanged.
   const ball=new THREE.Group();ball.name='pixel-football';scene.add(ball);
-  const ballSprite=new THREE.Sprite(new THREE.SpriteMaterial({map:ballFrames[0],alphaTest:.5,depthWrite:false}));
-  ballSprite.scale.setScalar(C.penalty.ballRadius*2);ballSprite.renderOrder=9;ballSprite.name='pixel-football-sprite';ball.add(ballSprite);
+  const ballSprite=classicFootball(C.penalty.ballRadius);ball.add(ballSprite);
   function part(parent,rows,colors,width,height,pos,name,order=4) {
     const anchor=new THREE.Group();anchor.position.set(...pos);anchor.name=name;parent.add(anchor);
     const sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture(rows,colors),alphaTest:.5,depthWrite:false}));
@@ -308,10 +284,9 @@ export function createStadiumWorld(scene) {
   // physically simulated ball. The sprite atlas itself is never resampled.
   function prepareFrame(camera,renderHeight=240) {
     scene.updateMatrixWorld(true);
-    ballSprite.material.map=ballFrames[Math.floor(Math.abs(ball.rotation.z)*1.5)%ballFrames.length];
     const ballDepth=-ball.getWorldPosition(v()).applyMatrix4(camera.matrixWorldInverse).z;
     const ballPixelsPerUnit=renderHeight*camera.projectionMatrix.elements[5]/(2*Math.max(.01,ballDepth));
-    ballSprite.scale.setScalar(Math.max(C.penalty.ballRadius*2,C.penalty.minimumBallPixels/Math.max(.01,ballPixelsPerUnit)));
+    ballSprite.scale.setScalar(Math.max(1,C.penalty.minimumBallPixels/Math.max(.01,ballPixelsPerUnit)/(C.penalty.ballRadius*2)));
     // Keep the chosen kit on both the front and back of the animated figure.
     for(const figure of figures){
       const origin=figure.model.getWorldPosition(v());
@@ -374,7 +349,7 @@ export function createStadiumWorld(scene) {
   let theme='light';
   function setTheme(value){theme=value==='dark'?'dark':'light';}
   return {ball,pitch,keeperRig,strikerRig,rippleNet,shadows,setTheme,setRole,setOutfits,prepareFrame,
-    ballVisualSize:()=>ballSprite.scale.x,
+    ballVisualSize:()=>ballSprite.scale.x*C.penalty.ballRadius*2,
     dispose:()=>textures.forEach(map=>map.dispose()),
     inspect:()=>({theme,ballStyle:'pixel-art',markingsColor:paint.color.getHex(),
       keeperShirt:keeperRig.shirtColor(),strikerShirt:strikerRig.shirtColor(),

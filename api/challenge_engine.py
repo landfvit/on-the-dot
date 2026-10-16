@@ -149,15 +149,19 @@ def friend_tick(s,now):
     if s['phase'] in TERMINAL:return
     if now-s['created_at']>=s['rules']['max_match_ms']:
         friend_finish(s,now,'time_limit');return
+    # Closing the page normally sends /leave. A lost connection or killed
+    # browser cannot always deliver it, including while waiting in the lobby.
+    offline=[i for i,p in enumerate(s['players']) if now-p['seen']>s['rules']['reconnect_ms']]
+    if offline:
+        remaining=[i for i in range(len(s['players'])) if i not in offline]
+        friend_finish(s,now,'disconnect_forfeit',remaining[0] if len(remaining)==1 else None)
+        return
     if s['phase']=='COUNTDOWN' and now>=s['round']['opens_at']:
         s['phase']='ANSWERING';s['version']+=1
     if s['phase']=='ANSWERING' and now>=s['round']['deadline']:
         friend_resolve(s,s['round']['deadline'])
     # Next questions are scheduled by the route after checking both players'
     # connection state and replenishing a finite approved question deck.
-    if s['phase']=='RESOLVED' and now>=s['round']['next_at']:
-        offline=[i for i,p in enumerate(s['players']) if now-p['seen']>s['rules']['reconnect_ms']]
-        if offline:friend_finish(s,now,'disconnect_forfeit',1-offline[0] if len(offline)==1 else None)
 
 
 def friend_submit(s,player,round_id,option,request_id,now):

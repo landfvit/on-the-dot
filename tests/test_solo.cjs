@@ -6,7 +6,7 @@ const script=fs.readFileSync(require('node:path').join(__dirname,'../trivia_app/
 const shareScript=fs.readFileSync(require('node:path').join(__dirname,'../trivia_app/static/result_share.js'),'utf8');
 const questionScript=fs.readFileSync(require('node:path').join(__dirname,'../trivia_app/static/question_text.js'),'utf8');
 
-function setup(pageType='solo',withScene=false,stadium=undefined){
+function setup(pageType='solo',withScene=false,stadium=undefined,gameExit=undefined){
   const nodes=new Map(),requests=[],timers=[],stored=new Map(),shots=[],copied=[],sounds=[],radio={value:pageType==='account'?'login':'easy'};
   function element(tag='div'){
     let value='';const classes=new Set();
@@ -30,6 +30,7 @@ function setup(pageType='solo',withScene=false,stadium=undefined){
     setTimeout(fn,ms){const timer={fn,ms};timers.push(timer);return timer;},clearTimeout(timer){if(timer)timer.cancelled=true;},
     PenaltyScene:withScene?{shot:outcome=>shots.push(outcome),reset(){}}:undefined,
     PointsStadium:stadium,
+    PointsGameExit:gameExit,
     PointsAudio:{play:name=>sounds.push(name)},
     history:{replaceState(_state,_title,path){location.href=location.origin+path;location.search='';}},
     crypto:{randomUUID:()=>`request-${requests.length}`},setInterval(fn,ms){timers.push({fn,ms});},
@@ -51,6 +52,30 @@ async function boot(s,authenticated=true,active=null){
   reply(s.requests[1],catalog);await flush();
   reply(s.requests[2],{run:active,trial_available:!active});await flush();
 }
+
+test('pending page exits settle before any active-game lookup',async()=>{
+  const gate=deferred(),watched=[];
+  const controller={closed:false,flush:()=>gate.promise,watch:path=>watched.push(path)};
+  const s=setup('solo',false,undefined,{bind:()=>controller});
+  assert.equal(s.requests.length,0);
+  gate.resolve();await flush();await boot(s,true,run());
+  assert.equal(watched.at(-1),'/api/solo/runs/r1/leave');
+  s.get('leave').emit('click');reply(s.requests.at(-1),run({phase:'ABANDONED'}));await flush();
+  assert.equal(watched.at(-1),null);
+});
+
+test('leaving with a pending answer cannot revive the question',async()=>{
+  let onExit;const watched=[],controller={closed:false,flush:async()=>{},watch:path=>watched.push(path)};
+  const s=setup('solo',false,undefined,{bind(fn){onExit=fn;return controller;}});
+  await flush();await boot(s,true,run({phase:'ANSWERING',position:1,deadline:Date.now()+15000,
+    question:{text:'Question?',options:[{id:'0',text:'A'}]}}));
+  s.get('choices').children[0].emit('click');
+  controller.closed=true;onExit();
+  reply(s.requests.at(-1),run({phase:'REVIEW',position:1,question:{text:'Late response',options:[]}}));await flush();
+  assert.equal(s.get('question-title').textContent,'Question?');
+  const count=s.requests.length;s.timers.find(t=>t.ms===1000).fn();s.get('next').emit('click');
+  assert.equal(s.requests.length,count);
+});
 
 test('stadium intro holds first Next without starting the question clock',async()=>{
   let finish;const calls=[];

@@ -116,6 +116,7 @@
     const animatedShots=new Set(),scene=globalThis.PenaltyScene;
     const stadium=globalThis.PointsStadium;
     let stadiumRun=null,stadiumWaiting=false,presentation=0,presented='';
+    const exit=globalThis.PointsGameExit?.bind(()=>{presentation++;storage(null);});
     let nextRevealTimer=null,feedbackKey='',feedbackUntil=0;
     function syncNextPenalty(){
       clearTimeout(nextRevealTimer);
@@ -287,6 +288,8 @@
     }
     function render(next){
       if(run&&run.run_id===next.run_id&&next.server_now<run.server_now)return;
+      exit?.watch(['FINISHED','ABANDONED'].includes(next.phase)?null:`${base}/runs/${next.run_id}/leave`);
+      if(exit?.closed)return;
       const justFinished=run?.run_id===next.run_id&&!['FINISHED','ABANDONED'].includes(run.phase)&&['FINISHED','ABANDONED'].includes(next.phase);
       run=next;offset=next.server_now-Date.now();storage(['FINISHED','ABANDONED'].includes(run.phase)?null:run.run_id);
       updateClock();
@@ -368,14 +371,14 @@
       if(done&&!stadiumWaiting){$('result-heading').focus({preventScroll:true});xpResult?.reveal();}
     }
     async function refresh(){
-      if(!run||polling)return;polling=true;
+      if(!run||polling||exit?.closed)return;polling=true;
       const id=run.run_id,own=presentation;
       try{const next=await api(base+'/runs/'+id);if(run?.run_id!==id||own!==presentation)return;if(!$('retry').hidden)error('');render(next);$('retry').hidden=true;}
       catch(e){if(run?.run_id!==id||own!==presentation)return;error(e.message);rendered='';$('retry').hidden=false;for(const b of $('choices').children)b.disabled=true;}
       finally{polling=false;}
     }
     async function command(path,body){
-      if(busy||(path==='next'&&stadiumWaiting))return;busy=true;error('');for(const b of $('choices').children)b.disabled=true;$('next').disabled=true;
+      if(busy||exit?.closed||(path==='next'&&stadiumWaiting))return;busy=true;error('');for(const b of $('choices').children)b.disabled=true;$('next').disabled=true;
       try{const next=await api(`${base}/runs/${run.run_id}/${path}`,body);busy=false;rendered='';render(next);pending=null;}
       catch(e){error(e.message);busy=false;rendered='';await refresh();}
       finally{busy=false;syncNextPenalty();}
@@ -399,7 +402,7 @@
       e.preventDefault();if(busy||!catalogReady||(counts[difficulty()]||0)<minimum)return;busy=true;selection();error('');
       const category='ALL',topic='ALL',level=difficulty();
       if(!startRequest||startRequest.category!==category||startRequest.topic!==topic||startRequest.difficulty!==level)startRequest={category,topic,difficulty:level,request_id:crypto.randomUUID()};
-      try{if(globalThis.PointsModeIntro&&!await globalThis.PointsModeIntro.show(daily?'daily':'solo'))return;const next=await api(base+'/runs',daily?{request_id:startRequest.request_id}:startRequest);busy=false;render(next);startRequest=null;}catch(e){error(e.message);if(e.status===409){try{await loadCatalog();}catch(refreshError){error(refreshError.message);}}}finally{busy=false;selection();}
+      try{if(globalThis.PointsModeIntro&&!await globalThis.PointsModeIntro.show(daily?'daily':'solo'))return;if(exit?.closed)return;const next=await api(base+'/runs',daily?{request_id:startRequest.request_id}:startRequest);busy=false;render(next);startRequest=null;}catch(e){error(e.message);if(e.status===409){try{await loadCatalog();}catch(refreshError){error(refreshError.message);}}}finally{busy=false;selection();}
     });
     function updateClock(){
       if(!run)return;
@@ -411,6 +414,7 @@
     setInterval(updateClock,100);
     setInterval(()=>{if(run&&run.phase==='ANSWERING'&&!busy)refresh();},1000);
     setInterval(()=>{if(!run&&!busy&&!catalogLoading&&Date.now()+offset>=catalogReset)loadCatalog().catch(e=>error(e.message));},30000);
+    if(exit)await exit.flush();
     pitch();user=await currentUser();stadium?.setOutfits?.(user?.outfit,null);if(user?.preferences)globalThis.PointsPreferences?.set(user.preferences);
     if(daily&&!user){$('quiz-start').hidden=true;$('mode-auth').hidden=false;$('mode-signin').href='/account?next=/daily';$('mode-register').href='/account?mode=register&next=/daily';return;}
     await loadCatalog();

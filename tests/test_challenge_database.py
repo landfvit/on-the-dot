@@ -118,6 +118,53 @@ class ChallengeDatabaseTests(SoloDatabaseTests):
         with self.connection() as conn:
             self.assertEqual(conn.execute('SELECT count(*) n FROM game_mode_runs').fetchone()['n'],1)
 
+    def test_beacon_leave_ends_daily_once_and_keeps_the_scored_attempt(self):
+        s=self.daily();path='/api/daily/runs/'+s['run_id']
+        q=self.mode_row(s['run_id'])['state']['deck'][0]
+        self.client.post(path+'/next',json={'previous':0})
+        self.client.post(path+'/answers',json={'position':1,'option_id':q['correct'],'request_id':str(uuid4())})
+        # sendBeacon uses an empty POST, not a JSON request body.
+        for _ in range(2):
+            response=self.client.post(path+'/leave',headers={'Origin':'http://testserver'})
+            self.assertEqual(response.status_code,200,response.text)
+            self.assertEqual(response.json()['phase'],'ABANDONED')
+        self.assertIsNone(self.client.get('/api/daily/active').json()['run'])
+        self.assertEqual(self.client.post(path+'/next',json={'previous':1}).status_code,409)
+        self.assertFalse(self.daily()['survival']['ranked'])
+        with self.connection() as conn:
+            self.assertEqual(conn.execute('SELECT count(*) n FROM game_daily_scores').fetchone()['n'],1)
+            self.assertEqual(conn.execute('SELECT count(*) n FROM game_mode_xp').fetchone()['n'],1)
+
+    def test_beacon_leave_finishes_friend_duel_for_both_players_without_rewards(self):
+        path,s=self.duel()
+        for _ in range(2):
+            response=self.client.post(path+'/leave',headers={'Origin':'http://testserver'})
+            self.assertEqual(response.status_code,200,response.text)
+            self.assertEqual(response.json()['phase'],'FINISHED')
+        opponent=self.friend.get(path).json()
+        self.assertEqual(opponent['winner'],opponent['me'])
+        for client in (self.client,self.friend):
+            self.assertIsNone(client.get('/api/friends/active').json()['code'])
+        with self.connection() as conn:
+            self.assertEqual(conn.execute('SELECT count(*) n FROM game_mode_members WHERE active').fetchone()['n'],0)
+            self.assertEqual(conn.execute('SELECT count(*) n FROM game_mode_xp').fetchone()['n'],0)
+
+    def test_lobby_disconnect_is_persisted_before_returning_player_can_rejoin(self):
+        created=self.client.post('/api/friends/rooms',json={'request_id':str(uuid4()),'difficulty':'easy'}).json()
+        path='/api/friends/rooms/'+created['code']
+        self.friend.post(path+'/join')
+        row=self.mode_row(created['run_id']);s=row['state'];now=s['created_at']+31000
+        s['players'][1]['seen']=now
+        with self.connection() as conn:
+            conn.execute('UPDATE game_mode_runs SET state=%s WHERE run_id=%s',(Jsonb(s),row['run_id']))
+        with patch('api.challenge_routes.now_ms',return_value=now):
+            response=self.client.get(path)
+            self.assertEqual(response.status_code,200,response.text)
+            self.assertEqual(response.json()['phase'],'FINISHED')
+            self.assertEqual(response.json()['winner'],1)
+        with self.connection() as conn:
+            self.assertEqual(conn.execute('SELECT count(*) n FROM game_mode_members WHERE active').fetchone()['n'],0)
+
     def test_daily_timeout_commits_even_if_late_answer_rejected(self):
         s=self.daily();path='/api/daily/runs/'+s['run_id']
         self.client.post(path+'/next',json={'previous':0});row=self.mode_row(s['run_id'])
